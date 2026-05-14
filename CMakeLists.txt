@@ -20,6 +20,8 @@ include_directories(
 # Source files
 set(SOURCES
     src/main.c
+    src/app_ui.c
+    src/nuklear_impl.c
 )
 
 # Executable
@@ -32,8 +34,3 @@ target_link_libraries(nuklear_cherry_usb
     m
     dl
 )
-
-# Since we're using CherryUSB as a skeleton, we don't compile its .c files
-# unless we have a specific hardware target, which would add a lot of "bloat"
-# and complexity for a "no working features" request.
-# We just include the headers to show the intention.
