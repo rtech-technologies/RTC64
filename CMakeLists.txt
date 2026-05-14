@@ -1,0 +1,39 @@
+cmake_minimum_required(VERSION 3.10)
+project(NuklearCherryUSB C)
+
+set(CMAKE_C_STANDARD 99)
+
+# Find SDL2
+find_package(SDL2 REQUIRED)
+find_package(OpenGL REQUIRED)
+
+# Include directories
+include_directories(
+    include
+    external/CherryUSB/core
+    external/CherryUSB/common
+    external/CherryUSB/class/hub
+    ${SDL2_INCLUDE_DIRS}
+    ${OPENGL_INCLUDE_DIR}
+)
+
+# Source files
+set(SOURCES
+    src/main.c
+)
+
+# Executable
+add_executable(nuklear_cherry_usb ${SOURCES})
+
+# Libraries
+target_link_libraries(nuklear_cherry_usb
+    ${SDL2_LIBRARIES}
+    ${OPENGL_LIBRARIES}
+    m
+    dl
+)
+
+# Since we're using CherryUSB as a skeleton, we don't compile its .c files
+# unless we have a specific hardware target, which would add a lot of "bloat"
+# and complexity for a "no working features" request.
+# We just include the headers to show the intention.
