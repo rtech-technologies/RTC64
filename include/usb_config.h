@@ -1,15 +1,18 @@
 #ifndef USB_CONFIG_H
 #define USB_CONFIG_H
 
-#include <stdio.h>
-
 #define USBD_DBGPRINTF(...)
 #define USBH_DBGPRINTF(...)
 
-#define CONFIG_USB_PRINTF printf
+#define CONFIG_USB_PRINTF(...)
+
+/* Common configurations */
+#define CONFIG_USB_ALIGN_SIZE 4
+#define USB_NOCACHE_RAM_SECTION
 
 /* Device configurations */
 #define CONFIG_USBDEV_MAX_BUS 1
+#define CONFIG_USBDEV_REQUEST_BUFFER_LEN 256
 
 /* Host configurations */
 #define CONFIG_USBHOST_MAX_BUS 1
@@ -18,5 +21,8 @@
 #define CONFIG_USBHOST_MAX_INTF_ALTSETTINGS 1
 #define CONFIG_USBHOST_MAX_INTERFACES 4
 #define CONFIG_USBHOST_MAX_EHPORTS 4
+#define CONFIG_USBHOST_REQUEST_BUFFER_LEN 512
+#define CONFIG_USBHOST_MAX_EXTHUBS 1
+#define CONFIG_USBHOST_CONTROL_TRANSFER_TIMEOUT 500
 
 #endif

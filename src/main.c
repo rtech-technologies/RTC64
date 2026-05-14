@@ -51,6 +51,7 @@ int main(int argc, char* argv[])
         nk_sdl_font_stash_begin(&atlas);
         nk_sdl_font_stash_end();
     }
+    ui_init_style(ctx);
 
     struct app_state app;
     memset(&app, 0, sizeof(app));

@@ -3,13 +3,29 @@
 #include <stdbool.h>
 #include "limine.h"
 
-// Note: We use the Nuklear header but NOT the NK_IMPLEMENTATION here
-// to avoid bloat in the kernel skeleton.
+#define NK_INCLUDE_FIXED_TYPES
+#define NK_INCLUDE_STANDARD_VARARGS
+#define NK_INCLUDE_DEFAULT_ALLOCATOR
+// No NK_IMPLEMENTATION here
 #include "nuklear.h"
 #include "app_ui.h"
 #include "services.h"
+#include "drivers/video_nuklear.h"
+#include "usbd_core.h"
+#include "usbh_core.h"
 
-service_table_t g_services = { NULL, NULL, NULL, NULL };
+service_table_t g_services = { (void*)1, NULL, NULL, NULL };
+
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_framebuffer_request framebuffer_request = {
+    .id = LIMINE_FRAMEBUFFER_REQUEST,
+    .revision = 0
+};
+
+static float font_get_width(nk_handle handle, float height, const char *text, int len) {
+    (void)handle; (void)height; (void)text;
+    return (float)len * 8.0f;
+}
 
 static void hcf(void) {
     __asm__ ("cli");
@@ -17,11 +33,35 @@ static void hcf(void) {
 }
 
 void _start(void) {
-    // Basic kernel entry point
-    // In a complete implementation, we would:
-    // 1. Initialize a software-rendering backend for Nuklear.
-    // 2. Map the Limine framebuffer to Nuklear's draw commands.
-    // 3. Loop and call ui_render() to draw the GUI.
+    if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
+        hcf();
+    }
 
-    hcf();
+    struct limine_framebuffer *fb = framebuffer_request.response->framebuffers[0];
+
+    struct nk_context ctx;
+    struct nk_user_font font;
+    font.userdata = nk_handle_ptr(0);
+    font.height = 8.0f;
+    font.width = font_get_width;
+
+    nk_init_default(&ctx, &font);
+    ui_init_style(&ctx);
+
+    /* Initialize CherryUSB stacks */
+    usbd_initialize(0, 0, NULL); // Port 0, dummy reg base
+    usbh_initialize(0, 0, NULL); // Port 0, dummy reg base
+
+    struct app_state app;
+    app.current_state = STATE_LOGIN;
+    app.progress = 0;
+    app.install_started = 0;
+
+    while (1) {
+        ui_render(&ctx, &app, fb->width, fb->height);
+        nk_software_render(&ctx, fb->address, fb->width, fb->height, fb->pitch);
+
+        // Simple delay
+        for (volatile int i = 0; i < 10000000; i++);
+    }
 }
