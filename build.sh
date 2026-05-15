@@ -1,16 +1,41 @@
 #!/bin/bash
 set -e
 
-echo "=== Building R-TECH OS Skeleton ==="
+echo "=== R-TECH OS Setup & Build ==="
 
-echo "[1/2] Building Hosted SDL2 Environment..."
+SETUP_ONLY=false
+if [ "$1" == "--setup-only" ]; then
+    SETUP_ONLY=true
+fi
+
+# Dependency Installation
+if [ -f /etc/debian_version ]; then
+    echo "[0/3] Installing System Dependencies (Requires sudo)..."
+    sudo apt-get update
+    sudo apt-get install -y build-essential cmake libsdl2-dev git nasm xorriso
+fi
+
+# Limine Setup
+if [ ! -d "external/limine" ]; then
+    echo "[1/3] Cloning Limine Bootloader..."
+    mkdir -p external
+    git clone https://github.com/limine-bootloader/limine.git external/limine --branch=v7.x-binary --depth=1
+    cp external/limine/limine.h kernel/limine.h
+fi
+
+if [ "$SETUP_ONLY" = true ]; then
+    echo "Setup Complete."
+    exit 0
+fi
+
+echo "[2/3] Building Hosted SDL2 Environment..."
 mkdir -p build
 cd build
 cmake ..
 make
 cd ..
 
-echo "[2/2] Building Freestanding x86_64 Kernel..."
+echo "[3/3] Building Freestanding x86_64 Kernel..."
 make -C kernel
 
 echo "=== Build Complete! ==="

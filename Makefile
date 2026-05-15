@@ -1,6 +1,10 @@
-.PHONY: all clean hosted kernel
+.PHONY: all clean hosted kernel setup
 
-all: hosted kernel
+all: setup hosted kernel
+
+setup:
+	chmod +x build.sh
+	./build.sh --setup-only || true
 
 hosted:
 	mkdir -p build
