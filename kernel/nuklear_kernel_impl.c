@@ -5,16 +5,36 @@
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_VARARGS
 #define NK_INCLUDE_DEFAULT_ALLOCATOR
+#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+#define NK_INCLUDE_FONT_BAKING
+#define NK_INCLUDE_DEFAULT_FONT
 #define NK_IMPLEMENTATION
 #include "nuklear.h"
 
 /* Stub missing math/string functions for the kernel environment */
 double pow(double x, double y) { (void)x; (void)y; return 0; }
 double fmod(double x, double y) { (void)x; (void)y; return 0; }
-double sqrt(double x) { (void)x; return 0; }
+double sqrt(double x) {
+    if (x <= 0) return 0;
+    double res = x;
+    for(int i=0; i<10; i++) res = 0.5 * (res + x/res);
+    return res;
+}
+double floor(double x) {
+    int i = (int)x;
+    return (double)(x < i ? i - 1 : i);
+}
+double ceil(double x) {
+    int i = (int)x;
+    return (double)(x > i ? i + 1 : i);
+}
 double cos(double x) { (void)x; return 0; }
 double acos(double x) { (void)x; return 0; }
 double fabs(double x) { return x < 0 ? -x : x; }
+
+void qsort(void *base, size_t nmemb, size_t size, int (*compar)(const void *, const void *)) {
+    (void)base; (void)nmemb; (void)size; (void)compar;
+}
 size_t strlen(const char* s) {
     size_t i = 0;
     while(s[i]) i++;

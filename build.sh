@@ -17,10 +17,16 @@ fi
 
 # Limine Setup
 if [ ! -d "external/limine" ]; then
-    echo "[1/3] Cloning Limine Bootloader..."
+    echo "[1/4] Cloning Limine Bootloader..."
     mkdir -p external
     git clone https://github.com/limine-bootloader/limine.git external/limine --branch=v7.x-binary --depth=1
     cp external/limine/limine.h kernel/limine.h
+fi
+
+# CherryUSB Setup
+if [ ! -d "external/CherryUSB" ]; then
+    echo "[2/4] Cloning CherryUSB..."
+    git clone https://github.com/cherry-embedded/CherryUSB.git external/CherryUSB --depth=1
 fi
 
 if [ "$SETUP_ONLY" = true ]; then
@@ -28,14 +34,14 @@ if [ "$SETUP_ONLY" = true ]; then
     exit 0
 fi
 
-echo "[2/3] Building Hosted SDL2 Environment..."
+echo "[3/4] Building Hosted SDL2 Environment..."
 mkdir -p build
 cd build
 cmake ..
 make
 cd ..
 
-echo "[3/3] Building Freestanding x86_64 Kernel..."
+echo "[4/4] Building Freestanding x86_64 Kernel..."
 make -C kernel
 
 echo "=== Build Complete! ==="

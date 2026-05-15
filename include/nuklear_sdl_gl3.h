@@ -14,7 +14,13 @@
 #define NK_SDL_GL3_H_
 
 #include <SDL2/SDL.h>
+
+#ifdef __APPLE__
+#include <OpenGL/gl3.h>
+#else
+#define GL_GLEXT_PROTOTYPES
 #include <SDL2/SDL_opengl.h>
+#endif
 
 NK_API struct nk_context*   nk_sdl_init(SDL_Window *win);
 NK_API void                 nk_sdl_font_stash_begin(struct nk_font_atlas **atlas);
