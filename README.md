@@ -2,6 +2,9 @@
 
 This project provides a GUI skeleton using the Nuklear immediate mode library, integrated with the CherryUSB stack, and prepared for a kernel environment using the Limine bootloader.
 
+## 🖼️ UI Preview
+You can see what the "R-TECH" desktop environment looks like by opening **`preview.html`** in your web browser. This provides a high-fidelity mockup of the GUI theme and layout.
+
 ## Project Structure
 
 - `src/`: Hosted application source code (SDL2/OpenGL3).

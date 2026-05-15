@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>R-TECH OS UI Preview</title>
+    <style>
+        :root {
+            --bg-color: #0a0f19;
+            --window-bg: #0a0f19;
+            --header-bg: #141e32;
+            --border-color: #285078;
+            --text-color: #46c8ff;
+            --button-bg: #192d4b;
+            --button-hover: #234169;
+            --accent-glow: rgba(70, 200, 255, 0.2);
+        }
+
+        body {
+            background-color: #050505;
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Desktop Area */
+        .desktop {
+            flex-grow: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #0a1a2f 0%, #050505 100%);
+        }
+
+        .watermark {
+            position: absolute;
+            top: 50px;
+            right: 50px;
+            text-align: right;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .watermark h1 { font-size: 24px; margin: 0; }
+        .watermark p { font-size: 14px; margin: 0; }
+
+        /* Window Mockup */
+        .window {
+            position: absolute;
+            top: 100px;
+            left: 100px;
+            width: 600px;
+            background-color: var(--window-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 0 20px rgba(0,0,0,0.5), 0 0 5px var(--accent-glow);
+        }
+
+        .window-header {
+            background-color: var(--header-bg);
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            cursor: move;
+        }
+
+        .window-title { font-weight: bold; font-size: 14px; }
+        .window-controls span { margin-left: 8px; cursor: pointer; }
+
+        .window-content {
+            padding: 15px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .shell-line { margin-bottom: 5px; }
+        .cursor { display: inline-block; width: 8px; height: 15px; background-color: var(--text-color); animation: blink 1s infinite; }
+
+        @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+
+        hr { border: 0; border-top: 1px solid var(--border-color); margin: 10px 0; }
+
+        .btn {
+            background-color: var(--button-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 5px 15px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .btn:hover { background-color: var(--button-hover); }
+
+        /* Taskbar */
+        .taskbar {
+            height: 40px;
+            background-color: var(--window-bg);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            z-index: 100;
+        }
+
+        .start-btn {
+            background-color: var(--button-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 4px 12px;
+            font-weight: bold;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .taskbar-item {
+            padding: 4px 12px;
+            border: 1px solid var(--border-color);
+            font-size: 12px;
+            margin-right: 5px;
+            background: #101a30;
+        }
+
+        .clock {
+            margin-left: auto;
+            font-size: 12px;
+        }
+
+        /* Launcher Menu */
+        .launcher {
+            position: absolute;
+            bottom: 40px;
+            left: 0;
+            width: 200px;
+            background-color: var(--window-bg);
+            border: 1px solid var(--border-color);
+            border-bottom: 0;
+            display: none; /* Hidden by default in preview */
+        }
+
+        .launcher-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .launcher-item:hover { background-color: var(--button-hover); }
+    </style>
+</head>
+<body>
+    <div class="desktop">
+        <div class="watermark">
+            <h1>R-TECH RESEARCH</h1>
+            <p>CORE SYSTEM v0.1.0-alpha</p>
+        </div>
+
+        <div class="window">
+            <div class="window-header">
+                <span class="window-title">Terminal - root@rtech:~</span>
+                <div class="window-controls">
+                    <span>_</span><span>[ ]</span><span>X</span>
+                </div>
+            </div>
+            <div class="window-content">
+                <div class="shell-line">R-TECH OS v0.1.0-alpha (Freestanding x86_64)</div>
+                <hr>
+                <div class="shell-line">root@rtech:~# ls /dev</div>
+                <div class="shell-line">usb0  sda0  tty0  fb0</div>
+                <div class="shell-line">root@rtech:~# <span class="cursor"></span></div>
+                <br>
+                <button class="btn">Run Benchmark</button>
+            </div>
+        </div>
+
+        <div class="launcher" style="display: block; bottom: 40px; left: 10px; border: 1px solid var(--border-color);">
+            <div class="launcher-item">Terminal</div>
+            <div class="launcher-item">File Explorer</div>
+            <div class="launcher-item">System Settings</div>
+            <hr style="margin: 0;">
+            <div class="launcher-item">Logout</div>
+        </div>
+    </div>
+
+    <div class="taskbar">
+        <div class="start-btn">R-TECH</div>
+        <div class="taskbar-item">Terminal</div>
+        <div class="clock">12:00 PM</div>
+    </div>
+</body>
+</html>

@@ -44,4 +44,4 @@ nk_software_renderer.o: ../src/nk_software_renderer.c
 	$(CC) $(CFLAGS) -c ../src/nk_software_renderer.c -o nk_software_renderer.o
 
 clean:
-	rm -f kernel $(OBJS)
+	rm -f kernel $(OBJS) rtech_gui.a
