@@ -13,8 +13,9 @@
 #include "nk_software_renderer.h"
 #include "usbd_core.h"
 #include "usbh_core.h"
+#include "hal.h"
 
-service_table_t g_services = { (void*)1, NULL, NULL, NULL };
+service_table_t g_services = { (void*)1, (void*)1, (void*)1, (void*)1 };
 
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_framebuffer_request framebuffer_request = {
@@ -48,9 +49,19 @@ void _start(void) {
     nk_init_default(&ctx, &font);
     ui_init_style(&ctx);
 
-    /* Initialize CherryUSB stacks */
-    usbd_initialize(0, 0, NULL); // Port 0, dummy reg base
-    usbh_initialize(0, 0, NULL); // Port 0, dummy reg base
+    /* Initialize Hardware Abstraction Layer */
+    hal_input_init();
+    hal_storage_init();
+
+    /* Expansion point drivers */
+    void hal_nvme_init(void);
+    void hal_sata_init(void);
+    void hal_satapi_init(void);
+    hal_nvme_init();
+    hal_sata_init();
+    hal_satapi_init();
+
+    hal_usb_init();
 
     struct app_state app;
     app.current_state = STATE_LOGIN;

@@ -9,6 +9,7 @@ find_package(SDL2 REQUIRED)
 # Include directories
 include_directories(
     include
+    kernel
     external/CherryUSB/core
     external/CherryUSB/common
     external/CherryUSB/class/hub
@@ -21,6 +22,9 @@ set(SOURCES
     src/app_ui.c
     src/nuklear_impl.c
     src/nk_software_renderer.c
+    kernel/storage.c
+    kernel/input.c
+    kernel/usb_stubs.c
 )
 
 # Executable

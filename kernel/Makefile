@@ -2,12 +2,16 @@ CC = gcc
 LD = ld
 
 CFLAGS = -Wall -Wextra -std=c11 -ffreestanding -fno-stack-protector -fno-stack-check -fno-lto -fPIE -m64 -march=x86-64 \
-         -I../include -I. -I../external/CherryUSB/common -I../external/CherryUSB/core -I../external/CherryUSB/class/hub
+         -I../include -I. -I../external/CherryUSB/common -I../external/CherryUSB/core -I../external/CherryUSB/class/hub \
+         -I../external/CherryUSB/class/msc -I../external/CherryUSB/class/hid -I../external/CherryUSB/port/ehci \
+         -include usb_config.h
 
 LDFLAGS = -nostdlib -static -m elf_x86_64 -z max-page-size=0x1000 -T linker.ld
 
 OBJS = kernel.o app_ui.o nuklear_kernel_impl.o nk_software_renderer.o \
-       usb_osal.o usbd_core.o usbh_core.o usb_stubs.o
+       usb_osal.o usbd_core.o usbh_core.o usb_stubs.o \
+       storage.o input.o usb_hal.o \
+       usbh_msc.o usbh_hid.o usb_hc_ehci.o
 
 .PHONY: all clean
 
@@ -16,21 +20,7 @@ all: kernel
 kernel: $(OBJS)
 	$(LD) $(LDFLAGS) $(OBJS) -o kernel
 
-bin: $(OBJS)
-	ar rcs rtech_gui.a $(OBJS)
-
-usb_stubs.o: usb_stubs.c
-	$(CC) $(CFLAGS) -c usb_stubs.c -o usb_stubs.o
-
-usb_osal.o: usb_osal.c
-	$(CC) $(CFLAGS) -c usb_osal.c -o usb_osal.o
-
-usbd_core.o: ../external/CherryUSB/core/usbd_core.c
-	$(CC) $(CFLAGS) -c ../external/CherryUSB/core/usbd_core.c -o usbd_core.o
-
-usbh_core.o: ../external/CherryUSB/core/usbh_core.c
-	$(CC) $(CFLAGS) -c ../external/CherryUSB/core/usbh_core.c -o usbh_core.o
-
+# Core Kernel Components
 kernel.o: kernel.c
 	$(CC) $(CFLAGS) -c kernel.c -o kernel.o
 
@@ -43,5 +33,39 @@ nuklear_kernel_impl.o: nuklear_kernel_impl.c
 nk_software_renderer.o: ../src/nk_software_renderer.c
 	$(CC) $(CFLAGS) -c ../src/nk_software_renderer.c -o nk_software_renderer.o
 
+# HAL Components
+storage.o: storage.c
+	$(CC) $(CFLAGS) -c storage.c -o storage.o
+
+input.o: input.c
+	$(CC) $(CFLAGS) -c input.c -o input.o
+
+usb_hal.o: usb_hal.c
+	$(CC) $(CFLAGS) -c usb_hal.c -o usb_hal.o
+
+# CherryUSB Stack
+usb_osal.o: usb_osal.c
+	$(CC) $(CFLAGS) -c usb_osal.c -o usb_osal.o
+
+usbd_core.o: ../external/CherryUSB/core/usbd_core.c
+	$(CC) $(CFLAGS) -c ../external/CherryUSB/core/usbd_core.c -o usbd_core.o
+
+usbh_core.o: ../external/CherryUSB/core/usbh_core.c
+	$(CC) $(CFLAGS) -c ../external/CherryUSB/core/usbh_core.c -o usbh_core.o
+
+usb_stubs.o: usb_stubs.c
+	$(CC) $(CFLAGS) -c usb_stubs.c -o usb_stubs.o
+
+# CherryUSB Classes
+usbh_msc.o: ../external/CherryUSB/class/msc/usbh_msc.c
+	$(CC) $(CFLAGS) -c ../external/CherryUSB/class/msc/usbh_msc.c -o usbh_msc.o
+
+usbh_hid.o: ../external/CherryUSB/class/hid/usbh_hid.c
+	$(CC) $(CFLAGS) -c ../external/CherryUSB/class/hid/usbh_hid.c -o usbh_hid.o
+
+# CherryUSB Port (EHCI for QEMU)
+usb_hc_ehci.o: ../external/CherryUSB/port/ehci/usb_hc_ehci.c
+	$(CC) $(CFLAGS) -c ../external/CherryUSB/port/ehci/usb_hc_ehci.c -o usb_hc_ehci.o
+
 clean:
-	rm -f kernel $(OBJS) rtech_gui.a
+	rm -f kernel $(OBJS)
