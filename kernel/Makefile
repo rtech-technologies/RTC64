@@ -16,6 +16,9 @@ all: kernel
 kernel: $(OBJS)
 	$(LD) $(LDFLAGS) $(OBJS) -o kernel
 
+bin: $(OBJS)
+	ar rcs rtech_gui.a $(OBJS)
+
 usb_stubs.o: usb_stubs.c
 	$(CC) $(CFLAGS) -c usb_stubs.c -o usb_stubs.o
 

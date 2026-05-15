@@ -17,41 +17,29 @@ If a service is not provided (NULL pointer in the table), the corresponding GUI 
 
 ## How to Build and Test
 
-### Single-Command Build (All Targets)
-
-To build both the hosted SDL2 application and the freestanding kernel at once:
+### 🚀 One-Command Demo
+To automatically install dependencies, build the OS, and launch it in QEMU:
 ```bash
-make
-```
-or
-```bash
-chmod +x build.sh
-./build.sh
+make run
 ```
 
-### Hosted Application (Linux/macOS/Windows)
+### 📦 Standalone Binary for Other OSs
+To generate a statically linked library (`rtech_gui.a`) that you can link into **your own operating system**:
+```bash
+make bin
+```
+The result will be at `dist/rtech_gui.a`. You can then link this into your project and call `ui_render` and `nk_sw_render`.
 
-To test the GUI on your OS:
+### 🖥️ Hosted Development (Linux/macOS)
+To test the GUI quickly on your current OS using SDL2:
+1. **Build**: `make hosted`
+2. **Run**: `./build/nuklear_cherry_usb`
 
-1. **Requirements**: SDL2, OpenGL, CMake, GCC/Clang.
-2. **Build**:
-   ```bash
-   make hosted
-   ```
-3. **Run**:
-   ```bash
-   ./build/nuklear_cherry_usb
-   ```
-
-### Kernel (x86_64)
-
-To build the skeleton kernel:
-
-1. **Requirements**: GCC (x86_64), GNU LD.
-2. **Build**:
-   ```bash
-   make kernel
-   ```
+### 🛠️ Kernel Development
+To build only the freestanding x86_64 kernel:
+```bash
+make kernel
+```
 3. **Testing in QEMU**:
    To test the kernel, you would typically create an ISO image using `limine` and `xorriso`, then run:
    ```bash

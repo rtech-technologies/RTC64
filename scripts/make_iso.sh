@@ -39,12 +39,11 @@ cp "$LIMINE_DIR/BOOTIA32.EFI" "$ISO_DIR/EFI/BOOT/"
 
 # Create the ISO
 # Using paths relative to ISO_DIR for -b and --efi-boot
-# Some xorriso versions are picky about the order and presence of EFI partitions
 xorriso -as mkisofs -b boot/limine/limine-bios-cd.bin \
     -no-emul-boot -boot-load-size 4 -boot-info-table \
     --efi-boot boot/limine/limine-uefi-cd.bin \
-    -efi-boot-part --protective-msdos-label \
-    -o "$ISO_FILE" "$ISO_DIR"
+    -efi-boot-part \
+    -o os.iso "$ISO_DIR"
 
 # Install Limine deployment tool
 "$LIMINE_DIR/limine" bios-install "$ISO_FILE"
