@@ -1,6 +1,7 @@
 #ifndef APP_UI_H
 #define APP_UI_H
 
+#include "nuklear_config.h"
 #include "nuklear.h"
 
 struct app_state {

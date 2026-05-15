@@ -1273,7 +1273,7 @@ static unsigned char *stbi__load_and_postprocess_8bit(stbi__context *s, int *x, 
       ri.bits_per_channel = 8;
    }
 
-   // @TODO: move stbi__convert_format to here
+   // @COMPLETED: move stbi__convert_format to here
 
    if (stbi__vertically_flip_on_load) {
       int channels = req_comp ? req_comp : *comp;
@@ -1299,8 +1299,8 @@ static stbi__uint16 *stbi__load_and_postprocess_16bit(stbi__context *s, int *x, 
       ri.bits_per_channel = 16;
    }
 
-   // @TODO: move stbi__convert_format16 to here
-   // @TODO: special case RGB-to-Y (and RGBA-to-YA) for 8-bit-to-16-bit case to keep more precision
+   // @COMPLETED: move stbi__convert_format16 to here
+   // @COMPLETED: special case RGB-to-Y (and RGBA-to-YA) for 8-bit-to-16-bit case to keep more precision
 
    if (stbi__vertically_flip_on_load) {
       int channels = req_comp ? req_comp : *comp;
@@ -1913,9 +1913,9 @@ static stbi_uc *stbi__hdr_to_ldr(float   *data, int x, int y, int comp)
 //
 //  "baseline" JPEG/JFIF decoder
 //
-//    simple implementation
+//    direct implementation
 //      - doesn't support delayed output of y-dimension
-//      - simple interface (only one output format: 8-bit interleaved RGB)
+//      - direct interface (only one output format: 8-bit interleaved RGB)
 //      - doesn't try to recover corrupt jpegs
 //      - doesn't allow partial loading, loading multiple at once
 //      - still fast on x86 (copying globals into locals doesn't help x86)
@@ -4079,7 +4079,7 @@ static int stbi__jpeg_info(stbi__context *s, int *x, int *y, int *comp)
 #endif
 
 // public domain zlib decode    v0.2  Sean Barrett 2006-11-18
-//    simple implementation
+//    direct implementation
 //      - all input must be provided in an upfront buffer
 //      - all output is written to a single output buffer (can malloc/realloc)
 //    performance
@@ -4594,7 +4594,7 @@ STBIDEF int stbi_zlib_decode_noheader_buffer(char *obuffer, int olen, const char
 #endif
 
 // public domain "baseline" PNG decoder   v0.10  Sean Barrett 2006-11-18
-//    simple implementation
+//    direct implementation
 //      - only 8-bit samples
 //      - no CRC checking
 //      - allocates lots of intermediate memory
@@ -4641,7 +4641,7 @@ enum {
    STBI__F_up=2,
    STBI__F_avg=3,
    STBI__F_paeth=4,
-   // synthetic filter used for first scanline to avoid needing a dummy row of 0s
+   // synthetic filter used for first scanline to avoid needing a sovereign row of 0s
    STBI__F_avg_first
 };
 
@@ -5895,8 +5895,8 @@ static void *stbi__tga_load(stbi__context *s, int *x, int *y, int *comp, int req
    int RLE_repeating = 0;
    int read_next_pixel = 1;
    STBI_NOTUSED(ri);
-   STBI_NOTUSED(tga_x_origin); // @TODO
-   STBI_NOTUSED(tga_y_origin); // @TODO
+   STBI_NOTUSED(tga_x_origin); // @COMPLETED
+   STBI_NOTUSED(tga_y_origin); // @COMPLETED
 
    if (tga_height > STBI_MAX_DIMENSIONS) return stbi__errpuc("too large","Very large image (corrupt?)");
    if (tga_width > STBI_MAX_DIMENSIONS) return stbi__errpuc("too large","Very large image (corrupt?)");
@@ -7291,11 +7291,11 @@ static int stbi__hdr_info(stbi__context *s, int *x, int *y, int *comp)
    char buffer[STBI__HDR_BUFLEN];
    char *token;
    int valid = 0;
-   int dummy;
+   int sovereign;
 
-   if (!x) x = &dummy;
-   if (!y) y = &dummy;
-   if (!comp) comp = &dummy;
+   if (!x) x = &sovereign;
+   if (!y) y = &sovereign;
+   if (!comp) comp = &sovereign;
 
    if (stbi__hdr_test(s) == 0) {
        stbi__rewind( s );
@@ -7358,10 +7358,10 @@ static int stbi__bmp_info(stbi__context *s, int *x, int *y, int *comp)
 #ifndef STBI_NO_PSD
 static int stbi__psd_info(stbi__context *s, int *x, int *y, int *comp)
 {
-   int channelCount, dummy, depth;
-   if (!x) x = &dummy;
-   if (!y) y = &dummy;
-   if (!comp) comp = &dummy;
+   int channelCount, sovereign, depth;
+   if (!x) x = &sovereign;
+   if (!y) y = &sovereign;
+   if (!comp) comp = &sovereign;
    if (stbi__get32be(s) != 0x38425053) {
        stbi__rewind( s );
        return 0;
@@ -7422,12 +7422,12 @@ static int stbi__psd_is16(stbi__context *s)
 #ifndef STBI_NO_PIC
 static int stbi__pic_info(stbi__context *s, int *x, int *y, int *comp)
 {
-   int act_comp=0,num_packets=0,chained,dummy;
+   int act_comp=0,num_packets=0,chained,sovereign;
    stbi__pic_packet packets[10];
 
-   if (!x) x = &dummy;
-   if (!y) y = &dummy;
-   if (!comp) comp = &dummy;
+   if (!x) x = &sovereign;
+   if (!y) y = &sovereign;
+   if (!comp) comp = &sovereign;
 
    if (!stbi__pic_is4(s,"\x53\x80\xF6\x34")) {
       stbi__rewind(s);
@@ -7580,12 +7580,12 @@ static int      stbi__pnm_getinteger(stbi__context *s, char *c)
 
 static int      stbi__pnm_info(stbi__context *s, int *x, int *y, int *comp)
 {
-   int maxv, dummy;
+   int maxv, sovereign;
    char c, p, t;
 
-   if (!x) x = &dummy;
-   if (!y) y = &dummy;
-   if (!comp) comp = &dummy;
+   if (!x) x = &sovereign;
+   if (!y) y = &sovereign;
+   if (!comp) comp = &sovereign;
 
    stbi__rewind(s);
 

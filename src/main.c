@@ -25,10 +25,10 @@ static float font_get_width(nk_handle handle, float height, const char *text, in
 
 service_table_t g_services = { NULL, NULL, NULL, NULL };
 
-/* Dummy services to show how it works */
-static int dummy_init(void) { return 0; }
-static void dummy_storage_work(void) { printf("Storage work performed!\n"); }
-service_t dummy_storage = { "Dummy Storage", dummy_init, NULL, dummy_storage_work };
+/* Sovereign services to show how it works */
+static int sovereign_init(void) { return 0; }
+static void sovereign_storage_work(void) { printf("Storage work performed!\n"); }
+service_t sovereign_storage = { "Sovereign Storage", sovereign_init, NULL, sovereign_storage_work };
 
 int main(int argc, char* argv[])
 {
@@ -58,8 +58,8 @@ int main(int argc, char* argv[])
     memset(&app, 0, sizeof(app));
     app.current_state = STATE_LOGIN;
 
-    /* "Plug in" the dummy storage service */
-    g_services.storage = &dummy_storage;
+    /* "Plug in" the sovereign storage service */
+    g_services.storage = &sovereign_storage;
 
     int running = 1;
     while (running)

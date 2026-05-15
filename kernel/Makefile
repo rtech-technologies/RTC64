@@ -12,7 +12,8 @@ OBJS = kernel.o app_ui.o nuklear_kernel_impl.o nk_software_renderer.o \
        usb_osal.o usbd_core.o usbh_core.o usb_hal_ports.o \
        storage.o input.o usb_hal.o \
        usbh_msc.o usbh_hid.o usb_hc_ehci.o \
-       vfs.o scheduler.o i18n.o uac_policy.o tgx_impl.o tlsf_impl.o
+       vfs.o scheduler.o i18n.o uac_policy.o tgx_impl.o tlsf_impl.o \
+       drivers/pci.o drivers/xhci.o drivers/nvme.o drivers/ahci.o
 
 .PHONY: all clean
 
@@ -52,6 +53,19 @@ tgx_impl.o: tgx_impl.c
 
 tlsf_impl.o: tlsf_impl.c
 	$(CC) $(CFLAGS) -c tlsf_impl.c -o tlsf_impl.o
+
+# Hardware Drivers
+drivers/pci.o: drivers/pci.c
+	$(CC) $(CFLAGS) -c drivers/pci.c -o drivers/pci.o
+
+drivers/xhci.o: drivers/xhci.c
+	$(CC) $(CFLAGS) -c drivers/xhci.c -o drivers/xhci.o
+
+drivers/nvme.o: drivers/nvme.c
+	$(CC) $(CFLAGS) -c drivers/nvme.c -o drivers/nvme.o
+
+drivers/ahci.o: drivers/ahci.c
+	$(CC) $(CFLAGS) -c drivers/ahci.c -o drivers/ahci.o
 
 # HAL Components
 storage.o: storage.c

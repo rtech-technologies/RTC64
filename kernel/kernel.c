@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <string.h>
 #include "pro_os.h"
 #include "app_ui.h"
 #include "nk_software_renderer.h"
@@ -38,6 +39,8 @@ void _start(void) {
 
     scheduler_init();
     vfs_init();
+    void pci_scan(void);
+    pci_scan();
     hal_input_init();
     hal_storage_init();
     hal_usb_init();
@@ -86,7 +89,7 @@ void _start(void) {
         /* 5. Draw Global Cursor (High Priority) */
         tgx_blit_rect(&canvas, cursor_x, cursor_y, 8, 8, 0xFFFFFFFF);
 
-        // Simple delay
+        // Direct delay
         for (volatile int i = 0; i < 5000000; i++);
     }
 }

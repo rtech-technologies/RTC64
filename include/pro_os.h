@@ -2,7 +2,9 @@
 #define PRO_OS_H
 
 #include "limine.h"
+#include "nuklear_config.h"
 #include "nuklear.h"
+
 #include "external/stb_image.h"
 #include "external/stb_truetype.h"
 #include "external/tlsf.h"
@@ -41,5 +43,10 @@ void uac_request_permit(int app_id, const char *action);
 
 /* I18n */
 const char* i18n_translate(const char *key);
+
+/* Hardware Driver Interfaces */
+void xhci_init(uint64_t mmio);
+void nvme_init(uint64_t mmio);
+void ahci_init(uint64_t mmio);
 
 #endif

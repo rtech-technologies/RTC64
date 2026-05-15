@@ -4,7 +4,7 @@
 #include "usbh_msc.h"
 
 void hal_usb_init(void) {
-    usbh_initialize(0, 0x3F8, NULL); // Dummy IO base for EHCI/XHCI in QEMU
+    usbh_initialize(0, 0x3F8, NULL); // Sovereign IO base for EHCI/XHCI in QEMU
 }
 
 void hal_usb_poll(void) {

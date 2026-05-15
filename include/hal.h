@@ -29,6 +29,7 @@ typedef struct {
 void hal_input_init(void);
 void hal_input_poll(void);
 void hal_input_push_event(input_event_t ev);
+bool hal_input_pop_event(input_event_t *ev);
 
 /* --- Storage System --- */
 typedef enum {
