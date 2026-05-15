@@ -10,16 +10,18 @@ fi
 
 # Dependency Installation
 if [ -f /etc/debian_version ]; then
-    echo "[0/3] Installing System Dependencies (Requires sudo)..."
+    echo "[0/4] Installing System Dependencies (Requires sudo)..."
     sudo apt-get update
-    sudo apt-get install -y build-essential cmake libsdl2-dev git nasm xorriso
+    sudo apt-get install -y build-essential cmake libsdl2-dev git nasm xorriso qemu-system-x86
 fi
 
 # Limine Setup
 if [ ! -d "external/limine" ]; then
-    echo "[1/4] Cloning Limine Bootloader..."
+    echo "[1/4] Cloning & Building Limine Bootloader..."
     mkdir -p external
     git clone https://github.com/limine-bootloader/limine.git external/limine --branch=v7.x-binary --depth=1
+    # Build limine-deploy if it doesn't exist
+    make -C external/limine
     cp external/limine/limine.h kernel/limine.h
 fi
 
