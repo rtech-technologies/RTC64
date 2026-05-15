@@ -9,12 +9,18 @@ struct app_state {
     char password[64];
     int progress;
     int install_started;
+
+    /* Desktop windows */
+    int show_terminal;
+    int show_explorer;
+    int show_settings;
+    int show_launcher;
 };
 
 enum {
     STATE_LOGIN,
     STATE_INSTALLER,
-    STATE_MAIN
+    STATE_DESKTOP
 };
 
 void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, int window_height);
