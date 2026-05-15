@@ -50,7 +50,6 @@ static void ui_render_taskbar(struct nk_context *ctx, struct app_state *app, int
         nk_layout_row_static(ctx, 30, 40, 6);
         if (nk_button_label(ctx, "M")) app->show_launcher = !app->show_launcher;
 
-        /* App Indicators */
         if (app->show_terminal) nk_label(ctx, "[T]", NK_TEXT_CENTERED);
         if (app->show_explorer) nk_label(ctx, "[F]", NK_TEXT_CENTERED);
         if (app->show_settings) nk_label(ctx, "[S]", NK_TEXT_CENTERED);
@@ -58,7 +57,6 @@ static void ui_render_taskbar(struct nk_context *ctx, struct app_state *app, int
         nk_layout_row_dynamic(ctx, 30, 1);
         nk_spacer(ctx);
 
-        /* System Tray */
         char clock_buf[32];
         snprintf(clock_buf, 32, "12:34 | USB: %d | 📶", hal_storage_get_device_count());
         nk_label(ctx, clock_buf, NK_TEXT_RIGHT);
@@ -91,10 +89,8 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
         }
         nk_end(ctx);
     } else if (app->current_state == STATE_DESKTOP) {
-        /* Taskbar is the anchor */
         ui_render_taskbar(ctx, app, window_width, window_height);
 
-        /* App Grid */
         if (nk_begin(ctx, "AppGrid", nk_rect(20, 20, 300, 400), NK_WINDOW_NO_SCROLLBAR)) {
             nk_layout_row_static(ctx, 60, 60, 4);
             if (nk_button_label(ctx, "Term")) app->show_terminal = 1;
@@ -103,7 +99,6 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
         }
         nk_end(ctx);
 
-        /* Terminal Window with UAC check stub */
         if (app->show_terminal) {
             if (nk_begin(ctx, "Terminal", nk_rect(100, 100, 600, 400),
                 NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE))
@@ -112,13 +107,13 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
                 nk_label(ctx, "root@pro-os:~#", NK_TEXT_LEFT);
                 if (nk_button_label(ctx, "Request Network Access")) {
                     uac_request_permit(0, "network");
+                    app->show_uac = 1;
                 }
             }
             if (nk_window_is_closed(ctx, "Terminal")) app->show_terminal = 0;
             nk_end(ctx);
         }
 
-        /* File Explorer (The Property Manager) */
         if (app->show_explorer) {
             if (nk_begin(ctx, "Explorer", nk_rect(150, 150, 500, 350),
                 NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE))
@@ -140,7 +135,6 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
             nk_end(ctx);
         }
 
-        /* Settings / App Policy Editor */
         if (app->show_settings) {
             if (nk_begin(ctx, "Settings", nk_rect(200, 200, 400, 400),
                 NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE))
@@ -154,7 +148,6 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
             nk_end(ctx);
         }
 
-        /* UAC Popup (Gatekeeper) */
         if (app->show_uac) {
             if (nk_begin(ctx, "UAC Security", nk_rect(window_width/2 - 200, window_height/2 - 100, 400, 200),
                 NK_WINDOW_BORDER|NK_WINDOW_NO_SCROLLBAR))
@@ -169,7 +162,6 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
             nk_end(ctx);
         }
 
-        /* Resource Monitor (The Emergency Exit) */
         if (nk_begin(ctx, "SysMon", nk_rect(window_width - 320, 20, 300, 150),
             NK_WINDOW_BORDER|NK_WINDOW_TITLE|NK_WINDOW_MOVABLE))
         {

@@ -1,5 +1,5 @@
-CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.o: \
- /app/kernel/usb_stubs.c /usr/include/stdc-predef.h \
+CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.o: \
+ /app/kernel/usb_hal_ports.c /usr/include/stdc-predef.h \
  /usr/lib/gcc/x86_64-linux-gnu/13/include/stdint.h /usr/include/stdint.h \
  /usr/include/x86_64-linux-gnu/bits/libc-header-start.h \
  /usr/include/features.h /usr/include/features-time64.h \

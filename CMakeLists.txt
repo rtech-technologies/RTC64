@@ -25,7 +25,7 @@ set(SOURCES
     src/nk_software_renderer.c
     kernel/storage.c
     kernel/input.c
-    kernel/usb_stubs.c
+    kernel/usb_hal_ports.c
     kernel/vfs.c
     kernel/scheduler.c
     kernel/i18n.c

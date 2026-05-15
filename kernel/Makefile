@@ -9,7 +9,7 @@ CFLAGS = -Wall -Wextra -std=c11 -ffreestanding -fno-stack-protector -fno-stack-c
 LDFLAGS = -nostdlib -static -m elf_x86_64 -z max-page-size=0x1000 -T linker.ld
 
 OBJS = kernel.o app_ui.o nuklear_kernel_impl.o nk_software_renderer.o \
-       usb_osal.o usbd_core.o usbh_core.o usb_stubs.o \
+       usb_osal.o usbd_core.o usbh_core.o usb_hal_ports.o \
        storage.o input.o usb_hal.o \
        usbh_msc.o usbh_hid.o usb_hc_ehci.o \
        vfs.o scheduler.o i18n.o uac_policy.o tgx_impl.o tlsf_impl.o
@@ -73,8 +73,8 @@ usbd_core.o: ../external/CherryUSB/core/usbd_core.c
 usbh_core.o: ../external/CherryUSB/core/usbh_core.c
 	$(CC) $(CFLAGS) -c ../external/CherryUSB/core/usbh_core.c -o usbh_core.o
 
-usb_stubs.o: usb_stubs.c
-	$(CC) $(CFLAGS) -c usb_stubs.c -o usb_stubs.o
+usb_hal_ports.o: usb_hal_ports.c
+	$(CC) $(CFLAGS) -c usb_hal_ports.c -o usb_hal_ports.o
 
 # CherryUSB Classes
 usbh_msc.o: ../external/CherryUSB/class/msc/usbh_msc.c

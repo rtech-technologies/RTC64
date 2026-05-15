@@ -15,7 +15,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/app/kernel/tgx_impl.c" "CMakeFiles/nuklear_cherry_usb.dir/kernel/tgx_impl.c.o" "gcc" "CMakeFiles/nuklear_cherry_usb.dir/kernel/tgx_impl.c.o.d"
   "/app/kernel/tlsf_impl.c" "CMakeFiles/nuklear_cherry_usb.dir/kernel/tlsf_impl.c.o" "gcc" "CMakeFiles/nuklear_cherry_usb.dir/kernel/tlsf_impl.c.o.d"
   "/app/kernel/uac_policy.c" "CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.o" "gcc" "CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.o.d"
-  "/app/kernel/usb_stubs.c" "CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.o" "gcc" "CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.o.d"
+  "/app/kernel/usb_hal_ports.c" "CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.o" "gcc" "CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.o.d"
   "/app/kernel/vfs.c" "CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.o" "gcc" "CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.o.d"
   "/app/src/app_ui.c" "CMakeFiles/nuklear_cherry_usb.dir/src/app_ui.c.o" "gcc" "CMakeFiles/nuklear_cherry_usb.dir/src/app_ui.c.o.d"
   "/app/src/main.c" "CMakeFiles/nuklear_cherry_usb.dir/src/main.c.o" "gcc" "CMakeFiles/nuklear_cherry_usb.dir/src/main.c.o.d"

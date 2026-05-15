@@ -297,29 +297,29 @@ kernel/uac_policy.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.s
 .PHONY : kernel/uac_policy.c.s
 
-kernel/usb_stubs.o: kernel/usb_stubs.c.o
-.PHONY : kernel/usb_stubs.o
+kernel/usb_hal_ports.o: kernel/usb_hal_ports.c.o
+.PHONY : kernel/usb_hal_ports.o
 
 # target to build an object file
-kernel/usb_stubs.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.o
-.PHONY : kernel/usb_stubs.c.o
+kernel/usb_hal_ports.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.o
+.PHONY : kernel/usb_hal_ports.c.o
 
-kernel/usb_stubs.i: kernel/usb_stubs.c.i
-.PHONY : kernel/usb_stubs.i
+kernel/usb_hal_ports.i: kernel/usb_hal_ports.c.i
+.PHONY : kernel/usb_hal_ports.i
 
 # target to preprocess a source file
-kernel/usb_stubs.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.i
-.PHONY : kernel/usb_stubs.c.i
+kernel/usb_hal_ports.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.i
+.PHONY : kernel/usb_hal_ports.c.i
 
-kernel/usb_stubs.s: kernel/usb_stubs.c.s
-.PHONY : kernel/usb_stubs.s
+kernel/usb_hal_ports.s: kernel/usb_hal_ports.c.s
+.PHONY : kernel/usb_hal_ports.s
 
 # target to generate assembly for a file
-kernel/usb_stubs.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.s
-.PHONY : kernel/usb_stubs.c.s
+kernel/usb_hal_ports.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.s
+.PHONY : kernel/usb_hal_ports.c.s
 
 kernel/vfs.o: kernel/vfs.c.o
 .PHONY : kernel/vfs.o
@@ -471,9 +471,9 @@ help:
 	@echo "... kernel/uac_policy.o"
 	@echo "... kernel/uac_policy.i"
 	@echo "... kernel/uac_policy.s"
-	@echo "... kernel/usb_stubs.o"
-	@echo "... kernel/usb_stubs.i"
-	@echo "... kernel/usb_stubs.s"
+	@echo "... kernel/usb_hal_ports.o"
+	@echo "... kernel/usb_hal_ports.i"
+	@echo "... kernel/usb_hal_ports.s"
 	@echo "... kernel/vfs.o"
 	@echo "... kernel/vfs.i"
 	@echo "... kernel/vfs.s"

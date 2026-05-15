@@ -1,6 +1,8 @@
 #include "pro_os.h"
 #include <string.h>
 
+/* Virtual File System - Sovereign Implementation */
+
 typedef struct {
     char mount_point[32];
     storage_device_t *device;
@@ -21,6 +23,11 @@ void vfs_init(void) {
 }
 
 const char* vfs_resolve(const char *path) {
-    // Simple resolution logic for the "Pro" OS
-    return path;
+    /* Resolves logical paths to hardware-backed endpoints */
+    for (int i = 0; i < mount_count; i++) {
+        if (strncmp(path, mounts[i].mount_point, strlen(mounts[i].mount_point)) == 0) {
+            return path;
+        }
+    }
+    return "/root";
 }

@@ -153,19 +153,19 @@ CMakeFiles/nuklear_cherry_usb.dir/kernel/input.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/nuklear_cherry_usb.dir/kernel/input.c.s"
 	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /app/kernel/input.c -o CMakeFiles/nuklear_cherry_usb.dir/kernel/input.c.s
 
-CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.o: CMakeFiles/nuklear_cherry_usb.dir/flags.make
-CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.o: /app/kernel/usb_stubs.c
-CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.o: CMakeFiles/nuklear_cherry_usb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/app/build_sdl/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building C object CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.o"
-	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.o -MF CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.o.d -o CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.o -c /app/kernel/usb_stubs.c
+CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.o: CMakeFiles/nuklear_cherry_usb.dir/flags.make
+CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.o: /app/kernel/usb_hal_ports.c
+CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.o: CMakeFiles/nuklear_cherry_usb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/app/build_sdl/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building C object CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.o"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.o -MF CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.o.d -o CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.o -c /app/kernel/usb_hal_ports.c
 
-CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.i"
-	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /app/kernel/usb_stubs.c > CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.i
+CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.i"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /app/kernel/usb_hal_ports.c > CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.i
 
-CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.s"
-	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /app/kernel/usb_stubs.c -o CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.s
+CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.s"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /app/kernel/usb_hal_ports.c -o CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.s
 
 CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.o: CMakeFiles/nuklear_cherry_usb.dir/flags.make
 CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.o: /app/kernel/vfs.c
@@ -259,7 +259,7 @@ nuklear_cherry_usb_OBJECTS = \
 "CMakeFiles/nuklear_cherry_usb.dir/src/nk_software_renderer.c.o" \
 "CMakeFiles/nuklear_cherry_usb.dir/kernel/storage.c.o" \
 "CMakeFiles/nuklear_cherry_usb.dir/kernel/input.c.o" \
-"CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.o" \
+"CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.o" \
 "CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.o" \
 "CMakeFiles/nuklear_cherry_usb.dir/kernel/scheduler.c.o" \
 "CMakeFiles/nuklear_cherry_usb.dir/kernel/i18n.c.o" \
@@ -276,7 +276,7 @@ nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/src/nuklear_impl.c.o
 nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/src/nk_software_renderer.c.o
 nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/kernel/storage.c.o
 nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/kernel/input.c.o
-nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.o
+nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_hal_ports.c.o
 nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.o
 nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/kernel/scheduler.c.o
 nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/kernel/i18n.c.o
