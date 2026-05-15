@@ -9,6 +9,7 @@ find_package(SDL2 REQUIRED)
 # Include directories
 include_directories(
     include
+    include/external
     kernel
     external/CherryUSB/core
     external/CherryUSB/common
@@ -25,6 +26,12 @@ set(SOURCES
     kernel/storage.c
     kernel/input.c
     kernel/usb_stubs.c
+    kernel/vfs.c
+    kernel/scheduler.c
+    kernel/i18n.c
+    kernel/uac_policy.c
+    kernel/tgx_impl.c
+    kernel/tlsf_impl.c
 )
 
 # Executable

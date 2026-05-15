@@ -10,8 +10,7 @@
 #define NK_INCLUDE_DEFAULT_FONT
 #include "nuklear.h"
 #include "app_ui.h"
-#include "services.h"
-#include "hal.h"
+#include "pro_os.h"
 
 void ui_init_style(struct nk_context *ctx)
 {
@@ -46,31 +45,40 @@ void ui_init_style(struct nk_context *ctx)
     nk_style_from_table(ctx, table);
 }
 
+static void ui_render_taskbar(struct nk_context *ctx, struct app_state *app, int ww, int wh) {
+    if (nk_begin(ctx, "Taskbar", nk_rect(0, wh - 50, ww, 50), NK_WINDOW_NO_SCROLLBAR)) {
+        nk_layout_row_static(ctx, 30, 40, 6);
+        if (nk_button_label(ctx, "M")) app->show_launcher = !app->show_launcher;
+
+        /* App Indicators */
+        if (app->show_terminal) nk_label(ctx, "[T]", NK_TEXT_CENTERED);
+        if (app->show_explorer) nk_label(ctx, "[F]", NK_TEXT_CENTERED);
+        if (app->show_settings) nk_label(ctx, "[S]", NK_TEXT_CENTERED);
+
+        nk_layout_row_dynamic(ctx, 30, 1);
+        nk_spacer(ctx);
+
+        /* System Tray */
+        char clock_buf[32];
+        snprintf(clock_buf, 32, "12:34 | USB: %d | 📶", hal_storage_get_device_count());
+        nk_label(ctx, clock_buf, NK_TEXT_RIGHT);
+    }
+    nk_end(ctx);
+}
+
 void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, int window_height)
 {
     if (app->current_state == STATE_LOGIN) {
-        /* Login Screen with Scenic Background reference */
         if (nk_begin(ctx, "Login", nk_rect(window_width/2 - 175, window_height/2 - 150, 350, 300),
             NK_WINDOW_BORDER|NK_WINDOW_NO_SCROLLBAR))
         {
-            nk_layout_row_dynamic(ctx, 80, 1);
-            nk_label(ctx, "[ AVATAR ]", NK_TEXT_CENTERED); /* Placeholder for avatar */
+            nk_layout_row_dynamic(ctx, 30, 1);
+            nk_label(ctx, i18n_translate("welcome"), NK_TEXT_CENTERED);
 
             nk_layout_row_dynamic(ctx, 30, 1);
-            nk_label(ctx, "welcome back user!:", NK_TEXT_CENTERED);
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, app->password, sizeof(app->password), nk_filter_default);
 
-            nk_layout_row_dynamic(ctx, 20, 1);
-            nk_label(ctx, "password", NK_TEXT_LEFT);
-            nk_layout_row_dynamic(ctx, 30, 1);
-            nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD|NK_EDIT_SIG_ENTER, app->password, sizeof(app->password), nk_filter_default);
-
-            nk_layout_row_dynamic(ctx, 40, 1);
-            if (nk_button_label(ctx, "<- not you?")) {
-                /* Reset or different user */
-            }
-
-            nk_layout_row_dynamic(ctx, 30, 1);
-            if (nk_button_label(ctx, "Login")) app->current_state = STATE_INSTALLER;
+            if (nk_button_label(ctx, i18n_translate("login"))) app->current_state = STATE_INSTALLER;
         }
         nk_end(ctx);
     } else if (app->current_state == STATE_INSTALLER) {
@@ -78,151 +86,98 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
             NK_WINDOW_BORDER|NK_WINDOW_NO_SCROLLBAR))
         {
             nk_layout_row_dynamic(ctx, 30, 1);
-            nk_label(ctx, "Have you used os*2? before?", NK_TEXT_LEFT);
-
-            nk_layout_row_dynamic(ctx, 30, 1);
-            if (nk_option_label(ctx, "yes but I don't want a tutorial", app->progress == 0)) app->progress = 0;
-            if (nk_option_label(ctx, "yes but I'd like a tutorial", app->progress == 1)) app->progress = 1;
-            if (nk_option_label(ctx, "No but I don't want a tutorial", app->progress == 2)) app->progress = 2;
-            if (nk_option_label(ctx, "no but I'd like a tutorial", app->progress == 3)) app->progress = 3;
-
-            nk_layout_row_dynamic(ctx, 100, 1);
-            nk_group_begin(ctx, "Note", NK_WINDOW_BORDER);
-            nk_layout_row_dynamic(ctx, 60, 1);
-            nk_label_wrap(ctx, "note: this tutorial will teach you how to use this os to its fullest");
-            nk_group_end(ctx);
-
-            nk_layout_row_dynamic(ctx, 40, 1);
-            if (nk_button_label(ctx, "Continue")) app->current_state = STATE_DESKTOP;
+            nk_label(ctx, "Have you used OS*2 before?", NK_TEXT_LEFT);
+            if (nk_button_label(ctx, "Continue to Desktop")) app->current_state = STATE_DESKTOP;
         }
         nk_end(ctx);
     } else if (app->current_state == STATE_DESKTOP) {
-        /* App Grid (Top-Left) */
-        if (nk_begin(ctx, "AppGrid", nk_rect(40, 40, 400, 500), NK_WINDOW_NO_SCROLLBAR)) {
-            nk_layout_row_static(ctx, 60, 60, 5);
-            for (int i = 0; i < 30; ++i) {
-                if (i < 5) nk_button_label(ctx, "R");
-                else if (i < 10) nk_button_label(ctx, "B");
-                else if (i < 15) nk_button_label(ctx, "O");
-                else if (i < 20) nk_button_label(ctx, "L");
-                else nk_button_label(ctx, "G");
-            }
+        /* Taskbar is the anchor */
+        ui_render_taskbar(ctx, app, window_width, window_height);
+
+        /* App Grid */
+        if (nk_begin(ctx, "AppGrid", nk_rect(20, 20, 300, 400), NK_WINDOW_NO_SCROLLBAR)) {
+            nk_layout_row_static(ctx, 60, 60, 4);
+            if (nk_button_label(ctx, "Term")) app->show_terminal = 1;
+            if (nk_button_label(ctx, "Files")) app->show_explorer = 1;
+            if (nk_button_label(ctx, "Setup")) app->show_settings = 1;
         }
         nk_end(ctx);
 
-        /* System Widget (Right) */
-        if (nk_begin(ctx, "Welcome", nk_rect(window_width - 340, 150, 300, 150),
-            NK_WINDOW_BORDER|NK_WINDOW_TITLE|NK_WINDOW_MOVABLE))
-        {
-            nk_layout_row_dynamic(ctx, 20, 1);
-            nk_label(ctx, "System status: Nominal", NK_TEXT_LEFT);
-            nk_label(ctx, "CPU: 2%", NK_TEXT_LEFT);
-            nk_label(ctx, "RAM: 1.2GB / 16GB", NK_TEXT_LEFT);
-        }
-        nk_end(ctx);
-
-        /* Clock (Top-Right) */
-        if (nk_begin(ctx, "Clock", nk_rect(window_width - 340, 40, 300, 100), NK_WINDOW_NO_SCROLLBAR)) {
-            nk_layout_row_dynamic(ctx, 50, 1);
-            nk_label(ctx, "12:34", NK_TEXT_RIGHT);
-            nk_layout_row_dynamic(ctx, 20, 1);
-            nk_label(ctx, "eastern standard (+3:00)", NK_TEXT_RIGHT);
-        }
-        nk_end(ctx);
-
-        /* Taskbar */
-        if (nk_begin(ctx, "Taskbar", nk_rect(0, window_height - 50, window_width, 50),
-            NK_WINDOW_NO_SCROLLBAR))
-        {
-            nk_layout_row_static(ctx, 30, 40, 6);
-            if (nk_button_label(ctx, "M")) app->show_launcher = !app->show_launcher;
-
-            if (nk_button_label(ctx, "R")) { /* Red App */ }
-            if (nk_button_label(ctx, "B")) { /* Blue App */ }
-            if (nk_button_label(ctx, "O")) { /* Orange App */ }
-            if (nk_button_label(ctx, "C")) { /* Cyan App */ }
-
-            nk_layout_row_dynamic(ctx, 30, 1);
-            nk_spacer(ctx);
-            nk_label(ctx, "✓ 📶 🔋", NK_TEXT_RIGHT);
-        }
-        nk_end(ctx);
-
-        /* Launcher */
-        if (app->show_launcher) {
-            if (nk_begin(ctx, "Launcher", nk_rect(0, window_height - 340, 200, 300),
-                NK_WINDOW_BORDER|NK_WINDOW_NO_SCROLLBAR))
-            {
-                nk_layout_row_dynamic(ctx, 30, 1);
-                if (nk_button_label(ctx, "Terminal")) { app->show_terminal = 1; app->show_launcher = 0; }
-                if (nk_button_label(ctx, "File Explorer")) { app->show_explorer = 1; app->show_launcher = 0; }
-                if (nk_button_label(ctx, "System Settings")) { app->show_settings = 1; app->show_launcher = 0; }
-                nk_rule_horizontal(ctx, nk_rgb(40, 80, 120), 1);
-                if (nk_button_label(ctx, "Logout")) app->current_state = STATE_LOGIN;
-            }
-            nk_end(ctx);
-        }
-
-        /* Terminal Window */
+        /* Terminal Window with UAC check stub */
         if (app->show_terminal) {
-            if (nk_begin(ctx, "Terminal", nk_rect(50, 50, 600, 400),
+            if (nk_begin(ctx, "Terminal", nk_rect(100, 100, 600, 400),
                 NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE))
             {
                 nk_layout_row_dynamic(ctx, 20, 1);
-                nk_label(ctx, "R-TECH OS v0.1.0-alpha (Freestanding x86_64)", NK_TEXT_LEFT);
-                nk_rule_horizontal(ctx, nk_rgb(40, 80, 120), 1);
-                nk_label(ctx, "root@rtech:~# ls /dev", NK_TEXT_LEFT);
-                nk_label(ctx, "usb0  sda0  tty0  fb0", NK_TEXT_LEFT);
-                nk_label(ctx, "root@rtech:~# _", NK_TEXT_LEFT);
-
-                nk_layout_row_dynamic(ctx, 30, 1);
-                if (nk_button_label(ctx, "Run Benchmark")) {
-                    /* Future feature stub */
+                nk_label(ctx, "root@pro-os:~#", NK_TEXT_LEFT);
+                if (nk_button_label(ctx, "Request Network Access")) {
+                    uac_request_permit(0, "network");
                 }
             }
             if (nk_window_is_closed(ctx, "Terminal")) app->show_terminal = 0;
             nk_end(ctx);
         }
 
-        /* File Explorer */
+        /* File Explorer (The Property Manager) */
         if (app->show_explorer) {
-            if (nk_begin(ctx, "Explorer", nk_rect(100, 100, 500, 350),
+            if (nk_begin(ctx, "Explorer", nk_rect(150, 150, 500, 350),
                 NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE))
             {
                 nk_layout_row_dynamic(ctx, 30, 1);
-                nk_label(ctx, "System Storage Devices:", NK_TEXT_LEFT);
-
+                nk_label(ctx, "Devices:", NK_TEXT_LEFT);
                 int count = hal_storage_get_device_count();
                 for (int i = 0; i < count; i++) {
                     storage_device_t *dev = hal_storage_get_device(i);
                     nk_layout_row_dynamic(ctx, 30, 1);
-                    if (nk_button_label(ctx, dev->name)) {
-                        /* Future: browse device */
-                    }
+                    nk_label(ctx, dev->name, NK_TEXT_LEFT);
                 }
+                nk_layout_row_dynamic(ctx, 30, 1);
+                nk_label(ctx, "Files (VFS):", NK_TEXT_LEFT);
+                nk_label(ctx, "/root", NK_TEXT_LEFT);
+                nk_label(ctx, "/dev", NK_TEXT_LEFT);
             }
             if (nk_window_is_closed(ctx, "Explorer")) app->show_explorer = 0;
             nk_end(ctx);
         }
 
-        /* Settings */
+        /* Settings / App Policy Editor */
         if (app->show_settings) {
-            if (nk_begin(ctx, "Settings", nk_rect(150, 150, 400, 400),
+            if (nk_begin(ctx, "Settings", nk_rect(200, 200, 400, 400),
                 NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE))
             {
                 nk_layout_row_dynamic(ctx, 30, 1);
-                nk_label(ctx, "System Information", NK_TEXT_LEFT);
-                nk_label(ctx, "Kernel: x86_64 Freestanding", NK_TEXT_LEFT);
-                nk_label(ctx, "GUI: Nuklear Immediate Mode", NK_TEXT_LEFT);
-                nk_label(ctx, "USB: CherryUSB Stack", NK_TEXT_LEFT);
-
-                nk_layout_row_dynamic(ctx, 30, 2);
-                nk_label(ctx, "USB Service:", NK_TEXT_LEFT);
-                if (g_services.usb) nk_label(ctx, "Online", NK_TEXT_LEFT);
-                else nk_label(ctx, "Offline", NK_TEXT_LEFT);
+                nk_label(ctx, "App Permissions", NK_TEXT_LEFT);
+                nk_checkbox_label(ctx, "Terminal: Network", (nk_bool*)&app->perm_net);
+                nk_checkbox_label(ctx, "Terminal: Storage", (nk_bool*)&app->perm_storage);
             }
             if (nk_window_is_closed(ctx, "Settings")) app->show_settings = 0;
             nk_end(ctx);
         }
+
+        /* UAC Popup (Gatekeeper) */
+        if (app->show_uac) {
+            if (nk_begin(ctx, "UAC Security", nk_rect(window_width/2 - 200, window_height/2 - 100, 400, 200),
+                NK_WINDOW_BORDER|NK_WINDOW_NO_SCROLLBAR))
+            {
+                nk_layout_row_dynamic(ctx, 30, 1);
+                nk_label(ctx, "PERMISSION REQUEST", NK_TEXT_CENTERED);
+                nk_label(ctx, "App 0 wants to access Network.", NK_TEXT_LEFT);
+                nk_layout_row_dynamic(ctx, 40, 2);
+                if (nk_button_label(ctx, "Allow")) { app->perm_net = 1; app->show_uac = 0; }
+                if (nk_button_label(ctx, "Deny")) { app->show_uac = 0; }
+            }
+            nk_end(ctx);
+        }
+
+        /* Resource Monitor (The Emergency Exit) */
+        if (nk_begin(ctx, "SysMon", nk_rect(window_width - 320, 20, 300, 150),
+            NK_WINDOW_BORDER|NK_WINDOW_TITLE|NK_WINDOW_MOVABLE))
+        {
+            nk_layout_row_dynamic(ctx, 20, 1);
+            nk_label(ctx, "Memory: 12MB / 64MB", NK_TEXT_LEFT);
+            nk_label(ctx, "CPU: 5% (Scheduler OK)", NK_TEXT_LEFT);
+            nk_progress(ctx, (nk_size*)&app->cpu_usage, 100, NK_FIXED);
+        }
+        nk_end(ctx);
     }
 }

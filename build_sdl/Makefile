@@ -129,6 +129,30 @@ nuklear_cherry_usb/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/build
 .PHONY : nuklear_cherry_usb/fast
 
+kernel/i18n.o: kernel/i18n.c.o
+.PHONY : kernel/i18n.o
+
+# target to build an object file
+kernel/i18n.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/i18n.c.o
+.PHONY : kernel/i18n.c.o
+
+kernel/i18n.i: kernel/i18n.c.i
+.PHONY : kernel/i18n.i
+
+# target to preprocess a source file
+kernel/i18n.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/i18n.c.i
+.PHONY : kernel/i18n.c.i
+
+kernel/i18n.s: kernel/i18n.c.s
+.PHONY : kernel/i18n.s
+
+# target to generate assembly for a file
+kernel/i18n.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/i18n.c.s
+.PHONY : kernel/i18n.c.s
+
 kernel/input.o: kernel/input.c.o
 .PHONY : kernel/input.o
 
@@ -152,6 +176,30 @@ kernel/input.s: kernel/input.c.s
 kernel/input.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/input.c.s
 .PHONY : kernel/input.c.s
+
+kernel/scheduler.o: kernel/scheduler.c.o
+.PHONY : kernel/scheduler.o
+
+# target to build an object file
+kernel/scheduler.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/scheduler.c.o
+.PHONY : kernel/scheduler.c.o
+
+kernel/scheduler.i: kernel/scheduler.c.i
+.PHONY : kernel/scheduler.i
+
+# target to preprocess a source file
+kernel/scheduler.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/scheduler.c.i
+.PHONY : kernel/scheduler.c.i
+
+kernel/scheduler.s: kernel/scheduler.c.s
+.PHONY : kernel/scheduler.s
+
+# target to generate assembly for a file
+kernel/scheduler.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/scheduler.c.s
+.PHONY : kernel/scheduler.c.s
 
 kernel/storage.o: kernel/storage.c.o
 .PHONY : kernel/storage.o
@@ -177,6 +225,78 @@ kernel/storage.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/storage.c.s
 .PHONY : kernel/storage.c.s
 
+kernel/tgx_impl.o: kernel/tgx_impl.c.o
+.PHONY : kernel/tgx_impl.o
+
+# target to build an object file
+kernel/tgx_impl.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/tgx_impl.c.o
+.PHONY : kernel/tgx_impl.c.o
+
+kernel/tgx_impl.i: kernel/tgx_impl.c.i
+.PHONY : kernel/tgx_impl.i
+
+# target to preprocess a source file
+kernel/tgx_impl.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/tgx_impl.c.i
+.PHONY : kernel/tgx_impl.c.i
+
+kernel/tgx_impl.s: kernel/tgx_impl.c.s
+.PHONY : kernel/tgx_impl.s
+
+# target to generate assembly for a file
+kernel/tgx_impl.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/tgx_impl.c.s
+.PHONY : kernel/tgx_impl.c.s
+
+kernel/tlsf_impl.o: kernel/tlsf_impl.c.o
+.PHONY : kernel/tlsf_impl.o
+
+# target to build an object file
+kernel/tlsf_impl.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/tlsf_impl.c.o
+.PHONY : kernel/tlsf_impl.c.o
+
+kernel/tlsf_impl.i: kernel/tlsf_impl.c.i
+.PHONY : kernel/tlsf_impl.i
+
+# target to preprocess a source file
+kernel/tlsf_impl.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/tlsf_impl.c.i
+.PHONY : kernel/tlsf_impl.c.i
+
+kernel/tlsf_impl.s: kernel/tlsf_impl.c.s
+.PHONY : kernel/tlsf_impl.s
+
+# target to generate assembly for a file
+kernel/tlsf_impl.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/tlsf_impl.c.s
+.PHONY : kernel/tlsf_impl.c.s
+
+kernel/uac_policy.o: kernel/uac_policy.c.o
+.PHONY : kernel/uac_policy.o
+
+# target to build an object file
+kernel/uac_policy.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.o
+.PHONY : kernel/uac_policy.c.o
+
+kernel/uac_policy.i: kernel/uac_policy.c.i
+.PHONY : kernel/uac_policy.i
+
+# target to preprocess a source file
+kernel/uac_policy.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.i
+.PHONY : kernel/uac_policy.c.i
+
+kernel/uac_policy.s: kernel/uac_policy.c.s
+.PHONY : kernel/uac_policy.s
+
+# target to generate assembly for a file
+kernel/uac_policy.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.s
+.PHONY : kernel/uac_policy.c.s
+
 kernel/usb_stubs.o: kernel/usb_stubs.c.o
 .PHONY : kernel/usb_stubs.o
 
@@ -200,6 +320,30 @@ kernel/usb_stubs.s: kernel/usb_stubs.c.s
 kernel/usb_stubs.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.s
 .PHONY : kernel/usb_stubs.c.s
+
+kernel/vfs.o: kernel/vfs.c.o
+.PHONY : kernel/vfs.o
+
+# target to build an object file
+kernel/vfs.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.o
+.PHONY : kernel/vfs.c.o
+
+kernel/vfs.i: kernel/vfs.c.i
+.PHONY : kernel/vfs.i
+
+# target to preprocess a source file
+kernel/vfs.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.i
+.PHONY : kernel/vfs.c.i
+
+kernel/vfs.s: kernel/vfs.c.s
+.PHONY : kernel/vfs.s
+
+# target to generate assembly for a file
+kernel/vfs.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nuklear_cherry_usb.dir/build.make CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.s
+.PHONY : kernel/vfs.c.s
 
 src/app_ui.o: src/app_ui.c.o
 .PHONY : src/app_ui.o
@@ -306,15 +450,33 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... nuklear_cherry_usb"
+	@echo "... kernel/i18n.o"
+	@echo "... kernel/i18n.i"
+	@echo "... kernel/i18n.s"
 	@echo "... kernel/input.o"
 	@echo "... kernel/input.i"
 	@echo "... kernel/input.s"
+	@echo "... kernel/scheduler.o"
+	@echo "... kernel/scheduler.i"
+	@echo "... kernel/scheduler.s"
 	@echo "... kernel/storage.o"
 	@echo "... kernel/storage.i"
 	@echo "... kernel/storage.s"
+	@echo "... kernel/tgx_impl.o"
+	@echo "... kernel/tgx_impl.i"
+	@echo "... kernel/tgx_impl.s"
+	@echo "... kernel/tlsf_impl.o"
+	@echo "... kernel/tlsf_impl.i"
+	@echo "... kernel/tlsf_impl.s"
+	@echo "... kernel/uac_policy.o"
+	@echo "... kernel/uac_policy.i"
+	@echo "... kernel/uac_policy.s"
 	@echo "... kernel/usb_stubs.o"
 	@echo "... kernel/usb_stubs.i"
 	@echo "... kernel/usb_stubs.s"
+	@echo "... kernel/vfs.o"
+	@echo "... kernel/vfs.i"
+	@echo "... kernel/vfs.s"
 	@echo "... src/app_ui.o"
 	@echo "... src/app_ui.i"
 	@echo "... src/app_ui.s"

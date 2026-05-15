@@ -11,7 +11,8 @@ LDFLAGS = -nostdlib -static -m elf_x86_64 -z max-page-size=0x1000 -T linker.ld
 OBJS = kernel.o app_ui.o nuklear_kernel_impl.o nk_software_renderer.o \
        usb_osal.o usbd_core.o usbh_core.o usb_stubs.o \
        storage.o input.o usb_hal.o \
-       usbh_msc.o usbh_hid.o usb_hc_ehci.o
+       usbh_msc.o usbh_hid.o usb_hc_ehci.o \
+       vfs.o scheduler.o i18n.o uac_policy.o tgx_impl.o tlsf_impl.o
 
 .PHONY: all clean
 
@@ -32,6 +33,25 @@ nuklear_kernel_impl.o: nuklear_kernel_impl.c
 
 nk_software_renderer.o: ../src/nk_software_renderer.c
 	$(CC) $(CFLAGS) -c ../src/nk_software_renderer.c -o nk_software_renderer.o
+
+# Pro Logic Components
+vfs.o: vfs.c
+	$(CC) $(CFLAGS) -c vfs.c -o vfs.o
+
+scheduler.o: scheduler.c
+	$(CC) $(CFLAGS) -c scheduler.c -o scheduler.o
+
+i18n.o: i18n.c
+	$(CC) $(CFLAGS) -c i18n.c -o i18n.o
+
+uac_policy.o: uac_policy.c
+	$(CC) $(CFLAGS) -c uac_policy.c -o uac_policy.o
+
+tgx_impl.o: tgx_impl.c
+	$(CC) $(CFLAGS) -c tgx_impl.c -o tgx_impl.o
+
+tlsf_impl.o: tlsf_impl.c
+	$(CC) $(CFLAGS) -c tlsf_impl.c -o tlsf_impl.o
 
 # HAL Components
 storage.o: storage.c

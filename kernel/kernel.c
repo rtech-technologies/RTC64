@@ -1,21 +1,9 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include "limine.h"
-
-#define NK_INCLUDE_FIXED_TYPES
-#define NK_INCLUDE_STANDARD_VARARGS
-#define NK_INCLUDE_DEFAULT_ALLOCATOR
-// No NK_IMPLEMENTATION here
-#include "nuklear.h"
+#include "pro_os.h"
 #include "app_ui.h"
-#include "services.h"
 #include "nk_software_renderer.h"
-#include "usbd_core.h"
-#include "usbh_core.h"
-#include "hal.h"
-
-service_table_t g_services = { (void*)1, (void*)1, (void*)1, (void*)1 };
 
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_framebuffer_request framebuffer_request = {
@@ -33,12 +21,26 @@ static void hcf(void) {
     for (;;) __asm__ ("hlt");
 }
 
+/* Global Cursor Position */
+static int cursor_x = 0;
+static int cursor_y = 0;
+
 void _start(void) {
     if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
         hcf();
     }
 
     struct limine_framebuffer *fb = framebuffer_request.response->framebuffers[0];
+
+    /* Initialize "Pro" Subsystems */
+    static uint8_t kernel_heap[1024 * 1024 * 4]; // 4MB Heap
+    tlsf_create_with_pool(kernel_heap, sizeof(kernel_heap));
+
+    scheduler_init();
+    vfs_init();
+    hal_input_init();
+    hal_storage_init();
+    hal_usb_init();
 
     struct nk_context ctx;
     struct nk_user_font font;
@@ -49,32 +51,42 @@ void _start(void) {
     nk_init_default(&ctx, &font);
     ui_init_style(&ctx);
 
-    /* Initialize Hardware Abstraction Layer */
-    hal_input_init();
-    hal_storage_init();
-
-    /* Expansion point drivers */
-    void hal_nvme_init(void);
-    void hal_sata_init(void);
-    void hal_satapi_init(void);
-    hal_nvme_init();
-    hal_sata_init();
-    hal_satapi_init();
-
-    hal_usb_init();
-
     struct app_state app;
+    memset(&app, 0, sizeof(app));
     app.current_state = STATE_LOGIN;
-    app.progress = 0;
-    app.install_started = 0;
+
+    tgx_canvas_t canvas = { (uint32_t*)fb->address, fb->width, fb->height, fb->pitch };
 
     while (1) {
+        /* 1. Poll Hardware */
+        hal_usb_poll();
+
+        /* 2. Update Input */
+        input_event_t ev;
+        nk_input_begin(&ctx);
+        while (hal_input_pop_event(&ev)) {
+            if (ev.type == INPUT_TYPE_MOUSE) {
+                cursor_x = ev.mouse.x;
+                cursor_y = ev.mouse.y;
+                nk_input_motion(&ctx, cursor_x, cursor_y);
+                nk_input_button(&ctx, NK_BUTTON_LEFT, cursor_x, cursor_y, (ev.mouse.buttons & 1));
+            }
+        }
+        nk_input_end(&ctx);
+
+        /* 3. Run Scheduler */
+        scheduler_run();
+
+        /* 4. Render UI */
         ui_render(&ctx, &app, fb->width, fb->height);
 
         struct nk_sw_fb sw_fb = { fb->address, fb->width, fb->height, fb->pitch };
         nk_sw_render(&sw_fb, &ctx);
 
+        /* 5. Draw Global Cursor (High Priority) */
+        tgx_blit_rect(&canvas, cursor_x, cursor_y, 8, 8, 0xFFFFFFFF);
+
         // Simple delay
-        for (volatile int i = 0; i < 10000000; i++);
+        for (volatile int i = 0; i < 5000000; i++);
     }
 }

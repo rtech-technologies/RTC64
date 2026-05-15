@@ -167,6 +167,90 @@ CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.s"
 	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /app/kernel/usb_stubs.c -o CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.s
 
+CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.o: CMakeFiles/nuklear_cherry_usb.dir/flags.make
+CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.o: /app/kernel/vfs.c
+CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.o: CMakeFiles/nuklear_cherry_usb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/app/build_sdl/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building C object CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.o"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.o -MF CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.o.d -o CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.o -c /app/kernel/vfs.c
+
+CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.i"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /app/kernel/vfs.c > CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.i
+
+CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.s"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /app/kernel/vfs.c -o CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.s
+
+CMakeFiles/nuklear_cherry_usb.dir/kernel/scheduler.c.o: CMakeFiles/nuklear_cherry_usb.dir/flags.make
+CMakeFiles/nuklear_cherry_usb.dir/kernel/scheduler.c.o: /app/kernel/scheduler.c
+CMakeFiles/nuklear_cherry_usb.dir/kernel/scheduler.c.o: CMakeFiles/nuklear_cherry_usb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/app/build_sdl/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building C object CMakeFiles/nuklear_cherry_usb.dir/kernel/scheduler.c.o"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/nuklear_cherry_usb.dir/kernel/scheduler.c.o -MF CMakeFiles/nuklear_cherry_usb.dir/kernel/scheduler.c.o.d -o CMakeFiles/nuklear_cherry_usb.dir/kernel/scheduler.c.o -c /app/kernel/scheduler.c
+
+CMakeFiles/nuklear_cherry_usb.dir/kernel/scheduler.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/nuklear_cherry_usb.dir/kernel/scheduler.c.i"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /app/kernel/scheduler.c > CMakeFiles/nuklear_cherry_usb.dir/kernel/scheduler.c.i
+
+CMakeFiles/nuklear_cherry_usb.dir/kernel/scheduler.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/nuklear_cherry_usb.dir/kernel/scheduler.c.s"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /app/kernel/scheduler.c -o CMakeFiles/nuklear_cherry_usb.dir/kernel/scheduler.c.s
+
+CMakeFiles/nuklear_cherry_usb.dir/kernel/i18n.c.o: CMakeFiles/nuklear_cherry_usb.dir/flags.make
+CMakeFiles/nuklear_cherry_usb.dir/kernel/i18n.c.o: /app/kernel/i18n.c
+CMakeFiles/nuklear_cherry_usb.dir/kernel/i18n.c.o: CMakeFiles/nuklear_cherry_usb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/app/build_sdl/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building C object CMakeFiles/nuklear_cherry_usb.dir/kernel/i18n.c.o"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/nuklear_cherry_usb.dir/kernel/i18n.c.o -MF CMakeFiles/nuklear_cherry_usb.dir/kernel/i18n.c.o.d -o CMakeFiles/nuklear_cherry_usb.dir/kernel/i18n.c.o -c /app/kernel/i18n.c
+
+CMakeFiles/nuklear_cherry_usb.dir/kernel/i18n.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/nuklear_cherry_usb.dir/kernel/i18n.c.i"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /app/kernel/i18n.c > CMakeFiles/nuklear_cherry_usb.dir/kernel/i18n.c.i
+
+CMakeFiles/nuklear_cherry_usb.dir/kernel/i18n.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/nuklear_cherry_usb.dir/kernel/i18n.c.s"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /app/kernel/i18n.c -o CMakeFiles/nuklear_cherry_usb.dir/kernel/i18n.c.s
+
+CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.o: CMakeFiles/nuklear_cherry_usb.dir/flags.make
+CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.o: /app/kernel/uac_policy.c
+CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.o: CMakeFiles/nuklear_cherry_usb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/app/build_sdl/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building C object CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.o"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.o -MF CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.o.d -o CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.o -c /app/kernel/uac_policy.c
+
+CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.i"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /app/kernel/uac_policy.c > CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.i
+
+CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.s"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /app/kernel/uac_policy.c -o CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.s
+
+CMakeFiles/nuklear_cherry_usb.dir/kernel/tgx_impl.c.o: CMakeFiles/nuklear_cherry_usb.dir/flags.make
+CMakeFiles/nuklear_cherry_usb.dir/kernel/tgx_impl.c.o: /app/kernel/tgx_impl.c
+CMakeFiles/nuklear_cherry_usb.dir/kernel/tgx_impl.c.o: CMakeFiles/nuklear_cherry_usb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/app/build_sdl/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building C object CMakeFiles/nuklear_cherry_usb.dir/kernel/tgx_impl.c.o"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/nuklear_cherry_usb.dir/kernel/tgx_impl.c.o -MF CMakeFiles/nuklear_cherry_usb.dir/kernel/tgx_impl.c.o.d -o CMakeFiles/nuklear_cherry_usb.dir/kernel/tgx_impl.c.o -c /app/kernel/tgx_impl.c
+
+CMakeFiles/nuklear_cherry_usb.dir/kernel/tgx_impl.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/nuklear_cherry_usb.dir/kernel/tgx_impl.c.i"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /app/kernel/tgx_impl.c > CMakeFiles/nuklear_cherry_usb.dir/kernel/tgx_impl.c.i
+
+CMakeFiles/nuklear_cherry_usb.dir/kernel/tgx_impl.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/nuklear_cherry_usb.dir/kernel/tgx_impl.c.s"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /app/kernel/tgx_impl.c -o CMakeFiles/nuklear_cherry_usb.dir/kernel/tgx_impl.c.s
+
+CMakeFiles/nuklear_cherry_usb.dir/kernel/tlsf_impl.c.o: CMakeFiles/nuklear_cherry_usb.dir/flags.make
+CMakeFiles/nuklear_cherry_usb.dir/kernel/tlsf_impl.c.o: /app/kernel/tlsf_impl.c
+CMakeFiles/nuklear_cherry_usb.dir/kernel/tlsf_impl.c.o: CMakeFiles/nuklear_cherry_usb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/app/build_sdl/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building C object CMakeFiles/nuklear_cherry_usb.dir/kernel/tlsf_impl.c.o"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/nuklear_cherry_usb.dir/kernel/tlsf_impl.c.o -MF CMakeFiles/nuklear_cherry_usb.dir/kernel/tlsf_impl.c.o.d -o CMakeFiles/nuklear_cherry_usb.dir/kernel/tlsf_impl.c.o -c /app/kernel/tlsf_impl.c
+
+CMakeFiles/nuklear_cherry_usb.dir/kernel/tlsf_impl.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/nuklear_cherry_usb.dir/kernel/tlsf_impl.c.i"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /app/kernel/tlsf_impl.c > CMakeFiles/nuklear_cherry_usb.dir/kernel/tlsf_impl.c.i
+
+CMakeFiles/nuklear_cherry_usb.dir/kernel/tlsf_impl.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/nuklear_cherry_usb.dir/kernel/tlsf_impl.c.s"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /app/kernel/tlsf_impl.c -o CMakeFiles/nuklear_cherry_usb.dir/kernel/tlsf_impl.c.s
+
 # Object files for target nuklear_cherry_usb
 nuklear_cherry_usb_OBJECTS = \
 "CMakeFiles/nuklear_cherry_usb.dir/src/main.c.o" \
@@ -175,7 +259,13 @@ nuklear_cherry_usb_OBJECTS = \
 "CMakeFiles/nuklear_cherry_usb.dir/src/nk_software_renderer.c.o" \
 "CMakeFiles/nuklear_cherry_usb.dir/kernel/storage.c.o" \
 "CMakeFiles/nuklear_cherry_usb.dir/kernel/input.c.o" \
-"CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.o"
+"CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.o" \
+"CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.o" \
+"CMakeFiles/nuklear_cherry_usb.dir/kernel/scheduler.c.o" \
+"CMakeFiles/nuklear_cherry_usb.dir/kernel/i18n.c.o" \
+"CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.o" \
+"CMakeFiles/nuklear_cherry_usb.dir/kernel/tgx_impl.c.o" \
+"CMakeFiles/nuklear_cherry_usb.dir/kernel/tlsf_impl.c.o"
 
 # External object files for target nuklear_cherry_usb
 nuklear_cherry_usb_EXTERNAL_OBJECTS =
@@ -187,10 +277,16 @@ nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/src/nk_software_renderer.c
 nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/kernel/storage.c.o
 nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/kernel/input.c.o
 nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/kernel/usb_stubs.c.o
+nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/kernel/vfs.c.o
+nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/kernel/scheduler.c.o
+nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/kernel/i18n.c.o
+nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/kernel/uac_policy.c.o
+nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/kernel/tgx_impl.c.o
+nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/kernel/tlsf_impl.c.o
 nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/build.make
 nuklear_cherry_usb: /usr/lib/x86_64-linux-gnu/libSDL2.so
 nuklear_cherry_usb: CMakeFiles/nuklear_cherry_usb.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/app/build_sdl/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Linking C executable nuklear_cherry_usb"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/app/build_sdl/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Linking C executable nuklear_cherry_usb"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/nuklear_cherry_usb.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

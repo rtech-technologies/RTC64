@@ -15,6 +15,14 @@ struct app_state {
     int show_explorer;
     int show_settings;
     int show_launcher;
+    int show_uac;
+
+    /* Permits */
+    int perm_net;
+    int perm_storage;
+
+    /* Metrics */
+    int cpu_usage;
 };
 
 enum {
