@@ -17,6 +17,18 @@ If a service is not provided (NULL pointer in the table), the corresponding GUI 
 
 ## How to Build and Test
 
+### Single-Command Build (All Targets)
+
+To build both the hosted SDL2 application and the freestanding kernel at once:
+```bash
+make
+```
+or
+```bash
+chmod +x build.sh
+./build.sh
+```
+
 ### Hosted Application (Linux/macOS/Windows)
 
 To test the GUI on your OS:
@@ -24,13 +36,11 @@ To test the GUI on your OS:
 1. **Requirements**: SDL2, OpenGL, CMake, GCC/Clang.
 2. **Build**:
    ```bash
-   mkdir build && cd build
-   cmake ..
-   make
+   make hosted
    ```
 3. **Run**:
    ```bash
-   ./nuklear_cherry_usb
+   ./build/nuklear_cherry_usb
    ```
 
 ### Kernel (x86_64)
@@ -40,8 +50,7 @@ To build the skeleton kernel:
 1. **Requirements**: GCC (x86_64), GNU LD.
 2. **Build**:
    ```bash
-   cd kernel
-   make
+   make kernel
    ```
 3. **Testing in QEMU**:
    To test the kernel, you would typically create an ISO image using `limine` and `xorriso`, then run:
