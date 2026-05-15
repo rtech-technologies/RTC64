@@ -6,7 +6,7 @@ CFLAGS = -Wall -Wextra -std=c11 -ffreestanding -fno-stack-protector -fno-stack-c
 
 LDFLAGS = -nostdlib -static -m elf_x86_64 -z max-page-size=0x1000 -T linker.ld
 
-OBJS = kernel.o app_ui.o nuklear_kernel_impl.o drivers/video.o drivers/video_nuklear.o \
+OBJS = kernel.o app_ui.o nuklear_kernel_impl.o nk_software_renderer.o \
        usb_osal.o usbd_core.o usbh_core.o usb_stubs.o
 
 .PHONY: all clean
@@ -37,11 +37,8 @@ app_ui.o: ../src/app_ui.c
 nuklear_kernel_impl.o: nuklear_kernel_impl.c
 	$(CC) $(CFLAGS) -c nuklear_kernel_impl.c -o nuklear_kernel_impl.o
 
-drivers/video.o: drivers/video.c
-	$(CC) $(CFLAGS) -c drivers/video.c -o drivers/video.o
-
-drivers/video_nuklear.o: drivers/video_nuklear.c
-	$(CC) $(CFLAGS) -c drivers/video_nuklear.c -o drivers/video_nuklear.o
+nk_software_renderer.o: ../src/nk_software_renderer.c
+	$(CC) $(CFLAGS) -c ../src/nk_software_renderer.c -o nk_software_renderer.o
 
 clean:
 	rm -f kernel $(OBJS)

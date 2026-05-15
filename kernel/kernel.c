@@ -10,7 +10,7 @@
 #include "nuklear.h"
 #include "app_ui.h"
 #include "services.h"
-#include "drivers/video_nuklear.h"
+#include "nk_software_renderer.h"
 #include "usbd_core.h"
 #include "usbh_core.h"
 
@@ -59,7 +59,9 @@ void _start(void) {
 
     while (1) {
         ui_render(&ctx, &app, fb->width, fb->height);
-        nk_software_render(&ctx, fb->address, fb->width, fb->height, fb->pitch);
+
+        struct nk_sw_fb sw_fb = { fb->address, fb->width, fb->height, fb->pitch };
+        nk_sw_render(&sw_fb, &ctx);
 
         // Simple delay
         for (volatile int i = 0; i < 10000000; i++);

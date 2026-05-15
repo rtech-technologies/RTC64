@@ -15,6 +15,4 @@
 #define NK_INCLUDE_FONT_BAKING
 #define NK_INCLUDE_DEFAULT_FONT
 #define NK_IMPLEMENTATION
-#define NK_SDL_GL3_IMPLEMENTATION
 #include "nuklear.h"
-#include "nuklear_sdl_gl3.h"

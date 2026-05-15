@@ -3,23 +3,25 @@
 #include <stdint.h>
 #include <string.h>
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.h>
 
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_IO
 #define NK_INCLUDE_STANDARD_VARARGS
 #define NK_INCLUDE_DEFAULT_ALLOCATOR
-#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
-#define NK_INCLUDE_FONT_BAKING
 #define NK_INCLUDE_DEFAULT_FONT
 #include "nuklear.h"
-#include "nuklear_sdl_gl3.h"
+#include "nk_software_renderer.h"
 
 #include "app_ui.h"
 #include "services.h"
 
 #define WINDOW_WIDTH 1024
 #define WINDOW_HEIGHT 768
+
+static float font_get_width(nk_handle handle, float height, const char *text, int len) {
+    (void)handle; (void)height; (void)text;
+    return (float)len * 8.0f;
+}
 
 service_table_t g_services = { NULL, NULL, NULL, NULL };
 
@@ -31,27 +33,26 @@ service_t dummy_storage = { "Dummy Storage", dummy_init, NULL, dummy_storage_wor
 int main(int argc, char* argv[])
 {
     SDL_Window *win;
-    SDL_GLContext glContext;
+    SDL_Renderer *renderer;
+    SDL_Texture *texture;
     int width, height;
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) return -1;
 
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-
-    win = SDL_CreateWindow("R-TECH", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL|SDL_WINDOW_SHOWN);
+    win = SDL_CreateWindow("R-TECH (Software Rendered)", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
     if (!win) return -1;
 
-    glContext = SDL_GL_CreateContext(win);
+    renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_SOFTWARE);
+    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-    struct nk_context *ctx = nk_sdl_init(win);
-    {
-        struct nk_font_atlas *atlas;
-        nk_sdl_font_stash_begin(&atlas);
-        nk_sdl_font_stash_end();
-    }
-    ui_init_style(ctx);
+    struct nk_context ctx;
+    struct nk_user_font font;
+    font.userdata = nk_handle_ptr(0);
+    font.height = 8.0f;
+    font.width = font_get_width;
+
+    nk_init_default(&ctx, &font);
+    ui_init_style(&ctx);
 
     struct app_state app;
     memset(&app, 0, sizeof(app));
@@ -64,25 +65,37 @@ int main(int argc, char* argv[])
     while (running)
     {
         SDL_Event evt;
-        nk_input_begin(ctx);
+        nk_input_begin(&ctx);
         while (SDL_PollEvent(&evt)) {
             if (evt.type == SDL_QUIT) running = 0;
-            nk_sdl_handle_event(&evt);
+            if (evt.type == SDL_MOUSEMOTION) {
+                nk_input_motion(&ctx, evt.motion.x, evt.motion.y);
+            } else if (evt.type == SDL_MOUSEBUTTONDOWN || evt.type == SDL_MOUSEBUTTONUP) {
+                int down = (evt.type == SDL_MOUSEBUTTONDOWN);
+                if (evt.button.button == SDL_BUTTON_LEFT) nk_input_button(&ctx, NK_BUTTON_LEFT, evt.button.x, evt.button.y, down);
+            }
         }
-        nk_input_end(ctx);
+        nk_input_end(&ctx);
 
         SDL_GetWindowSize(win, &width, &height);
-        ui_render(ctx, &app, width, height);
+        ui_render(&ctx, &app, width, height);
 
-        glViewport(0, 0, width, height);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
-        nk_sdl_render(NK_ANTI_ALIASING_ON, 512 * 1024, 128 * 1024);
-        SDL_GL_SwapWindow(win);
+        void *pixels;
+        int pitch;
+        SDL_LockTexture(texture, NULL, &pixels, &pitch);
+        memset(pixels, 0x05, pitch * height); // Clear screen
+
+        struct nk_sw_fb fb = { pixels, width, height, pitch };
+        nk_sw_render(&fb, &ctx);
+
+        SDL_UnlockTexture(texture);
+        SDL_RenderClear(renderer);
+        SDL_RenderCopy(renderer, texture, NULL, NULL);
+        SDL_RenderPresent(renderer);
     }
 
-    nk_sdl_shutdown();
-    SDL_GL_DeleteContext(glContext);
+    SDL_DestroyTexture(texture);
+    SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(win);
     SDL_Quit();
     return 0;

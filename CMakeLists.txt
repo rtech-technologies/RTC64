@@ -5,7 +5,6 @@ set(CMAKE_C_STANDARD 99)
 
 # Find SDL2
 find_package(SDL2 REQUIRED)
-find_package(OpenGL REQUIRED)
 
 # Include directories
 include_directories(
@@ -14,7 +13,6 @@ include_directories(
     external/CherryUSB/common
     external/CherryUSB/class/hub
     ${SDL2_INCLUDE_DIRS}
-    ${OPENGL_INCLUDE_DIR}
 )
 
 # Source files
@@ -22,6 +20,7 @@ set(SOURCES
     src/main.c
     src/app_ui.c
     src/nuklear_impl.c
+    src/nk_software_renderer.c
 )
 
 # Executable
@@ -30,7 +29,6 @@ add_executable(nuklear_cherry_usb ${SOURCES})
 # Libraries
 target_link_libraries(nuklear_cherry_usb
     ${SDL2_LIBRARIES}
-    ${OPENGL_LIBRARIES}
     m
     dl
 )
