@@ -30,6 +30,5 @@
 #define CONFIG_USBDEV_MAX_BUS 1
 
 #define USB_NOCACHE_RAM_SECTION
-#define USB_MEM_ALIGNX __attribute__((aligned(64)))
 
 #endif
