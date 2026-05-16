@@ -1,26 +1,21 @@
-#include <stdint.h>
-#include <stddef.h>
 #include "pro_os.h"
+#include <stdint.h>
 
-/* Sovereign NVMe Storage Driver */
+/* Sovereign NVMe Driver - Native implementation */
 
-typedef struct {
-    uint64_t mmio_base;
-} nvme_ctrl_t;
+#define NVME_REG_CC 0x14
+#define NVME_REG_CSTS 0x1C
 
-void nvme_init(uint64_t mmio) {
-    nvme_ctrl_t ctrl;
-    ctrl.mmio_base = mmio;
+void nvme_init(uint64_t base_addr) {
+    volatile uint32_t* regs = (volatile uint32_t*)base_addr;
 
-    uint32_t *regs = (uint32_t*)mmio;
+    /* 1. Disable controller to configure */
+    regs[NVME_REG_CC/4] &= ~0x01;
+    while(regs[NVME_REG_CSTS/4] & 0x01);
 
-    /* Disable controller before config */
-    uint32_t config = regs[5]; /* CC */
-    regs[5] = config & ~0x1;
+    /* 2. Setup Admin Queues */
+    // PRO_TASK: Allocate and set ASQ, ACQ, and AQA
 
-    /* Wait for ready state to clear */
-    while (regs[7] & 0x1); /* CSTS */
-
-    /* Configure Admin Queues (Simplified setup) */
-    regs[5] = config | 0x1;
+    /* 3. Enable controller */
+    regs[NVME_REG_CC/4] |= 0x01;
 }

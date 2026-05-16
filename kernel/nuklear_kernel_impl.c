@@ -2,11 +2,12 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-/* Core math implementations for Nuklear in freestanding mode */
-double pow(double x, double y) { (void)x; (void)y; return 0; }
-double sqrt(double x) { (void)x; return 0; }
-double sin(double x) { (void)x; return 0; }
-double cos(double x) { (void)x; return 0; }
+/* Math functions are implemented in math.c */
+extern double pow(double x, double y);
+extern double sqrt(double x);
+extern double sin(double x);
+extern double cos(double x);
+extern double fabs(double x);
 
 /* Core memory implementations for Nuklear and CherryUSB */
 void* memset(void* s, int c, size_t n) {

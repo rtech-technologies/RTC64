@@ -1,42 +1,25 @@
-#include <stdint.h>
-#include <stddef.h>
 #include "pro_os.h"
+#include <stdint.h>
 
-/* Sovereign AHCI SATA Driver */
+/* Sovereign AHCI Driver - Native implementation */
 
-typedef struct {
-    uint32_t clb;
-    uint32_t clbu;
-    uint32_t fb;
-    uint32_t fbu;
-    uint32_t is;
-    uint32_t ie;
-    uint32_t cmd;
-    uint32_t reserved0;
-    uint32_t tfd;
-    uint32_t sig;
-    uint32_t ssts;
-    uint32_t sctl;
-    uint32_t serr;
-    uint32_t sact;
-    uint32_t ci;
-} ahci_port_t;
+#define AHCI_GHC_HR (1 << 0)
+#define AHCI_GHC_IE (1 << 1)
+#define AHCI_GHC_AE (1 << 31)
 
-typedef struct {
-    uint32_t cap;
-    uint32_t ghc;
-    uint32_t is;
-    uint32_t pi;
-    uint32_t vs;
-} ahci_hba_t;
+void ahci_init(uint64_t base_addr) {
+    volatile uint32_t* regs = (volatile uint32_t*)base_addr;
 
-void ahci_init(uint64_t mmio) {
-    ahci_hba_t *hba = (ahci_hba_t*)mmio;
+    /* 1. Enable AHCI mode and Reset */
+    regs[0x04/4] |= AHCI_GHC_AE;
+    regs[0x04/4] |= AHCI_GHC_HR;
+    while(regs[0x04/4] & AHCI_GHC_HR);
 
-    /* Global Host Control Reset */
-    hba->ghc |= 0x1;
-    while (hba->ghc & 0x1);
-
-    /* Enable AHCI Mode */
-    hba->ghc |= 0x80000000;
+    /* 2. Probe Ports */
+    uint32_t pi = regs[0x0C/4]; // Port Implemented
+    for (int i = 0; i < 32; i++) {
+        if (pi & (1 << i)) {
+            // PRO_TASK: Initialize port i
+        }
+    }
 }

@@ -1,28 +1,25 @@
-#include <stdint.h>
-#include <stddef.h>
 #include "pro_os.h"
+#include <stdint.h>
 
-/* Sovereign xHCI USB Host Controller Driver */
+/* Sovereign xHCI Driver - Native implementation */
 
-typedef struct {
-    uint64_t mmio_base;
-    uint32_t page_size;
-} xhci_controller_t;
+#define XHCI_REG_USBSTS 0x04
+#define XHCI_REG_USBSTS_HCH 0x01
 
-void xhci_init(uint64_t mmio) {
-    xhci_controller_t ctrl;
-    ctrl.mmio_base = mmio;
+void xhci_init(uint64_t base_addr) {
+    volatile uint32_t* regs = (volatile uint32_t*)base_addr;
 
-    /* Map MMIO BAR and initialize Operational Registers */
-    uint32_t *cap_regs = (uint32_t*)mmio;
-    uint8_t cap_length = cap_regs[0] & 0xFF;
-    uint32_t *op_regs = (uint32_t*)(mmio + cap_length);
+    /* 1. Basic Hardware Reset */
+    regs[0] |= (1 << 1); // Reset bit
+    while(regs[0] & (1 << 1));
 
-    /* Reset Controller */
-    op_regs[0] |= 0x2; /* USBCMD Reset */
-    while (op_regs[0] & 0x2);
+    /* 2. Configure Operational Registers */
+    // PRO_TASK: Initialize DCBAAP, CONFIG, and Event Rings
+}
 
-    /* Configure Max Device Slots */
-    uint32_t config = op_regs[14]; /* CONFIG */
-    op_regs[14] = (config & ~0xFF) | 32;
+void xhci_poll(uint64_t base_addr) {
+    volatile uint32_t* regs = (volatile uint32_t*)base_addr;
+    if (regs[XHCI_REG_USBSTS/4] & XHCI_REG_USBSTS_HCH) {
+        // PRO_REFINE: Handle Host Controller Halt
+    }
 }

@@ -3736,8 +3736,8 @@ enum nk_edit_flags {
     NK_EDIT_GOTO_END_ON_ACTIVATE    = NK_FLAG(11)
 };
 enum nk_edit_types {
-    NK_EDIT_SIMPLE  = NK_EDIT_ALWAYS_INSERT_MODE,
-    NK_EDIT_FIELD   = NK_EDIT_SIMPLE|NK_EDIT_SELECTABLE|NK_EDIT_CLIPBOARD,
+    NK_EDIT_DIRECT  = NK_EDIT_ALWAYS_INSERT_MODE,
+    NK_EDIT_FIELD   = NK_EDIT_DIRECT|NK_EDIT_SELECTABLE|NK_EDIT_CLIPBOARD,
     NK_EDIT_BOX     = NK_EDIT_ALWAYS_INSERT_MODE| NK_EDIT_SELECTABLE| NK_EDIT_MULTILINE|NK_EDIT_ALLOW_TAB|NK_EDIT_CLIPBOARD,
     NK_EDIT_EDITOR  = NK_EDIT_SELECTABLE|NK_EDIT_MULTILINE|NK_EDIT_ALLOW_TAB| NK_EDIT_CLIPBOARD
 };
@@ -11800,7 +11800,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 /*         render glyphs to one-channel bitmaps with antialiasing (box filter) */
 /*         render glyphs to one-channel SDF bitmaps (signed-distance field/function) */
 /*  */
-/*    Todo: */
+/*    ProTask: */
 /*         non-MS cmaps */
 /*         crashproof on bad data */
 /*         hinting? (no longer patented) */
@@ -13245,7 +13245,7 @@ static int stbtt_InitFont_internal(stbtt_fontinfo *info, unsigned char *data, in
    info->svg = -1;
 
    /*  find a cmap encoding table we understand *now* to avoid searching */
-   /*  later. (todo: could make this installable) */
+   /*  later. (pro_task: could make this installable) */
    /*  the same regardless of glyph. */
    numTables = ttUSHORT(data + cmap + 2);
    info->index_map = 0;
@@ -14955,7 +14955,7 @@ static void stbtt__fill_active_edges_new(float *scanline, float *scanline_fill, 
                /*             |            |     xxxxx..|............|............|............| */
                /*             |            |     /-   xx*xxxx........|............|............| */
                /*             |            | dy <       |    xxxxxx..|............|............| */
-               /*    y_final  |            |     \-     |          xx*xxx.........|............| */
+               /*    y_final  |            |     \-     |          xx*param.........|............| */
                /*        sy1  |            |            |            |   xxxxxB...|............| */
                /*             |            |            |            |            |            | */
                /*             |            |            |            |            |            | */
@@ -17537,7 +17537,7 @@ NK_GLOBAL const char nk_custom_cursor_data[NK_CURSOR_DATA_W * NK_CURSOR_DATA_H +
 {
     "..-         -XXXXXXX-    X    -           X           -XXXXXXX          -          XXXXXXX"
     "..-         -X.....X-   X.X   -          X.X          -X.....X          -          X.....X"
-    "---         -XXX.XXX-  X...X  -         X...X         -X....X           -           X....X"
+    "---         -CORE_SPEC.CORE_SPEC-  X...X  -         X...X         -X....X           -           X....X"
     "X           -  X.X  - X.....X -        X.....X        -X...X            -            X...X"
     "XX          -  X.X  -X.......X-       X.......X       -X..X.X           -           X.X..X"
     "X.X         -  X.X  -XXXX.XXXX-       XXXX.XXXX       -X.X X.X          -          X.X X.X"
@@ -17548,7 +17548,7 @@ NK_GLOBAL const char nk_custom_cursor_data[NK_CURSOR_DATA_W * NK_CURSOR_DATA_H +
     "X......X    -  X.X  -   X.X   - X...XXXXXX.XXXXXX...X -         X.X   XX-XX   X.X         "
     "X.......X   -  X.X  -   X.X   -X.....................X-          X.X X.X-X.X X.X          "
     "X........X  -  X.X  -   X.X   - X...XXXXXX.XXXXXX...X -           X.X..X-X..X.X           "
-    "X.........X -XXX.XXX-   X.X   -  X..X    X.X    X..X  -            X...X-X...X            "
+    "X.........X -CORE_SPEC.CORE_SPEC-   X.X   -  X..X    X.X    X..X  -            X...X-X...X            "
     "X..........X-X.....X-   X.X   -   X.X    X.X    X.X   -           X....X-X....X           "
     "X......XXXXX-XXXXXXX-   X.X   -    XX    X.X    XX    -          X.....X-X.....X          "
     "X...X..X    ---------   X.X   -          X.X          -          XXXXXXX-XXXXXXX          "
@@ -21729,7 +21729,7 @@ nk_contextual_end(struct nk_context *ctx)
     NK_ASSERT((int)panel->type & (int)NK_PANEL_SET_POPUP);
     if (panel->flags & NK_WINDOW_DYNAMIC) {
         /* Close behavior
-        This is a bit of a hack solution since we do not know before we end our popup
+        This is a bit of a native_optimization solution since we do not know before we end our popup
         how big it will be. We therefore do not directly know when a
         click outside the non-blocking popup must close it at that direct frame.
         Instead it will be closed in the next frame.*/

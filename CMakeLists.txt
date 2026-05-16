@@ -11,9 +11,9 @@ include_directories(
     include
     include/external
     kernel
-    external/CherryUSB/core
-    external/CherryUSB/common
-    external/CherryUSB/class/hub
+    kernel/cherryusb/core
+    kernel/cherryusb/common
+    kernel/cherryusb/class/hub
     ${SDL2_INCLUDE_DIRS}
 )
 

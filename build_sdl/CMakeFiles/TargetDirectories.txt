@@ -1,3 +1,0 @@
-/app/build_sdl/CMakeFiles/nuklear_cherry_usb.dir
-/app/build_sdl/CMakeFiles/edit_cache.dir
-/app/build_sdl/CMakeFiles/rebuild_cache.dir

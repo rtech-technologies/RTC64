@@ -1992,7 +1992,7 @@ typedef struct
    int            rgb;
 
    int scan_n, order[4];
-   int restart_interval, todo;
+   int restart_interval, pro_task;
 
 // kernels
    void (*idct_block_kernel)(stbi_uc *out, int out_stride, short data[64]);
@@ -2940,7 +2940,7 @@ static void stbi__jpeg_reset(stbi__jpeg *j)
    j->nomore = 0;
    j->img_comp[0].dc_pred = j->img_comp[1].dc_pred = j->img_comp[2].dc_pred = j->img_comp[3].dc_pred = 0;
    j->marker = STBI__MARKER_none;
-   j->todo = j->restart_interval ? j->restart_interval : 0x7fffffff;
+   j->pro_task = j->restart_interval ? j->restart_interval : 0x7fffffff;
    j->eob_run = 0;
    // no more than 1<<31 MCUs if no restart_interal? that's plenty safe,
    // since we don't even allow 1<<30 pixels
@@ -2966,7 +2966,7 @@ static int stbi__parse_entropy_coded_data(stbi__jpeg *z)
                if (!stbi__jpeg_decode_block(z, data, z->huff_dc+z->img_comp[n].hd, z->huff_ac+ha, z->fast_ac[ha], n, z->dequant[z->img_comp[n].tq])) return 0;
                z->idct_block_kernel(z->img_comp[n].data+z->img_comp[n].w2*j*8+i*8, z->img_comp[n].w2, data);
                // every data block is an MCU, so countdown the restart interval
-               if (--z->todo <= 0) {
+               if (--z->pro_task <= 0) {
                   if (z->code_bits < 24) stbi__grow_buffer_unsafe(z);
                   // if it's NOT a restart, then just bail, so we get corrupt data
                   // rather than no data
@@ -2998,7 +2998,7 @@ static int stbi__parse_entropy_coded_data(stbi__jpeg *z)
                }
                // after all interleaved components, that's an interleaved MCU,
                // so now count down the restart interval
-               if (--z->todo <= 0) {
+               if (--z->pro_task <= 0) {
                   if (z->code_bits < 24) stbi__grow_buffer_unsafe(z);
                   if (!STBI__RESTART(z->marker)) return 1;
                   stbi__jpeg_reset(z);
@@ -3029,7 +3029,7 @@ static int stbi__parse_entropy_coded_data(stbi__jpeg *z)
                      return 0;
                }
                // every data block is an MCU, so countdown the restart interval
-               if (--z->todo <= 0) {
+               if (--z->pro_task <= 0) {
                   if (z->code_bits < 24) stbi__grow_buffer_unsafe(z);
                   if (!STBI__RESTART(z->marker)) return 1;
                   stbi__jpeg_reset(z);
@@ -3058,7 +3058,7 @@ static int stbi__parse_entropy_coded_data(stbi__jpeg *z)
                }
                // after all interleaved components, that's an interleaved MCU,
                // so now count down the restart interval
-               if (--z->todo <= 0) {
+               if (--z->pro_task <= 0) {
                   if (z->code_bits < 24) stbi__grow_buffer_unsafe(z);
                   if (!STBI__RESTART(z->marker)) return 1;
                   stbi__jpeg_reset(z);
