@@ -22,67 +22,24 @@ static void hcf(void) {
     for (;;) __asm__ ("hlt");
 }
 
-#include "drivers/font_8x8.h"
+struct panic_framebuffer {
+    uint64_t address;
+    uint64_t width;
+    uint64_t height;
+    uint64_t pitch;
+};
 
-void panic(const char *msg) {
+struct panic_framebuffer* get_kernel_framebuffer(void) {
+    if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
+        return NULL;
+    }
     struct limine_framebuffer *fb = framebuffer_request.response->framebuffers[0];
-    tgx_canvas_t canvas = { (uint32_t*)fb->address, fb->width, fb->height, fb->pitch };
-
-    /* Red screen of death */
-    tgx_clear(&canvas, 0xFF0000);
-
-    /* Draw panic icon / drawing */
-    /* Let's draw a simple "X" or a warning box */
-    int cx = fb->width / 2;
-    int cy = fb->height / 2;
-
-    tgx_blit_rect(&canvas, cx - 50, cy - 80, 100, 10, 0xFFFFFF); // Top bar
-    tgx_blit_rect(&canvas, cx - 50, cy + 30, 100, 10, 0xFFFFFF); // Bottom bar
-    tgx_blit_rect(&canvas, cx - 50, cy - 80, 10, 120, 0xFFFFFF); // Left bar
-    tgx_blit_rect(&canvas, cx + 40, cy - 80, 10, 120, 0xFFFFFF); // Right bar
-
-    /* Drawing an exclamation mark (!) */
-    tgx_blit_rect(&canvas, cx - 5, cy - 50, 10, 40, 0xFFFFFF);
-    tgx_blit_rect(&canvas, cx - 5, cy, 10, 10, 0xFFFFFF);
-
-    /* Render Text Message */
-    const char *header = "CORE SYSTEM PANIC";
-    int h_len = strlen(header);
-    int m_len = strlen(msg);
-
-    /* Manual text drawing using font_8x8_data */
-    int tx = cx - (h_len * 8) / 2;
-    int ty = cy + 60;
-
-    for (int i = 0; i < h_len; i++) {
-        uint8_t c = (uint8_t)header[i];
-        if (c < 32 || c > 126) continue;
-        int idx = c - 32;
-        for (int row = 0; row < 8; row++) {
-            for (int col = 0; col < 8; col++) {
-                if (font_8x8_data[idx][row] & (1 << col)) {
-                    canvas.pixels[(ty + row) * (canvas.pitch / 4) + (tx + i * 8 + col)] = 0xFFFFFF;
-                }
-            }
-        }
-    }
-
-    tx = cx - (m_len * 8) / 2;
-    ty = cy + 80;
-    for (int i = 0; i < m_len; i++) {
-        uint8_t c = (uint8_t)msg[i];
-        if (c < 32 || c > 126) continue;
-        int idx = c - 32;
-        for (int row = 0; row < 8; row++) {
-            for (int col = 0; col < 8; col++) {
-                if (font_8x8_data[idx][row] & (1 << col)) {
-                    canvas.pixels[(ty + row) * (canvas.pitch / 4) + (tx + i * 8 + col)] = 0xFFFFFF;
-                }
-            }
-        }
-    }
-
-    hcf();
+    static struct panic_framebuffer pfb;
+    pfb.address = (uint64_t)fb->address;
+    pfb.width = fb->width;
+    pfb.height = fb->height;
+    pfb.pitch = fb->pitch;
+    return &pfb;
 }
 
 /* Global Cursor Position */
@@ -142,7 +99,7 @@ void _start(void) {
 
         /* Test Panic Trigger (e.g., if cursor is at top-left corner) */
         if (cursor_x < 5 && cursor_y < 5 && cursor_x > 0) {
-            panic("USER TRIGGERED PANIC TEST");
+            kpanic("USER TRIGGERED PANIC TEST");
         }
 
         /* 3. Run Scheduler */

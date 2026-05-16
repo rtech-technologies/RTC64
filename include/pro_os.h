@@ -44,7 +44,25 @@ void uac_request_permit(int app_id, const char *action);
 /* I18n */
 const char* i18n_translate(const char *key);
 
-void panic(const char *msg);
+struct cpu_state {
+    // Segment registers
+    uint64_t gs, fs, es, ds;
+    // Control registers
+    uint64_t cr4, cr3, cr2;
+    // General purpose registers
+    uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
+    uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
+    // Pushed automatically by CPU and stubs
+    uint64_t interrupt_number;
+    uint64_t error_code;
+    uint64_t rip;
+    uint64_t cs;
+    uint64_t rflags;
+    uint64_t rsp;
+    uint64_t ss;
+};
+
+void kpanic(const char* message);
 
 /* Hardware Driver Interfaces */
 void xhci_init(uint64_t mmio);
