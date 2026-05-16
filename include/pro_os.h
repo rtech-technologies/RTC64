@@ -44,6 +44,8 @@ void uac_request_permit(int app_id, const char *action);
 /* I18n */
 const char* i18n_translate(const char *key);
 
+void panic(const char *msg);
+
 /* Hardware Driver Interfaces */
 void xhci_init(uint64_t mmio);
 void nvme_init(uint64_t mmio);
