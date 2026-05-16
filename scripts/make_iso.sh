@@ -33,7 +33,7 @@ cp "$KERNEL" "$ISO_DIR/boot/"
 cp kernel/limine.conf "$ISO_DIR/boot/limine/"
 cp "$LIMINE_DIR/limine-bios.sys" "$ISO_DIR/boot/limine/"
 cp "$LIMINE_DIR/limine-bios-cd.bin" "$ISO_DIR/boot/limine/"
-cp "$LIMINE_DIR/limine-uefi-cd.bin" "$ISO_DIR/boot/limine/"
+# cp "$LIMINE_DIR/limine-uefi-cd.bin" "$ISO_DIR/boot/limine/"
 cp "$LIMINE_DIR/BOOTX64.EFI" "$ISO_DIR/EFI/BOOT/"
 cp "$LIMINE_DIR/BOOTIA32.EFI" "$ISO_DIR/EFI/BOOT/"
 
@@ -41,8 +41,6 @@ cp "$LIMINE_DIR/BOOTIA32.EFI" "$ISO_DIR/EFI/BOOT/"
 # Using paths relative to ISO_DIR for -b and --efi-boot
 xorriso -as mkisofs -b boot/limine/limine-bios-cd.bin \
     -no-emul-boot -boot-load-size 4 -boot-info-table \
-    --efi-boot boot/limine/limine-uefi-cd.bin \
-    -efi-boot-part \
     -o os.iso "$ISO_DIR"
 
 # Install Limine deployment tool

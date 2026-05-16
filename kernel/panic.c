@@ -270,6 +270,20 @@ void display_panic_screen(const char* message, struct cpu_state* state) {
     uint32_t white = 0xFFFFFF;
     char buffer[64];
 
+    /* Draw stylized warning triangle */
+    for (int i = 0; i < 40; i++) {
+        for (int j = 0; j < i * 2; j++) {
+            raw_pixel(fb, fb->width - 100 + j - i, 40 + i, white);
+        }
+    }
+    /* Exclamation mark in triangle */
+    for (int i = 0; i < 20; i++) {
+        raw_pixel(fb, fb->width - 101, 50 + i, 0xFF4500);
+        raw_pixel(fb, fb->width - 100, 50 + i, 0xFF4500);
+    }
+    raw_pixel(fb, fb->width - 101, 75, 0xFF4500);
+    raw_pixel(fb, fb->width - 100, 75, 0xFF4500);
+
     // Your Explicit Format Requirements
     raw_print(fb, 40, y, "OOPS!!, something went wrong!", white); y += 32;
     raw_print(fb, 40, y, "here is what went wrong:", white); y += 48;
