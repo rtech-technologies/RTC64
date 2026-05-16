@@ -7,7 +7,7 @@
 #define NVME_REG_CSTS 0x1C
 
 void nvme_init(uint64_t base_addr) {
-    volatile uint32_t* regs = (volatile uint32_t*)base_addr;
+    volatile uint32_t* regs = (volatile uint32_t*)(base_addr + hhdm_offset);
 
     /* 1. Disable controller to configure */
     regs[NVME_REG_CC/4] &= ~0x01;

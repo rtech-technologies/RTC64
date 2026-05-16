@@ -8,7 +8,7 @@
 #define AHCI_GHC_AE (1 << 31)
 
 void ahci_init(uint64_t base_addr) {
-    volatile uint32_t* regs = (volatile uint32_t*)base_addr;
+    volatile uint32_t* regs = (volatile uint32_t*)(base_addr + hhdm_offset);
 
     /* 1. Enable AHCI mode and Reset */
     regs[0x04/4] |= AHCI_GHC_AE;

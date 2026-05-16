@@ -1,5 +1,6 @@
  #include <stdint.h>
 #include <stddef.h>
+#include "pro_os.h"
 
 /* ========================================================================= */
 /* 1. ARCHITECTURAL ASSEMBLY STUBS (NATIVE HOOKS)                            */
@@ -18,7 +19,6 @@ __asm__(
 
     "page_fault_stub:\n"
     "    cli\n"
-    "    pushq $0\n" // Dummy error code if needed, but PF has one.
     "    pushq $14\n" // Vector 14 (Page Fault)
     "    jmp exception_common\n"
 
@@ -80,24 +80,6 @@ __asm__(
 /* ========================================================================= */
 /* 2. C DATA STRUCTURES                                                      */
 /* ========================================================================= */
-
-struct cpu_state {
-    // Segment registers
-    uint64_t gs, fs, es, ds;
-    // Control registers
-    uint64_t cr4, cr3, cr2;
-    // General purpose registers
-    uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
-    uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
-    // Pushed automatically by CPU and stubs
-    uint64_t interrupt_number;
-    uint64_t error_code;
-    uint64_t rip;
-    uint64_t cs;
-    uint64_t rflags;
-    uint64_t rsp;
-    uint64_t ss;
-};
 
 struct panic_framebuffer {
     uint64_t address;

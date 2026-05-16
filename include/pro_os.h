@@ -69,4 +69,6 @@ void xhci_init(uint64_t mmio);
 void nvme_init(uint64_t mmio);
 void ahci_init(uint64_t mmio);
 
+extern uint64_t hhdm_offset;
+
 #endif

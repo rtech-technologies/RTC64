@@ -12,6 +12,72 @@ static volatile struct limine_framebuffer_request framebuffer_request = {
     .revision = 0
 };
 
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_hhdm_request hhdm_request = {
+    .id = LIMINE_HHDM_REQUEST,
+    .revision = 0
+};
+
+uint64_t hhdm_offset = 0;
+
+struct idt_entry {
+    uint16_t base_low;
+    uint16_t selector;
+    uint8_t  ist;
+    uint8_t  flags;
+    uint16_t base_mid;
+    uint32_t base_high;
+    uint32_t reserved;
+} __attribute__((packed));
+
+struct idtr {
+    uint16_t limit;
+    uint64_t base;
+} __attribute__((packed));
+
+static struct idt_entry idt[256];
+static struct idtr idtr;
+
+extern void page_fault_stub(void);
+extern void gpf_stub(void);
+extern void double_fault_stub(void);
+
+static void idt_set_gate(uint8_t vector, void* handler, uint8_t flags) {
+    uintptr_t base = (uintptr_t)handler;
+    idt[vector].base_low = base & 0xFFFF;
+    idt[vector].selector = 0x08; // Kernel code segment
+    idt[vector].ist = 0;
+    idt[vector].flags = flags;
+    idt[vector].base_mid = (base >> 16) & 0xFFFF;
+    idt[vector].base_high = (base >> 32) & 0xFFFFFFFF;
+    idt[vector].reserved = 0;
+}
+
+static void init_idt(void) {
+    for (int i = 0; i < 256; i++) {
+        memset(&idt[i], 0, sizeof(struct idt_entry));
+    }
+
+    idt_set_gate(8,  double_fault_stub, 0x8E);
+    idt_set_gate(13, gpf_stub,          0x8E);
+    idt_set_gate(14, page_fault_stub,   0x8E);
+
+    idtr.limit = sizeof(idt) - 1;
+    idtr.base = (uintptr_t)&idt;
+    __asm__ volatile ("lidt %0" : : "m"(idtr));
+}
+
+static void init_sse(void) {
+    uint64_t cr0, cr4;
+    __asm__ volatile ("mov %%cr0, %0" : "=r"(cr0));
+    cr0 &= ~((uint64_t)1 << 2); // Clear EM
+    cr0 |= (uint64_t)1 << 1;    // Set MP
+    __asm__ volatile ("mov %0, %%cr0" : : "r"(cr0));
+    __asm__ volatile ("mov %%cr4, %0" : "=r"(cr4));
+    cr4 |= (uint64_t)3 << 9;    // Set OSFXSR and OSXMMEXCPT
+    __asm__ volatile ("mov %0, %%cr4" : : "r"(cr4));
+}
+
 static float font_get_width(nk_handle handle, float height, const char *text, int len) {
     (void)handle; (void)height; (void)text;
     return (float)len * 8.0f;
@@ -47,8 +113,15 @@ static int cursor_x = 0;
 static int cursor_y = 0;
 
 void _start(void) {
+    init_sse();
+    init_idt();
+
     if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
         hcf();
+    }
+
+    if (hhdm_request.response != NULL) {
+        hhdm_offset = hhdm_request.response->offset;
     }
 
     struct limine_framebuffer *fb = framebuffer_request.response->framebuffers[0];
