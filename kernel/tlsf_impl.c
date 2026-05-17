@@ -13,19 +13,19 @@ typedef struct block {
 } block_t;
 
 static block_t* free_list = (block_t*)heap;
+static int initialized = 0;
 
 void init_heap() {
     free_list->size = HEAP_SIZE - sizeof(block_t);
     free_list->free = 1;
     free_list->next = NULL;
+    initialized = 1;
 }
 
 void* tlsf_malloc(void* tlsf, size_t size) {
     (void)tlsf;
-    static int initialized = 0;
     if (!initialized) {
         init_heap();
-        initialized = 1;
     }
 
     block_t* curr = free_list;
@@ -83,6 +83,8 @@ void* tlsf_realloc(void* tlsf, void* ptr, size_t size) {
 
 void* tlsf_create_with_pool(void* mem, size_t bytes) {
     (void)mem; (void)bytes;
-    init_heap();
+    if (!initialized) {
+        init_heap();
+    }
     return (void*)heap;
 }

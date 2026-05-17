@@ -4,8 +4,10 @@
 /* High-performance Software Blitter Implementation */
 
 void tgx_clear(tgx_canvas_t *canvas, uint32_t color) {
-    for (int i = 0; i < canvas->width * canvas->height; i++) {
-        canvas->pixels[i] = color;
+    for (int y = 0; y < canvas->height; y++) {
+        for (int x = 0; x < canvas->width; x++) {
+            canvas->pixels[y * (canvas->pitch / 4) + x] = color;
+        }
     }
 }
 

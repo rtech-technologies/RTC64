@@ -1,12 +1,12 @@
 CC = gcc
 LD = ld
 
-CFLAGS = -Wall -Wextra -std=c11 -ffreestanding -fno-stack-protector -fno-stack-check -fno-lto -fPIE -m64 -march=x86-64 \
+CFLAGS = -Wall -Wextra -std=c11 -ffreestanding -fno-stack-protector -fno-stack-check -fno-lto -fno-pic -m64 -march=x86-64 -mcmodel=kernel -mno-red-zone -fno-asynchronous-unwind-tables \
          -I../include -I. -Icherryusb/common -Icherryusb/core -Icherryusb/class/hub \
          -Icherryusb/class/msc -Icherryusb/class/hid -Icherryusb/port/ehci \
          -include usb_config.h
 
-LDFLAGS = -nostdlib -static -m elf_x86_64 -z max-page-size=0x1000 -T linker.ld
+LDFLAGS = -nostdlib -static -no-pie -z max-page-size=0x1000 -T linker.ld
 
 OBJS = kernel.o app_ui.o nuklear_kernel_impl.o nk_software_renderer.o \
        usb_osal.o usbd_core.o usbh_core.o usb_hal_ports.o \
@@ -16,12 +16,15 @@ OBJS = kernel.o app_ui.o nuklear_kernel_impl.o nk_software_renderer.o \
        math.o panic.o \
        drivers/pci.o drivers/xhci.o drivers/ehci.o drivers/nvme.o drivers/ahci.o
 
-.PHONY: all clean
+.PHONY: all clean bin
 
 all: kernel
 
+bin: $(OBJS)
+	ar rcs rtech_gui.a $(OBJS)
+
 kernel: $(OBJS)
-	$(LD) $(LDFLAGS) $(OBJS) -o kernel
+	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) -o kernel
 
 math.o: math.c
 	$(CC) $(CFLAGS) -c math.c -o math.o
@@ -57,9 +60,6 @@ tgx_impl.o: tgx_impl.c
 
 tlsf_impl.o: tlsf_impl.c
 	$(CC) $(CFLAGS) -c tlsf_impl.c -o tlsf_impl.o
-
-panic.o: panic.c
-	$(CC) $(CFLAGS) -c panic.c -o panic.o
 
 # Hardware Drivers
 drivers/pci.o: drivers/pci.c
@@ -115,4 +115,4 @@ usb_hc_ehci.o: cherryusb/port/ehci/usb_hc_ehci.c
 	$(CC) $(CFLAGS) -c cherryusb/port/ehci/usb_hc_ehci.c -o usb_hc_ehci.o
 
 clean:
-	rm -f kernel $(OBJS)
+	rm -f kernel $(OBJS) rtech_gui.a

@@ -23,10 +23,6 @@ int usbd_set_remote_wakeup(uint8_t busid) { (void)busid; return 0; }
 int usb_dc_init(uint8_t busid) { (void)busid; return 0; }
 int usb_dc_deinit(uint8_t busid) { (void)busid; return 0; }
 
-/* Linker symbols for hub and class discovery */
-uintptr_t __usbh_class_info_start__ = 0;
-uintptr_t __usbh_class_info_end__ = 0;
-
 /* Core system logging */
 extern int vsnprintf(char* str, size_t size, const char* format, va_list ap);
 

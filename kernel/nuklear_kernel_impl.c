@@ -23,6 +23,28 @@ void* memcpy(void* dest, const void* src, size_t n) {
     return dest;
 }
 
+void* memmove(void* dest, const void* src, size_t n) {
+    unsigned char* d = dest;
+    const unsigned char* s = src;
+    if (d < s) {
+        while (n--) *d++ = *s++;
+    } else {
+        d += n;
+        s += n;
+        while (n--) *--d = *--s;
+    }
+    return dest;
+}
+
+void* memchr(const void* s, int c, size_t n) {
+    const unsigned char* p = s;
+    while (n--) {
+        if (*p == (unsigned char)c) return (void*)p;
+        p++;
+    }
+    return NULL;
+}
+
 int memcmp(const void* s1, const void* s2, size_t n) {
     const unsigned char *p1 = s1, *p2 = s2;
     while(n--) {
@@ -100,7 +122,9 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
     while (*format && i < size - 1) {
         if (*format == '%') {
             format++;
-            if (*format == 's') {
+            if (*format == '%') {
+                str[i++] = '%';
+            } else if (*format == 's') {
                 const char* s = va_arg(ap, const char*);
                 while (*s && i < size - 1) str[i++] = *s++;
             } else if (*format == 'd') {
@@ -134,4 +158,10 @@ int snprintf(char* str, size_t size, const char* format, ...) {
 
 void* malloc(size_t size) { return tlsf_malloc(NULL, size); }
 void free(void* ptr) { tlsf_free(NULL, ptr); }
+void* realloc(void* ptr, size_t size) { return tlsf_realloc(NULL, ptr, size); }
+void* calloc(size_t nmemb, size_t size) {
+    void* ptr = malloc(nmemb * size);
+    if (ptr) memset(ptr, 0, nmemb * size);
+    return ptr;
+}
 void __assert_fail(const char * assertion, const char * file, unsigned int line, const char * function) { (void)assertion; (void)file; (void)line; (void)function; }

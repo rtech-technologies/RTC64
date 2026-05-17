@@ -5,11 +5,13 @@
 #include "pro_os.h"
 #include "app_ui.h"
 #include "nk_software_renderer.h"
+#include "drivers/pci.h"
 
-LIMINE_BASE_REVISION(2);
+__attribute__((used, section(".limine_requests_start")))
+volatile uint64_t limine_requests_start_marker[4] = { 0xf6b8f4b39de7d1ae, 0xfab91a6940fcb9cf, 0x785c6ed015d3e316, 0x181e920a7852b9d9 };
 
 __attribute__((used, section(".limine_requests")))
-static volatile uint64_t limine_requests_start_marker[4] = { 0xf6b8f4b39de7d1ae, 0xfab91a6940fcb9cf, 0x785c6ed015d3e316, 0x181e920a7852b9d9 };
+volatile uint64_t limine_base_revision[3] = { 0xf9562b2d5c95a6c8, 0x6a7b384944536bdc, 0 };
 
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_framebuffer_request framebuffer_request = {
@@ -36,8 +38,8 @@ static volatile struct limine_kernel_address_request kernel_address_request = {
     .revision = 0
 };
 
-__attribute__((used, section(".limine_requests")))
-static volatile uint64_t limine_requests_end_marker[2] = { 0xadc0e0531bb10d03, 0x9572709f31764c62 };
+__attribute__((used, section(".limine_requests_end")))
+volatile uint64_t limine_requests_end_marker[2] = { 0xadc0e0531bb10d03, 0x9572709f31764c62 };
 
 uint64_t hhdm_offset = 0;
 uint64_t kernel_phys_offset = 0;
@@ -78,16 +80,13 @@ static struct gdt_entry gdt[3];
 static struct gdt_ptr gdtr;
 
 static void init_gdt(void) {
-    // Null segment
     memset(&gdt[0], 0, sizeof(struct gdt_entry));
-    // Code segment (64-bit)
     gdt[1].limit_low = 0;
     gdt[1].base_low = 0;
     gdt[1].base_mid = 0;
     gdt[1].access = 0x9A;
     gdt[1].granularity = 0x20;
     gdt[1].base_high = 0;
-    // Data segment (64-bit)
     gdt[2].limit_low = 0;
     gdt[2].base_low = 0;
     gdt[2].base_mid = 0;
@@ -98,6 +97,19 @@ static void init_gdt(void) {
     gdtr.limit = sizeof(gdt) - 1;
     gdtr.base = (uintptr_t)&gdt;
     __asm__ volatile ("lgdt %0" : : "m"(gdtr));
+
+    __asm__ volatile (
+        "pushq $0x08\n"
+        "pushq $1f\n"
+        "lretq\n"
+        "1:\n"
+        "movw $0x10, %ax\n"
+        "movw %ax, %ds\n"
+        "movw %ax, %es\n"
+        "movw %ax, %ss\n"
+        "movw %ax, %fs\n"
+        "movw %ax, %gs\n"
+    );
 }
 
 extern void page_fault_stub(void);
@@ -107,7 +119,7 @@ extern void double_fault_stub(void);
 static void idt_set_gate(uint8_t vector, void* handler, uint8_t flags) {
     uintptr_t base = (uintptr_t)handler;
     idt[vector].base_low = base & 0xFFFF;
-    idt[vector].selector = 0x08; // Kernel code segment
+    idt[vector].selector = 0x08;
     idt[vector].ist = 0;
     idt[vector].flags = flags;
     idt[vector].base_mid = (base >> 16) & 0xFFFF;
@@ -119,11 +131,9 @@ static void init_idt(void) {
     for (int i = 0; i < 256; i++) {
         memset(&idt[i], 0, sizeof(struct idt_entry));
     }
-
     idt_set_gate(8,  double_fault_stub, 0x8E);
     idt_set_gate(13, gpf_stub,          0x8E);
     idt_set_gate(14, page_fault_stub,   0x8E);
-
     idtr.limit = sizeof(idt) - 1;
     idtr.base = (uintptr_t)&idt;
     __asm__ volatile ("lidt %0" : : "m"(idtr));
@@ -132,11 +142,11 @@ static void init_idt(void) {
 static void init_sse(void) {
     uint64_t cr0, cr4;
     __asm__ volatile ("mov %%cr0, %0" : "=r"(cr0));
-    cr0 &= ~((uint64_t)1 << 2); // Clear EM
-    cr0 |= (uint64_t)1 << 1;    // Set MP
+    cr0 &= ~((uint64_t)1 << 2);
+    cr0 |= (uint64_t)1 << 1;
     __asm__ volatile ("mov %0, %%cr0" : : "r"(cr0));
     __asm__ volatile ("mov %%cr4, %0" : "=r"(cr4));
-    cr4 |= (uint64_t)3 << 9;    // Set OSFXSR and OSXMMEXCPT
+    cr4 |= (uint64_t)3 << 9;
     __asm__ volatile ("mov %0, %%cr4" : : "r"(cr4));
 }
 
@@ -170,11 +180,14 @@ struct panic_framebuffer* get_kernel_framebuffer(void) {
     return &pfb;
 }
 
-/* Global Cursor Position */
 static int cursor_x = 0;
 static int cursor_y = 0;
 
 void _start(void) {
+    if (limine_base_revision[2] == (uint64_t)-1) {
+        hcf();
+    }
+
     init_sse();
     init_gdt();
     init_idt();
@@ -191,17 +204,14 @@ void _start(void) {
     }
 
     struct limine_framebuffer *fb = framebuffer_request.response->framebuffers[0];
+    tgx_canvas_t canvas = { (uint32_t*)fb->address, fb->width, fb->height, fb->pitch };
 
-    /* Initialize "Pro" Subsystems */
-    static uint8_t kernel_heap[1024 * 1024 * 4]; // 4MB Heap
-    tlsf_create_with_pool(kernel_heap, sizeof(kernel_heap));
-
-    scheduler_init();
-    vfs_init();
-    void pci_scan(void);
-    pci_scan();
-    hal_input_init();
+    tlsf_create_with_pool(NULL, 0);
     hal_storage_init();
+    hal_input_init();
+    scheduler_init();
+    pci_scan();
+    vfs_init();
     hal_usb_init();
 
     struct nk_context ctx;
@@ -217,13 +227,10 @@ void _start(void) {
     memset(&app, 0, sizeof(app));
     app.current_state = STATE_LOGIN;
 
-    tgx_canvas_t canvas = { (uint32_t*)fb->address, fb->width, fb->height, fb->pitch };
-
     while (1) {
-        /* 1. Poll Hardware */
+        tgx_clear(&canvas, 0x000000);
         hal_usb_poll();
 
-        /* 2. Update Input */
         input_event_t ev;
         nk_input_begin(&ctx);
         while (hal_input_pop_event(&ev)) {
@@ -236,24 +243,17 @@ void _start(void) {
         }
         nk_input_end(&ctx);
 
-        /* Test Panic Trigger (e.g., if cursor is at top-left corner) */
         if (cursor_x < 5 && cursor_y < 5 && cursor_x > 0) {
             kpanic("USER TRIGGERED PANIC TEST");
         }
 
-        /* 3. Run Scheduler */
         scheduler_run();
-
-        /* 4. Render UI */
         ui_render(&ctx, &app, fb->width, fb->height);
 
         struct nk_sw_fb sw_fb = { fb->address, fb->width, fb->height, fb->pitch };
         nk_sw_render(&sw_fb, &ctx);
-
-        /* 5. Draw Global Cursor (High Priority) */
         tgx_blit_rect(&canvas, cursor_x, cursor_y, 8, 8, 0xFFFFFFFF);
 
-        // Direct delay
-        for (volatile int i = 0; i < 5000000; i++);
+        for (volatile int i = 0; i < 500000; i++);
     }
 }

@@ -10,16 +10,21 @@ if [ ! -d "external/CherryUSB" ]; then
     git clone https://github.com/cherry-embedded/CherryUSB.git external/CherryUSB
 fi
 
+echo "[2/4] Setup Limine Bootloader..."
 if [ ! -d "external/limine" ]; then
-    echo "[2/4] Cloning Limine..."
-    git clone https://github.com/limine-bootloader/limine.git external/limine --depth=1
-    cd external/limine
-    ./bootstrap
-    ./configure --enable-bios --enable-bios-cd --enable-uefi-x86_64 --enable-uefi-ia32 LD_FOR_TARGET=ld OBJCOPY_FOR_TARGET=objcopy OBJDUMP_FOR_TARGET=objdump READELF_FOR_TARGET=readelf
-    make
-    cp bin/* .
-    cd ../..
+    git clone https://github.com/limine-bootloader/limine.git external/limine --branch=v5.x-branch --binary
 fi
+
+# The Missing Piece: Modern Limine Bootstrap & Configure Pipeline
+cd external/limine
+echo "Generating Limine build files..."
+./bootstrap
+echo "Configuring Limine binaries..."
+./configure --enable-bios --enable-uefi-x86_64 LD_FOR_TARGET=ld OBJCOPY_FOR_TARGET=objcopy OBJDUMP_FOR_TARGET=objdump READELF_FOR_TARGET=readelf
+echo "Compiling Limine stage assets..."
+make
+cp bin/* . 2>/dev/null || true
+cd ../..
 
 # Link for kernel build
 rm -f kernel/cherryusb
