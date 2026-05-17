@@ -1,32 +1,61 @@
-.PHONY: all clean hosted kernel setup iso run bin
+CC = gcc
+LD = ld
 
-all: setup hosted kernel iso
+CFLAGS = -Wall -Wextra -std=c11 -ffreestanding -fno-stack-protector \
+         -fno-stack-check -fno-lto -fno-pic -m64 -march=x86-64 -mcmodel=kernel \
+         -mno-red-zone -fno-asynchronous-unwind-tables \
+         -I./include -I./kernel -I./kernel/drivers \
+         -I./external/limine \
+         -I./external/CherryUSB/common \
+         -I./external/CherryUSB/core \
+         -I./external/CherryUSB/class/msc \
+         -I./external/CherryUSB/class/hid \
+         -I./external/CherryUSB/class/hub \
+         -include kernel/usb_config.h -DKERNEL_MODE
 
-bin: setup
-	mkdir -p dist
-	$(MAKE) -C kernel bin
-	cp kernel/rtech_gui.a dist/
-	@echo "Standalone binary created at dist/rtech_gui.a"
+LDFLAGS = -nostdlib -static -m elf_x86_64 -z max-page-size=0x1000 -T kernel/linker.ld
 
-setup:
+# All Source Objects
+KERNEL_OBJS = kernel/kernel.o src/app_ui.o kernel/nuklear_kernel_impl.o \
+              src/nk_software_renderer.o kernel/usb_osal.o \
+              kernel/usb_hal_ports.o kernel/storage.o kernel/input.o \
+              kernel/usb_hal.o kernel/vfs.o kernel/scheduler.o \
+              kernel/i18n.o kernel/uac_policy.o kernel/tgx_impl.o \
+              kernel/tlsf_impl.o kernel/math.o kernel/panic.o \
+              kernel/malloc_glue.o kernel/storage_hal.o kernel/panic_hal.o \
+              kernel/drivers/pci.o kernel/drivers/xhci.o kernel/drivers/ehci.o \
+              kernel/drivers/nvme.o kernel/drivers/ahci.o \
+              external/CherryUSB/core/usbd_core.o \
+              external/CherryUSB/core/usbh_core.o \
+              external/CherryUSB/class/msc/usbh_msc.o \
+              external/CherryUSB/class/hid/usbh_hid.o \
+              external/CherryUSB/class/hub/usbh_hub.o \
+              external/CherryUSB/port/ehci/usb_hc_ehci.o
+
+.PHONY: all clean environment iso
+
+all: environment kernel/kernel iso
+
+environment:
 	chmod +x build.sh
 	./build.sh
+	make -C external/limine limine
 
-hosted:
-	mkdir -p build_sdl
-	cd build_sdl && cmake .. && make
+kernel/kernel: $(KERNEL_OBJS)
+	$(LD) $(LDFLAGS) $(KERNEL_OBJS) -o kernel/kernel
 
-kernel:
-	$(MAKE) -C kernel
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-iso: kernel
-	@echo "=== Packaging Final Disk Estate ==="
-	chmod +x scripts/make_iso.sh
-	./scripts/make_iso.sh
-
-run: all
-	qemu-system-x86_64 -cdrom os.iso -m 512M -M q35 -device qemu-xhci -device usb-kbd -device usb-tablet
+iso: kernel/kernel
+	mkdir -p iso_root/boot/sys
+	cp kernel/kernel iso_root/boot/sys/kernel.elf
+	cp external/limine/limine-bios.sys iso_root/boot/
+	cp external/limine/limine-bios-cd.bin iso_root/boot/
+	xorriso -as mkisofs -b boot/limine-bios-cd.bin \
+		-no-emul-boot -boot-load-size 4 -boot-info-table \
+		iso_root -o os.iso
+	./external/limine/limine bios-install os.iso
 
 clean:
-	rm -rf build_sdl iso_root os.iso dist external
-	$(MAKE) -C kernel clean
+	rm -rf $(KERNEL_OBJS) kernel/kernel os.iso iso_root/boot/sys/kernel.elf

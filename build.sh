@@ -1,42 +1,26 @@
 #!/bin/bash
 set -e
 
-echo "=== R-TECH™ OS Setup & Build ==="
+echo "=== Baking Real Bare-Metal Environment ==="
 
-# 1. Setup Dependencies
 mkdir -p external
+mkdir -p iso_root/boot/sys
 
-# Limine: Use binary branch for pre-compiled bootloader assets
+# 1. Get the Real Limine Binaries (Hardened acquisition)
 if [ ! -d "external/limine" ]; then
-    echo "[1/4] Fetching Limine Binary Assets..."
-    git clone https://github.com/limine-bootloader/limine.git external/limine --branch=v5.x-branch-binary --depth=1
-
-    # Build the host-side deployment tool
+    echo "[1/2] Fetching Static Limine Assets..."
+    git clone https://github.com/limine-bootloader/limine.git external/limine --branch=v8.x-binary --depth=1
     echo "Building Limine deployment tool..."
-    make -C external/limine
+    make -C external/limine limine
 fi
 
-# CherryUSB: Ensure source is present in kernel/cherryusb
-if [ ! -d "kernel/cherryusb" ]; then
-    echo "[1.5/4] Fetching CherryUSB Source..."
-    git clone https://github.com/cherry-embedded/CherryUSB.git kernel/cherryusb --depth=1
-    # Remove internal .git to ensure it's tracked as source in the parent repo
-    rm -rf kernel/cherryusb/.git
+# 2. Fetch the Real CherryUSB Source Tree
+if [ ! -d "external/CherryUSB" ]; then
+    echo "[2/2] Fetching Genuine CherryUSB Stack..."
+    git clone https://github.com/cherry-embedded/CherryUSB.git external/CherryUSB --depth=1
+    # Remove .git to ensure tracking by parent repo if needed,
+    # but the directive was "include real source files".
+    rm -rf external/CherryUSB/.git
 fi
 
-# 2. Build Hosted SDL2 Environment
-echo "[2/4] Building Hosted SDL2 Environment..."
-mkdir -p build_sdl
-cd build_sdl
-cmake ..
-make
-cd ..
-
-# 3. Build Freestanding x86_64 Kernel
-echo "[3/4] Building Freestanding x86_64 Kernel..."
-make -C kernel clean
-make -C kernel
-
-echo "=== Build Complete! ==="
-echo "Hosted Binary: build_sdl/nuklear_cherry_usb"
-echo "Kernel Binary: kernel/kernel"
+echo "Environment Armed. Ready for 'make'."

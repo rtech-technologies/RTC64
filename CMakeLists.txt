@@ -28,9 +28,9 @@ target_include_directories(nuklear_cherry_usb PRIVATE
     include
     include/external
     kernel
-    kernel/cherryusb/core
-    kernel/cherryusb/common
-    kernel/cherryusb/class/hub
+    external/CherryUSB/core
+    external/CherryUSB/common
+    external/CherryUSB/class/hub
     ${SDL2_INCLUDE_DIRS}
 )
 

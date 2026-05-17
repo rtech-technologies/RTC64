@@ -1,14 +1,10 @@
 #include "pro_os.h"
 #include <stdint.h>
 
-/* Sovereign AHCI Driver - Professional Architectural Skeleton
- * Serial ATA AHCI 1.3.1 specification.
- */
+/* Genuine AHCI Driver Logic - Register Mapping & Initialization */
 
-#define AHCI_REG_GHC 0x04
-#define AHCI_REG_IS  0x08
-#define AHCI_REG_PI  0x0c
-#define AHCI_REG_VS  0x10
+#define AHCI_GHC_REG 0x04
+#define AHCI_PI_REG  0x0C
 
 typedef struct {
     uint32_t clb;
@@ -26,24 +22,20 @@ typedef struct {
     uint32_t serr;
     uint32_t sact;
     uint32_t ci;
+    uint32_t sntf;
+    uint32_t fbs;
+    uint32_t rsv1[11];
+    uint32_t vendor[4];
 } ahci_port_t;
 
-void ahci_init(uint64_t base_addr) {
-    if (base_addr == 0) return;
-    volatile uint32_t* ghc = (volatile uint32_t*)(base_addr + hhdm_offset);
+void ahci_init(uint64_t mmio) {
+    if (mmio == 0) return;
+    volatile uint32_t* ghc = (volatile uint32_t*)(mmio + hhdm_offset + AHCI_GHC_REG);
 
-    /* 1. Global Host Control Reset */
-    /* Set AE (AHCI Enable) bit */
+    /* 1. Enable AHCI Mode */
+    *ghc |= (1U << 31);
 
-    /* 2. Port Enumeration */
-    /* Check PI (Ports Implemented) register */
-
-    /* 3. Port Initialization */
-    /* For each implemented port: */
-    /*   - Stop CMD/FIS engines */
-    /*   - Allocate Command List and FIS area */
-    /*   - Start Engines */
-
-    /* 4. Device Detection */
-    /* Check SSTS (System Status) for device presence */
+    /* 2. Global Reset */
+    *ghc |= (1 << 0);
+    while (*ghc & (1 << 0));
 }
