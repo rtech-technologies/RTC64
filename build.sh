@@ -6,17 +6,14 @@ echo "=== R-TECH™ OS Setup & Build ==="
 # 1. Setup Dependencies
 mkdir -p external
 
-# Limine: Use a static Point Release Tarball
-LIMINE_VERSION="12.2.0"
-if [ ! -f "external/limine/limine" ]; then
-    echo "[1/4] Fetching Limine Release ${LIMINE_VERSION}..."
-    mkdir -p external/limine
-    curl -L "https://github.com/Limine-Bootloader/Limine/releases/download/v${LIMINE_VERSION}/limine-binary.tar.gz" -o external/limine.tar.gz
-    tar -xzf external/limine.tar.gz -C external/limine --strip-components=1
-    rm external/limine.tar.gz
+# Limine: Use binary branch for pre-compiled bootloader assets
+if [ ! -d "external/limine" ]; then
+    echo "[1/4] Fetching Limine Binary Assets..."
+    git clone https://github.com/limine-bootloader/limine.git external/limine --branch=v5.x-branch-binary --depth=1
 
-    # Compile the deploy tool from the binary release source
-    gcc external/limine/limine.c -o external/limine/limine
+    # Build the host-side deployment tool
+    echo "Building Limine deployment tool..."
+    make -C external/limine
 fi
 
 # 2. Build Hosted SDL2 Environment

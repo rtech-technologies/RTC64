@@ -6,19 +6,8 @@ set(CMAKE_C_STANDARD 99)
 # Find SDL2
 find_package(SDL2 REQUIRED)
 
-# Include directories
-include_directories(
-    include
-    include/external
-    kernel
-    kernel/cherryusb/core
-    kernel/cherryusb/common
-    kernel/cherryusb/class/hub
-    ${SDL2_INCLUDE_DIRS}
-)
-
-# Source files
-set(SOURCES
+# Executable
+add_executable(nuklear_cherry_usb
     src/main.c
     src/app_ui.c
     src/nuklear_impl.c
@@ -34,8 +23,16 @@ set(SOURCES
     kernel/tlsf_impl.c
 )
 
-# Executable
-add_executable(nuklear_cherry_usb ${SOURCES})
+# Include directories
+target_include_directories(nuklear_cherry_usb PRIVATE
+    include
+    include/external
+    kernel
+    kernel/cherryusb/core
+    kernel/cherryusb/common
+    kernel/cherryusb/class/hub
+    ${SDL2_INCLUDE_DIRS}
+)
 
 # Libraries
 target_link_libraries(nuklear_cherry_usb
