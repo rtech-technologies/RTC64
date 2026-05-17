@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) return -1;
 
-    win = SDL_CreateWindow("R-TECH (Software Rendered)", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
+    win = SDL_CreateWindow("R-TECH™ (Software Rendered)", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
     if (!win) return -1;
 
     renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_SOFTWARE);

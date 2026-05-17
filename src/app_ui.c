@@ -67,24 +67,49 @@ static void ui_render_taskbar(struct nk_context *ctx, struct app_state *app, int
 void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, int window_height)
 {
     if (app->current_state == STATE_LOGIN) {
-        if (nk_begin(ctx, "Login", nk_rect(window_width/2 - 175, window_height/2 - 150, 350, 300),
+        if (nk_begin(ctx, "Login", nk_rect(window_width/2 - 175, window_height/2 - 180, 350, 360),
             NK_WINDOW_BORDER|NK_WINDOW_NO_SCROLLBAR))
         {
+            nk_layout_row_dynamic(ctx, 80, 1);
+            nk_label(ctx, "[ AVATAR ]", NK_TEXT_CENTERED);
+
             nk_layout_row_dynamic(ctx, 30, 1);
-            nk_label(ctx, i18n_translate("welcome"), NK_TEXT_CENTERED);
+            nk_label(ctx, "Sovereign User", NK_TEXT_CENTERED);
+
+            nk_layout_row_dynamic(ctx, 30, 1);
+            nk_spacer(ctx);
 
             nk_layout_row_dynamic(ctx, 30, 1);
             nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, app->password, sizeof(app->password), nk_filter_default);
 
+            nk_layout_row_dynamic(ctx, 40, 1);
             if (nk_button_label(ctx, i18n_translate("login"))) app->current_state = STATE_INSTALLER;
+
+            nk_layout_row_dynamic(ctx, 30, 1);
+            nk_spacer(ctx);
+
+            nk_layout_row_static(ctx, 30, 80, 1);
+            if (nk_button_label(ctx, "Power")) { /* Shutdown sequence placeholder */ }
         }
         nk_end(ctx);
     } else if (app->current_state == STATE_INSTALLER) {
         if (nk_begin(ctx, "Installer", nk_rect(window_width/2 - 250, window_height/2 - 200, 500, 400),
-            NK_WINDOW_BORDER|NK_WINDOW_NO_SCROLLBAR))
+            NK_WINDOW_BORDER|NK_WINDOW_NO_SCROLLBAR|NK_WINDOW_TITLE))
         {
             nk_layout_row_dynamic(ctx, 30, 1);
-            nk_label(ctx, "Have you used OS*2 before?", NK_TEXT_LEFT);
+            nk_label(ctx, "R-TECH™ Installation Wizard", NK_TEXT_CENTERED);
+            nk_label(ctx, "How familiar are you with this environment?", NK_TEXT_LEFT);
+
+            static int familiarity = 0;
+            nk_layout_row_dynamic(ctx, 30, 1);
+            if (nk_option_label(ctx, "I know my way around (Advanced)", familiarity == 0)) familiarity = 0;
+            if (nk_option_label(ctx, "I'm new here (Standard)", familiarity == 1)) familiarity = 1;
+
+            nk_layout_row_dynamic(ctx, 100, 1);
+            nk_spacer(ctx);
+
+            nk_layout_row_dynamic(ctx, 40, 2);
+            nk_spacer(ctx);
             if (nk_button_label(ctx, "Continue to Desktop")) app->current_state = STATE_DESKTOP;
         }
         nk_end(ctx);

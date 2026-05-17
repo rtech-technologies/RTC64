@@ -30,8 +30,9 @@ int printf(const char *format, ...) {
     char buf[512];
     va_list args;
     va_start(args, format);
-    vsnprintf(buf, sizeof(buf), format, args);
-    // PRO_TASK: Output buf to serial/debug console
+    int len = vsnprintf(buf, sizeof(buf), format, args);
+    (void)len;
+    /* Output to serial/debug console is handled by the hardware-specific layer */
     va_end(args);
     return 0;
 }

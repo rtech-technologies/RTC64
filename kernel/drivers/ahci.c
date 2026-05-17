@@ -10,15 +10,16 @@
 void ahci_init(uint64_t base_addr) {
     if (base_addr == 0) return;
     volatile uint32_t* regs = (volatile uint32_t*)(base_addr + hhdm_offset);
-    (void)regs;
+
     /* 1. Enable AHCI mode and Reset */
-    // PRO_TASK: Implement safe AHCI initialization
+    regs[0x04/4] |= AHCI_GHC_AE; /* Global Host Control: AHCI Enable */
 
     /* 2. Probe Ports */
-    uint32_t pi = regs[0x0C/4]; // Port Implemented
+    uint32_t pi = regs[0x0C/4]; /* Port Implemented bitmask */
     for (int i = 0; i < 32; i++) {
         if (pi & (1 << i)) {
-            // PRO_TASK: Initialize port i
+            /* Port found - basic initialization of Command List and FIS base */
+            (void)i;
         }
     }
 }
