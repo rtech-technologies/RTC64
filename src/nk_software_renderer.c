@@ -1,11 +1,12 @@
 #include "nk_software_renderer.h"
 #include <string.h>
+#include <stdbool.h>
 
 /* Very direct 8x8 font integrated into the renderer */
 #include "../kernel/drivers/font_8x8.h"
 
 static void draw_pixel(struct nk_sw_fb *fb, int x, int y, struct nk_color col) {
-    if (x < 0 || y < 0 || x >= fb->width || y >= fb->height) return;
+    if (x < 0 || y < 0 || x >= (int)fb->width || y >= (int)fb->height) return;
     uint32_t *p = (uint32_t*)((uint8_t*)fb->pixels + y * fb->pitch + x * 4);
     *p = (col.r << 16) | (col.g << 8) | col.b;
 }
@@ -31,6 +32,37 @@ static void draw_line(struct nk_sw_fb *fb, int x0, int y0, int x1, int y1, struc
         int e2 = 2 * err;
         if (e2 > -dy) { err -= dy; x0 += sx; }
         if (e2 < dx) { err += dx; y0 += sy; }
+    }
+}
+
+static float cross_product(int ax, int ay, int bx, int by, int cx, int cy) {
+    return (float)(bx - ax) * (float)(cy - ay) - (float)(by - ay) * (float)(cx - ax);
+}
+
+static void draw_triangle_filled(struct nk_sw_fb *fb, int x0, int y0, int x1, int y1, int x2, int y2, struct nk_color col) {
+    int min_x = x0; if(x1 < min_x) min_x = x1; if(x2 < min_x) min_x = x2;
+    int max_x = x0; if(x1 > max_x) max_x = x1; if(x2 > max_x) max_x = x2;
+    int min_y = y0; if(y1 < min_y) min_y = y1; if(y2 < min_y) min_y = y2;
+    int max_y = y0; if(y1 > max_y) max_y = y1; if(y2 > max_y) max_y = y2;
+
+    if (min_x < 0) min_x = 0;
+    if (min_y < 0) min_y = 0;
+    if (max_x >= (int)fb->width) max_x = fb->width - 1;
+    if (max_y >= (int)fb->height) max_y = fb->height - 1;
+
+    for (int y = min_y; y <= max_y; y++) {
+        for (int x = min_x; x <= max_x; x++) {
+            float d1 = cross_product(x0, y0, x1, y1, x, y);
+            float d2 = cross_product(x1, y1, x2, y2, x, y);
+            float d3 = cross_product(x2, y2, x0, y0, x, y);
+
+            bool has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+            bool has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+
+            if (!(has_neg && has_pos)) {
+                draw_pixel(fb, x, y, col);
+            }
+        }
     }
 }
 
@@ -73,12 +105,7 @@ void nk_sw_render(struct nk_sw_fb *fb, struct nk_context *ctx) {
             } break;
             case NK_COMMAND_TRIANGLE_FILLED: {
                 const struct nk_command_triangle_filled *t = (const struct nk_command_triangle_filled*)cmd;
-                /* Simplified: draw bounding box for triangle to ensure visual presence */
-                int min_x = t->a.x; if(t->b.x < min_x) min_x = t->b.x; if(t->c.x < min_x) min_x = t->c.x;
-                int max_x = t->a.x; if(t->b.x > max_x) max_x = t->b.x; if(t->c.x > max_x) max_x = t->c.x;
-                int min_y = t->a.y; if(t->b.y < min_y) min_y = t->b.y; if(t->c.y < min_y) min_y = t->c.y;
-                int max_y = t->a.y; if(t->b.y > max_y) max_y = t->b.y; if(t->c.y > max_y) max_y = t->c.y;
-                draw_rect(fb, min_x, min_y, max_x - min_x, max_y - min_y, t->color);
+                draw_triangle_filled(fb, t->a.x, t->a.y, t->b.x, t->b.y, t->c.x, t->c.y, t->color);
             } break;
             default: break;
         }

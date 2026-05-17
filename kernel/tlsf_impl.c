@@ -29,9 +29,6 @@ typedef struct tlsf_control {
     block_header_t* blocks[FL_INDEX_MAX][SL_INDEX_COUNT];
 } tlsf_t;
 
-static uint8_t heap_mem[1024 * 1024 * 8] __attribute__((aligned(16)));
-static tlsf_t* g_tlsf = NULL;
-
 static void mapping_insert(size_t size, int* fl, int* sl) {
     if (size < MIN_BLOCK_SIZE) {
         *fl = 0;
@@ -70,6 +67,8 @@ void* tlsf_malloc(void* tlsf_ptr, size_t size) {
     sl = __builtin_ctz(sl_map);
 
     block_header_t* block = t->blocks[fl][sl];
+    if (!block) return NULL;
+
     /* Remove from list */
     t->blocks[fl][sl] = block->next_free;
     if (block->next_free) block->next_free->prev_free = NULL;
@@ -81,7 +80,7 @@ void* tlsf_malloc(void* tlsf_ptr, size_t size) {
 }
 
 void tlsf_free(void* tlsf_ptr, void* ptr) {
-    if (!ptr) return;
+    if (!ptr || !tlsf_ptr) return;
     tlsf_t* t = (tlsf_t*)tlsf_ptr;
     block_header_t* block = (block_header_t*)((uint8_t*)ptr - sizeof(block_header_t));
     block->size |= BLOCK_FREE_BIT;
@@ -99,23 +98,27 @@ void tlsf_free(void* tlsf_ptr, void* ptr) {
 }
 
 void* tlsf_create_with_pool(void* mem, size_t bytes) {
-    (void)mem; (void)bytes;
-    if (g_tlsf) return g_tlsf;
+    if (!mem || bytes < sizeof(tlsf_t) + sizeof(block_header_t) + MIN_BLOCK_SIZE) return NULL;
 
-    g_tlsf = (tlsf_t*)heap_mem;
+    tlsf_t* t = (tlsf_t*)mem;
     for(int i=0; i<FL_INDEX_MAX; i++) {
-        g_tlsf->sl_bitmap[i] = 0;
-        for(int j=0; j<SL_INDEX_COUNT; j++) g_tlsf->blocks[i][j] = NULL;
+        t->sl_bitmap[i] = 0;
+        for(int j=0; j<SL_INDEX_COUNT; j++) t->blocks[i][j] = NULL;
     }
-    g_tlsf->fl_bitmap = 0;
+    t->fl_bitmap = 0;
 
     /* Create initial big block */
-    block_header_t* initial = (block_header_t*)(heap_mem + sizeof(tlsf_t));
-    initial->size = (8 * 1024 * 1024 - sizeof(tlsf_t) - sizeof(block_header_t)) | BLOCK_FREE_BIT;
+    block_header_t* initial = (block_header_t*)((uint8_t*)mem + sizeof(tlsf_t));
+    initial->size = (bytes - sizeof(tlsf_t) - sizeof(block_header_t)) | BLOCK_FREE_BIT;
     initial->prev_phys = NULL;
-    tlsf_free(g_tlsf, (void*)((uint8_t*)initial + sizeof(block_header_t)));
 
-    return g_tlsf;
+    /* Initialize block headers to mark them as free */
+    initial->next_free = NULL;
+    initial->prev_free = NULL;
+
+    tlsf_free(t, (void*)((uint8_t*)initial + sizeof(block_header_t)));
+
+    return (void*)t;
 }
 
 void* tlsf_realloc(void* tlsf, void* ptr, size_t size) {

@@ -16,6 +16,14 @@ if [ ! -d "external/limine" ]; then
     make -C external/limine
 fi
 
+# CherryUSB: Ensure source is present in kernel/cherryusb
+if [ ! -d "kernel/cherryusb" ]; then
+    echo "[1.5/4] Fetching CherryUSB Source..."
+    git clone https://github.com/cherry-embedded/CherryUSB.git kernel/cherryusb --depth=1
+    # Remove internal .git to ensure it's tracked as source in the parent repo
+    rm -rf kernel/cherryusb/.git
+fi
+
 # 2. Build Hosted SDL2 Environment
 echo "[2/4] Building Hosted SDL2 Environment..."
 mkdir -p build_sdl
