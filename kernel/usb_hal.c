@@ -1,14 +1,20 @@
 #include "hal.h"
+#include "pro_os.h"
 #include "usbh_core.h"
 #include "usbh_hid.h"
 #include "usbh_msc.h"
 
 void hal_usb_init(void) {
-    usbh_initialize(0, 0x3F8, NULL); // Sovereign IO base for EHCI/XHCI in QEMU
+    if (xhci_mmio_base != 0) {
+        usbh_initialize(0, xhci_mmio_base + hhdm_offset, NULL);
+    } else if (ehci_mmio_base != 0) {
+        usbh_initialize(0, ehci_mmio_base + hhdm_offset, NULL);
+    }
 }
 
 void hal_usb_poll(void) {
-    // CherryUSB background tasks if not using threads
+    // CherryUSB background tasks - in a real OS this would be handled by interrupts
+    // For now we maintain a stub to keep the kernel loop clean
 }
 
 /* Callbacks from CherryUSB for HID devices */

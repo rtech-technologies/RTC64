@@ -14,7 +14,7 @@ OBJS = kernel.o app_ui.o nuklear_kernel_impl.o nk_software_renderer.o \
        usbh_msc.o usbh_hid.o usbh_hub.o usb_hc_ehci.o \
        vfs.o scheduler.o i18n.o uac_policy.o tgx_impl.o tlsf_impl.o \
        math.o panic.o \
-       drivers/pci.o drivers/xhci.o drivers/nvme.o drivers/ahci.o
+       drivers/pci.o drivers/xhci.o drivers/ehci.o drivers/nvme.o drivers/ahci.o
 
 .PHONY: all clean
 
@@ -67,6 +67,9 @@ drivers/pci.o: drivers/pci.c
 
 drivers/xhci.o: drivers/xhci.c
 	$(CC) $(CFLAGS) -c drivers/xhci.c -o drivers/xhci.o
+
+drivers/ehci.o: drivers/ehci.c
+	$(CC) $(CFLAGS) -c drivers/ehci.c -o drivers/ehci.o
 
 drivers/nvme.o: drivers/nvme.c
 	$(CC) $(CFLAGS) -c drivers/nvme.c -o drivers/nvme.o

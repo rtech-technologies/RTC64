@@ -6,6 +6,11 @@
 #include "app_ui.h"
 #include "nk_software_renderer.h"
 
+LIMINE_BASE_REVISION(2);
+
+__attribute__((used, section(".limine_requests")))
+static volatile uint64_t limine_requests_start_marker[4] = { 0xf6b8f4b39de7d1ae, 0xfab91a6940fcb9cf, 0x785c6ed015d3e316, 0x181e920a7852b9d9 };
+
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_framebuffer_request framebuffer_request = {
     .id = LIMINE_FRAMEBUFFER_REQUEST,
@@ -18,7 +23,24 @@ static volatile struct limine_hhdm_request hhdm_request = {
     .revision = 0
 };
 
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_stack_size_request stack_size_request = {
+    .id = LIMINE_STACK_SIZE_REQUEST,
+    .revision = 0,
+    .stack_size = 0x80000 // 512KB stack
+};
+
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_kernel_address_request kernel_address_request = {
+    .id = LIMINE_KERNEL_ADDRESS_REQUEST,
+    .revision = 0
+};
+
+__attribute__((used, section(".limine_requests")))
+static volatile uint64_t limine_requests_end_marker[2] = { 0xadc0e0531bb10d03, 0x9572709f31764c62 };
+
 uint64_t hhdm_offset = 0;
+uint64_t kernel_phys_offset = 0;
 
 struct idt_entry {
     uint16_t base_low;
@@ -37,6 +59,46 @@ struct idtr {
 
 static struct idt_entry idt[256];
 static struct idtr idtr;
+
+struct gdt_entry {
+    uint16_t limit_low;
+    uint16_t base_low;
+    uint8_t  base_mid;
+    uint8_t  access;
+    uint8_t  granularity;
+    uint8_t  base_high;
+} __attribute__((packed));
+
+struct gdt_ptr {
+    uint16_t limit;
+    uint64_t base;
+} __attribute__((packed));
+
+static struct gdt_entry gdt[3];
+static struct gdt_ptr gdtr;
+
+static void init_gdt(void) {
+    // Null segment
+    memset(&gdt[0], 0, sizeof(struct gdt_entry));
+    // Code segment (64-bit)
+    gdt[1].limit_low = 0;
+    gdt[1].base_low = 0;
+    gdt[1].base_mid = 0;
+    gdt[1].access = 0x9A;
+    gdt[1].granularity = 0x20;
+    gdt[1].base_high = 0;
+    // Data segment (64-bit)
+    gdt[2].limit_low = 0;
+    gdt[2].base_low = 0;
+    gdt[2].base_mid = 0;
+    gdt[2].access = 0x92;
+    gdt[2].granularity = 0;
+    gdt[2].base_high = 0;
+
+    gdtr.limit = sizeof(gdt) - 1;
+    gdtr.base = (uintptr_t)&gdt;
+    __asm__ volatile ("lgdt %0" : : "m"(gdtr));
+}
 
 extern void page_fault_stub(void);
 extern void gpf_stub(void);
@@ -114,6 +176,7 @@ static int cursor_y = 0;
 
 void _start(void) {
     init_sse();
+    init_gdt();
     init_idt();
 
     if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
@@ -122,6 +185,9 @@ void _start(void) {
 
     if (hhdm_request.response != NULL) {
         hhdm_offset = hhdm_request.response->offset;
+    }
+    if (kernel_address_request.response != NULL) {
+        kernel_phys_offset = kernel_address_request.response->physical_base;
     }
 
     struct limine_framebuffer *fb = framebuffer_request.response->framebuffers[0];

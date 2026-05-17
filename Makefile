@@ -20,6 +20,17 @@ kernel:
 	$(MAKE) -C kernel
 
 iso: kernel
+	@echo "=== Automating Bootloader Dependencies ==="
+	@if [ ! -f external/limine/Makefile ]; then \
+		echo "[1/2] Generating Limine configuration..."; \
+		cd external/limine && ./bootstrap && ./configure --enable-bios --enable-uefi-x86_64 LD_FOR_TARGET=ld OBJCOPY_FOR_TARGET=objcopy OBJDUMP_FOR_TARGET=objdump READELF_FOR_TARGET=readelf; \
+	fi
+	@if [ ! -f external/limine/limine-bios.sys ]; then \
+		echo "[2/2] Compiling bootstrap binaries..."; \
+		$(MAKE) -C external/limine; \
+		cp external/limine/bin/* external/limine/; \
+	fi
+	@echo "=== Packaging Final Disk Estate ==="
 	chmod +x scripts/make_iso.sh
 	./scripts/make_iso.sh
 

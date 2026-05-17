@@ -72,6 +72,63 @@ long strtol(const char* nptr, char** endptr, int base) {
     return 0;
 }
 
+#include <stdarg.h>
+
+static void reverse(char* s) {
+    int i, j;
+    for (i = 0, j = strlen(s)-1; i<j; i++, j--) {
+        char c = s[i];
+        s[i] = s[j];
+        s[j] = c;
+    }
+}
+
+static void itoa(int n, char* s) {
+    int i, sign;
+    if ((sign = n) < 0) n = -n;
+    i = 0;
+    do {
+        s[i++] = n % 10 + '0';
+    } while ((n /= 10) > 0);
+    if (sign < 0) s[i++] = '-';
+    s[i] = '\0';
+    reverse(s);
+}
+
+int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
+    size_t i = 0;
+    while (*format && i < size - 1) {
+        if (*format == '%') {
+            format++;
+            if (*format == 's') {
+                const char* s = va_arg(ap, const char*);
+                while (*s && i < size - 1) str[i++] = *s++;
+            } else if (*format == 'd') {
+                int d = va_arg(ap, int);
+                char buf[16];
+                itoa(d, buf);
+                const char* s = buf;
+                while (*s && i < size - 1) str[i++] = *s++;
+            } else {
+                str[i++] = *format;
+            }
+        } else {
+            str[i++] = *format;
+        }
+        format++;
+    }
+    str[i] = '\0';
+    return i;
+}
+
+int snprintf(char* str, size_t size, const char* format, ...) {
+    va_list ap;
+    va_start(ap, format);
+    int ret = vsnprintf(str, size, format, ap);
+    va_end(ap);
+    return ret;
+}
+
 #define NK_IMPLEMENTATION
 #include "pro_os.h"
 

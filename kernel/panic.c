@@ -71,7 +71,9 @@ __asm__(
 
     "    /* First parameter for C function (RDI) is current stack pointer */\n"
     "    movq %rsp, %rdi\n"
+    "    subq $8, %rsp\n" // Align stack to 16 bytes
     "    call core_panic_handler\n"
+    "    addq $8, %rsp\n"
 
     "    cli\n"
     "    hlt\n"

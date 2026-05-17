@@ -66,9 +66,15 @@ void kpanic(const char* message);
 
 /* Hardware Driver Interfaces */
 void xhci_init(uint64_t mmio);
+void ehci_init(uint64_t mmio);
 void nvme_init(uint64_t mmio);
 void ahci_init(uint64_t mmio);
 
 extern uint64_t hhdm_offset;
+extern uint64_t kernel_phys_offset;
+extern uint64_t xhci_mmio_base;
+extern uint64_t ehci_mmio_base;
+extern uint64_t nvme_mmio_base;
+extern uint64_t ahci_mmio_base;
 
 #endif

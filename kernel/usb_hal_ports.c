@@ -28,15 +28,14 @@ uintptr_t __usbh_class_info_start__ = 0;
 uintptr_t __usbh_class_info_end__ = 0;
 
 /* Core system logging */
+extern int vsnprintf(char* str, size_t size, const char* format, va_list ap);
+
 int printf(const char *format, ...) {
+    char buf[512];
     va_list args;
     va_start(args, format);
-    // In a real sovereign kernel, this would write to COM1 or Framebuffer
+    vsnprintf(buf, sizeof(buf), format, args);
+    // PRO_TASK: Output buf to serial/debug console
     va_end(args);
-    return 0;
-}
-
-int snprintf(char *str, size_t size, const char *format, ...) {
-    (void)str; (void)size; (void)format;
     return 0;
 }

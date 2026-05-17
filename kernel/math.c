@@ -26,10 +26,16 @@ double pow(double x, double y) {
     return res;
 }
 
+#define PI 3.14159265358979323846
+
 double sin(double x) {
+    /* Normalize x to [-PI, PI] */
+    while (x > PI) x -= 2 * PI;
+    while (x < -PI) x += 2 * PI;
+
     /* Taylor series approximation */
     double res = 0, term = x;
-    for (int i = 1; i <= 9; i += 2) {
+    for (int i = 1; i <= 15; i += 2) {
         res += term;
         term *= -x * x / ((i + 1) * (i + 2));
     }
@@ -37,9 +43,13 @@ double sin(double x) {
 }
 
 double cos(double x) {
+    /* Normalize x to [-PI, PI] */
+    while (x > PI) x -= 2 * PI;
+    while (x < -PI) x += 2 * PI;
+
     /* Taylor series approximation */
     double res = 0, term = 1;
-    for (int i = 0; i <= 8; i += 2) {
+    for (int i = 0; i <= 14; i += 2) {
         res += term;
         term *= -x * x / ((i + 1) * (i + 2));
     }

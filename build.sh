@@ -13,7 +13,12 @@ fi
 if [ ! -d "external/limine" ]; then
     echo "[2/4] Cloning Limine..."
     git clone https://github.com/limine-bootloader/limine.git external/limine --depth=1
-    make -C external/limine
+    cd external/limine
+    ./bootstrap
+    ./configure --enable-bios --enable-bios-cd --enable-uefi-x86_64 --enable-uefi-ia32 LD_FOR_TARGET=ld OBJCOPY_FOR_TARGET=objcopy OBJDUMP_FOR_TARGET=objdump READELF_FOR_TARGET=readelf
+    make
+    cp bin/* .
+    cd ../..
 fi
 
 # Link for kernel build
