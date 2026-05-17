@@ -156,12 +156,4 @@ int snprintf(char* str, size_t size, const char* format, ...) {
 #define NK_IMPLEMENTATION
 #include "pro_os.h"
 
-void* malloc(size_t size) { return tlsf_malloc(NULL, size); }
-void free(void* ptr) { tlsf_free(NULL, ptr); }
-void* realloc(void* ptr, size_t size) { return tlsf_realloc(NULL, ptr, size); }
-void* calloc(size_t nmemb, size_t size) {
-    void* ptr = malloc(nmemb * size);
-    if (ptr) memset(ptr, 0, nmemb * size);
-    return ptr;
-}
 void __assert_fail(const char * assertion, const char * file, unsigned int line, const char * function) { (void)assertion; (void)file; (void)line; (void)function; }

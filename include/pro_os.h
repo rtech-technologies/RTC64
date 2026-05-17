@@ -76,6 +76,9 @@ struct cpu_state {
 
 void kpanic(const char* message);
 
+/* Hardware & Memory */
+void hal_malloc_init(void* mem, size_t bytes);
+
 /* Hardware Driver Interfaces */
 void xhci_init(uint64_t mmio);
 void ehci_init(uint64_t mmio);

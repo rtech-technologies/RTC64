@@ -4,6 +4,8 @@
 
 /* Sovereign OSAL Implementation for CherryUSB */
 
+extern void* tlsf_get_global(void);
+
 size_t usb_osal_enter_critical_section(void) { return 0; }
 void usb_osal_leave_critical_section(size_t flag) { (void)flag; }
 
@@ -42,5 +44,5 @@ void usb_osal_timer_stop(struct usb_osal_timer *timer) { (void)timer; }
 
 void usb_osal_msleep(uint32_t delay) { (void)delay; }
 
-void *usb_osal_malloc(size_t size) { return tlsf_malloc(NULL, size); }
-void usb_osal_free(void *ptr) { tlsf_free(NULL, ptr); }
+void *usb_osal_malloc(size_t size) { return tlsf_malloc(tlsf_get_global(), size); }
+void usb_osal_free(void *ptr) { tlsf_free(tlsf_get_global(), ptr); }

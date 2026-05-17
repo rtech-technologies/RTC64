@@ -206,7 +206,10 @@ void _start(void) {
     struct limine_framebuffer *fb = framebuffer_request.response->framebuffers[0];
     tgx_canvas_t canvas = { (uint32_t*)fb->address, fb->width, fb->height, fb->pitch };
 
-    tlsf_create_with_pool(NULL, 0);
+    /* Allocate 16MB for the kernel heap */
+    static uint8_t kernel_heap[16 * 1024 * 1024];
+    hal_malloc_init(kernel_heap, sizeof(kernel_heap));
+
     hal_storage_init();
     hal_input_init();
     scheduler_init();
