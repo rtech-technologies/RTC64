@@ -32,10 +32,8 @@ KERNEL_OBJS = kernel/unice64/limine_reqs.o \
               kernel/libs/rsl_commands.o \
               kernel/libs/panic.o \
               kernel/libs/libc_fatfs.o \
-              kernel/libs/typography.o \
               kernel/libs/math_stubs.o \
               external/FatFs/ff.o \
-              external/FatFs/option/ffunicode.o \
               external/TLSF/tlsf.o
 
 .PHONY: all clean environment iso run

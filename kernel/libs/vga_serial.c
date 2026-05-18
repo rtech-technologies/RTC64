@@ -1,5 +1,6 @@
 #include <pro_os.h>
 #include <limine.h>
+#define STB_TRUETYPE_IMPLEMENTATION
 #include <external/stb_truetype.h>
 
 #define COM1 0x3F8
@@ -30,10 +31,10 @@ static void serial_putc(char c) {
 }
 
 struct limine_framebuffer *fb = NULL;
-stbtt_fontinfo font_info;
-uint8_t* font_data = NULL;
+static stbtt_fontinfo font_info;
+static uint8_t* font_buffer = NULL;
 static int cursor_x = 0;
-static int cursor_y = 20;
+static int cursor_y = 30;
 
 void vga_serial_service(kernel_event_t event) {
     if (event == EVENT_INIT) {
@@ -43,6 +44,7 @@ void vga_serial_service(kernel_event_t event) {
         if (fb_res && fb_res->framebuffer_count > 0) {
             fb = fb_res->framebuffers[0];
         }
+
         const char *msg = "RTECH OSx2 Forensic Service Initialized.\n";
         while (*msg) serial_putc(*msg++);
     }
@@ -50,19 +52,20 @@ void vga_serial_service(kernel_event_t event) {
 
 void vga_putc(char c) {
     serial_putc(c);
-    if (fb && fb->address && font_data) {
+    if (fb && fb->address && font_buffer) {
         float scale = stbtt_ScaleForPixelHeight(&font_info, 16.0);
         int width, height, xoff, yoff;
         uint8_t* bitmap = stbtt_GetCodepointBitmap(&font_info, 0, scale, c, &width, &height, &xoff, &yoff);
         if (bitmap) {
-            uint32_t* pixels = (uint32_t*)fb->address;
+            uint32_t* screen = (uint32_t*)fb->address;
             for (int y = 0; y < height; y++) {
                 for (int x = 0; x < width; x++) {
                     int sx = cursor_x + xoff + x;
                     int sy = cursor_y + yoff + y;
                     if (sx >= 0 && sx < (int)fb->width && sy >= 0 && sy < (int)fb->height) {
-                        if (bitmap[y * width + x] > 128) {
-                            pixels[sy * (fb->pitch/4) + sx] = 0xFFFFFFFF;
+                        uint8_t alpha = bitmap[y * width + x];
+                        if (alpha > 128) {
+                            screen[sy * (fb->pitch/4) + sx] = 0xFFFFFFFF;
                         }
                     }
                 }

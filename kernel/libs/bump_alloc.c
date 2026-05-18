@@ -13,9 +13,14 @@ void* bump_alloc(size_t size) {
 }
 
 void bump_reset(void) {
-    // With TLSF, reset means recreating the pool
+    // Resetting TLSF by re-initializing the pool
+    if (pool) tlsf_destroy(pool);
     pool = tlsf_create_with_pool(heap, HEAP_SIZE);
 }
 
 void* malloc(size_t size) { return bump_alloc(size); }
 void free(void* ptr) { if (pool && ptr) tlsf_free(pool, ptr); }
+void* realloc(void* ptr, size_t size) {
+    if (!pool) return malloc(size);
+    return tlsf_realloc(pool, ptr, size);
+}
