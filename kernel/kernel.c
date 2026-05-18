@@ -83,7 +83,9 @@ void kernel_main(void) {
         }
         nk_input_end(&ctx);
 
+        // Run the scheduler to handle background tasks
         scheduler_run();
+
         ui_render(&ctx, &app, fb->width, fb->height);
 
         struct nk_sw_fb sw_fb = { fb->address, fb->width, fb->height, fb->pitch };
@@ -92,7 +94,8 @@ void kernel_main(void) {
         // Draw Hardware Cursor
         tgx_blit_rect(&canvas, cursor_x, cursor_y, 4, 4, 0xFFFFFF);
 
-        // Logical flow delay
-        for (volatile int i = 0; i < 1000000; i++);
+        // Logical flow delay using scheduler-aware mechanics
+        // In a real system, we'd wait for a timer interrupt here.
+        __asm__("pause");
     }
 }

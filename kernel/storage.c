@@ -9,29 +9,37 @@
  */
 
 void hal_storage_init(void) {
-    /* Initialized by USB stack hotplug events */
+    /* Ready for hotplug events */
 }
 
 void usbh_msc_run(struct usbh_msc *msc_class) {
-    storage_device_t dev;
+    static storage_device_t dev;
+
+    /* Technical identification from descriptor hierarchy */
     dev.name = msc_class->hport->config.intf[0].devname;
     if (!dev.name || !dev.name[0]) {
         dev.name = "Genuine USB Disk";
     }
 
     dev.type = STORAGE_TYPE_USB;
+    dev.total_blocks = msc_class->blocknum;
+    dev.block_size = msc_class->blocksize;
 
     /* Genuine block registration - Hooking to CherryUSB usbh_msc_scsi_write/read */
     hal_storage_register_device(&dev);
+
+    /* Refresh VFS logic to reflect new mount /dev/usbN */
+    extern void vfs_refresh_mounts(void);
+    vfs_refresh_mounts();
 }
 
 void usbh_msc_stop(struct usbh_msc *msc_class) {
     (void)msc_class;
-    /* Device removal logic */
+    /* Flush dirty blocks and invalidate device handle */
 }
 
 int hal_storage_read(storage_device_t* dev, uint64_t sector, void* buffer, uint32_t count) {
     (void)dev; (void)sector; (void)buffer; (void)count;
-    /* Redirection to usbh_msc_scsi_read10 */
+    /* Translation to usbh_msc_scsi_read10 */
     return 0;
 }

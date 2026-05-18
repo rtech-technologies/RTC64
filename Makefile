@@ -32,14 +32,13 @@ KERNEL_OBJS = kernel/kernel.o src/app_ui.o kernel/nuklear_kernel_impl.o \
               external/CherryUSB/class/hub/usbh_hub.o \
               external/CherryUSB/port/ehci/usb_hc_ehci.o
 
-.PHONY: all clean environment iso
+.PHONY: all clean environment iso run
 
 all: environment kernel/kernel iso
 
 environment:
 	chmod +x build.sh
 	./build.sh
-	make -C external/limine limine
 
 kernel/kernel: $(KERNEL_OBJS)
 	$(LD) $(LDFLAGS) $(KERNEL_OBJS) -o kernel/kernel
@@ -50,6 +49,7 @@ kernel/kernel: $(KERNEL_OBJS)
 iso: kernel/kernel
 	mkdir -p iso_root/boot/sys
 	cp kernel/kernel iso_root/boot/sys/kernel.elf
+	cp kernel/limine.conf iso_root/boot/
 	cp external/limine/limine-bios.sys iso_root/boot/
 	cp external/limine/limine-bios-cd.bin iso_root/boot/
 	xorriso -as mkisofs -b boot/limine-bios-cd.bin \
@@ -57,5 +57,11 @@ iso: kernel/kernel
 		iso_root -o os.iso
 	./external/limine/limine bios-install os.iso
 
+QEMU = qemu-system-x86_64
+QEMU_FLAGS = -m 512M -cdrom os.iso -boot d -device qemu-xhci -device usb-kbd -device usb-mouse -serial stdio
+
+run: iso
+	$(QEMU) $(QEMU_FLAGS) $(EXTRA_QEMU_FLAGS)
+
 clean:
-	rm -rf $(KERNEL_OBJS) kernel/kernel os.iso iso_root/boot/sys/kernel.elf
+	rm -rf $(KERNEL_OBJS) kernel/kernel os.iso iso_root/boot/sys/kernel.elf iso_root/boot/limine.conf iso_root/boot/limine-bios.sys iso_root/boot/limine-bios-cd.bin

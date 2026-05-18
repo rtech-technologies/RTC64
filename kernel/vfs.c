@@ -13,6 +13,10 @@ static int mount_count = 0;
 
 void vfs_init(void) {
     mount_count = 0;
+}
+
+void vfs_refresh_mounts(void) {
+    mount_count = 0;
     int dev_count = hal_storage_get_device_count();
     for (int i = 0; i < dev_count; i++) {
         storage_device_t *dev = hal_storage_get_device(i);

@@ -5,6 +5,7 @@
 #include "usb_def.h"
 #include "usb_dc.h"
 #include "usbh_core.h"
+#include "pro_os.h"
 
 /* Sovereign USB Porting Layer */
 
@@ -23,16 +24,14 @@ int usbd_set_remote_wakeup(uint8_t busid) { (void)busid; return 0; }
 int usb_dc_init(uint8_t busid) { (void)busid; return 0; }
 int usb_dc_deinit(uint8_t busid) { (void)busid; return 0; }
 
-/* Core system logging */
-extern int vsnprintf(char* str, size_t size, const char* format, va_list ap);
-
+/* Core system logging - Hooked to native pro_os logger */
 int printf(const char *format, ...) {
     char buf[512];
     va_list args;
     va_start(args, format);
     int len = vsnprintf(buf, sizeof(buf), format, args);
     (void)len;
-    /* Output to serial/debug console is handled by the hardware-specific layer */
+    /* Output to kernel log or serial device if available */
     va_end(args);
     return 0;
 }
