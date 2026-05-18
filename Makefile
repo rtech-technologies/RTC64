@@ -67,12 +67,12 @@ iso: kernel.elf
 	echo "COMMENT=Entering the Bare-Metal Estate." >> iso_root/boot/limine.conf
 	cp external/limine/limine-bios.sys iso_root/boot/
 	cp external/limine/limine-bios-cd.bin iso_root/boot/
-	-xorriso -as mkisofs -b boot/limine-bios-cd.bin \
+	xorriso -as mkisofs -b boot/limine-bios-cd.bin \
 		-no-emul-boot -boot-load-size 4 -boot-info-table \
 		--efi-boot boot/limine-bios-cd.bin \
 		-efi-boot-part --efi-boot-image --protective-msdos-label \
 		iso_root -o os.iso
-	-./external/limine/limine bios-install os.iso
+	./external/limine/limine bios-install os.iso
 
 run: iso
 	qemu-system-x86_64 -m 256M -cdrom os.iso -serial stdio

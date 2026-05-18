@@ -1,4 +1,10 @@
 #include <rsl.h>
+#include <nuklear.h>
+
+extern struct nk_context ctx;
+extern void nk_input_begin_wrap(struct nk_context *ctx);
+extern void nk_input_char_wrap(struct nk_context *ctx, char c);
+extern void nk_input_end_wrap(struct nk_context *ctx);
 
 static inline uint64_t do_syscall(uint64_t id, uint64_t arg1, uint64_t arg2, uint64_t arg3) {
     uint64_t ret;
@@ -22,7 +28,17 @@ void print(const char* msg) {
 
 char* input(const char* prompt) {
     print(prompt);
-    // In a production-grade syscall-based shell, input would be a syscall blocking for data
-    // For now, we route it through the dispatcher.
-    return (char*)do_syscall(2, (uint64_t)prompt, 0, 0);
+    static char buf[128];
+    do_syscall(2, (uint64_t)buf, 0, 0);
+
+    // Route keystrokes into Nuklear execution loop
+    char* p = buf;
+    while (*p) {
+        nk_input_begin_wrap(&ctx);
+        nk_input_char_wrap(&ctx, *p);
+        nk_input_end_wrap(&ctx);
+        p++;
+    }
+
+    return buf;
 }

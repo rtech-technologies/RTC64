@@ -1,8 +1,21 @@
+#ifndef WOLFSSL_OPTIONS_H
+#define WOLFSSL_OPTIONS_H
+
 #define WOLFSSL_USER_SETTINGS
 #include <pro_os.h>
+
 #define WOLFSSL_GENERAL_ALIGNMENT 8
 #define SINGLE_THREADED
 #define NO_FILESYSTEM
 #define NO_WRITEV
 #define NO_DEV_RANDOM
 #define USE_CERT_BUFFERS_2048
+#define WOLFSSL_STATIC_MEMORY
+#define WOLFSSL_NO_SOCK
+#define NO_WOLFSSL_DIR
+#define NO_MAIN_DRIVER
+#define NO_PTHREAD
+#define WOLFSSL_USER_IO
+#define NO_ASN_TIME
+
+#endif
