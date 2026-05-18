@@ -33,6 +33,10 @@ KERNEL_OBJS = kernel/unice64/limine_reqs.o \
               kernel/libs/libc.o \
               kernel/libs/typography.o \
               kernel/libs/math_stubs.o \
+              kernel/libs/gdt.o \
+              kernel/libs/paging.o \
+              kernel/libs/syscall.o \
+              kernel/libs/syscall_entry.o \
               external/FatFs/ff.o \
               external/FatFs/option/ffunicode.o \
               external/TLSF/tlsf.o
@@ -49,6 +53,9 @@ kernel.elf: $(KERNEL_OBJS)
 	$(LD) $(LDFLAGS) $(KERNEL_OBJS) -o kernel.elf
 
 %.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+%.o: %.S
 	$(CC) $(CFLAGS) -c $< -o $@
 
 iso: kernel.elf
