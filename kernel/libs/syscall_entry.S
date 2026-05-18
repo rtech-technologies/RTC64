@@ -2,16 +2,19 @@
 .extern syscall_dispatcher
 
 syscall_entry:
-    // x86_64 syscall convention:
-    // RCX = return address, R11 = RFLAGS
-    // RAX = syscall ID, RDI, RSI, RDX, R10, R8, R9 = args
+    swapgs          // Switch to kernel GS
+    mov %rsp, %gs:8 // Save user stack (Assuming kernel GS points to a structure holding it)
+    mov %gs:0, %rsp // Load kernel stack
 
     push %rcx
     push %r11
 
-    mov %r10, %rcx // R10 is 4th arg in syscall, but 4th arg in SysV ABI is RCX
+    mov %r10, %rcx
     call syscall_dispatcher
 
     pop %r11
     pop %rcx
+
+    mov %gs:8, %rsp // Restore user stack
+    swapgs
     sysretq

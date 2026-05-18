@@ -6,7 +6,9 @@ static uint8_t kernel_heap[KERNEL_HEAP_SIZE] __attribute__((aligned(8)));
 static tlsf_t kernel_pool = NULL;
 
 void libc_init(void) {
-    kernel_pool = tlsf_create_with_pool(kernel_heap, KERNEL_HEAP_SIZE);
+    if (!kernel_pool) {
+        kernel_pool = tlsf_create_with_pool(kernel_heap, KERNEL_HEAP_SIZE);
+    }
 }
 
 void* memset(void* s, int c, size_t n) {
@@ -19,6 +21,19 @@ void* memcpy(void* dest, const void* src, size_t n) {
     uint8_t* d = (uint8_t*)dest;
     const uint8_t* s = (const uint8_t*)src;
     while(n--) *d++ = *s++;
+    return dest;
+}
+
+void* memmove(void* dest, const void* src, size_t n) {
+    uint8_t* d = (uint8_t*)dest;
+    const uint8_t* s = (const uint8_t*)src;
+    if (d < s) {
+        while (n--) *d++ = *s++;
+    } else {
+        d += n;
+        s += n;
+        while (n--) *--d = *--s;
+    }
     return dest;
 }
 
@@ -38,6 +53,13 @@ size_t strlen(const char* s) {
     return len;
 }
 
+int strcmp(const char* s1, const char* s2) {
+    while (*s1 && (*s1 == *s2)) {
+        s1++; s2++;
+    }
+    return (unsigned char)*s1 - (unsigned char)*s2;
+}
+
 int strncmp(const char* s1, const char* s2, size_t n) {
     while (n && *s1 && (*s1 == *s2)) {
         s1++; s2++; n--;
@@ -50,6 +72,12 @@ char* strncpy(char* dest, const char* src, size_t n) {
     size_t i;
     for (i = 0; i < n && src[i] != '\0'; i++) dest[i] = src[i];
     for ( ; i < n; i++) dest[i] = '\0';
+    return dest;
+}
+
+char* strcpy(char* dest, const char* src) {
+    char* d = dest;
+    while ((*d++ = *src++));
     return dest;
 }
 
@@ -73,6 +101,12 @@ void free(void* ptr) {
 void* realloc(void* ptr, size_t size) {
     if (!kernel_pool) libc_init();
     return tlsf_realloc(kernel_pool, ptr, size);
+}
+
+void* calloc(size_t nmemb, size_t size) {
+    void* ptr = malloc(nmemb * size);
+    if (ptr) memset(ptr, 0, nmemb * size);
+    return ptr;
 }
 
 void __assert_fail(const char * assertion, const char * file, unsigned int line, const char * function) {
