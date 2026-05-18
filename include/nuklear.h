@@ -27,10 +27,10 @@
 
 ## About
 This is a minimal state immediate mode graphical user interface toolkit
-written in ANSI C and licensed under public domain. It was designed as a direct
+written in ANSI C and licensed under public domain. It was designed as a simple
 embeddable user interface for application and does not have any dependencies,
 a default renderbackend or OS window and input handling but instead provides a very modular
-library approach by using direct input state for input and draw
+library approach by using simple input state for input and draw
 commands describing primitive shapes as output. So instead of providing a
 layered library that tries to abstract over a number of platform and
 render backends it only focuses on the actual UI.
@@ -59,10 +59,10 @@ render backends it only focuses on the actual UI.
     - Use your own font implementation for everything
     - Use this libraries internal font baking and handling API
 - Drawing output control ranging from/to
-    - Direct shapes for more high level APIs which already have drawing capabilities
+    - Simple shapes for more high level APIs which already have drawing capabilities
     - Hardware accessible anti-aliased vertex buffer output
 - Customizable colors and properties ranging from/to
-    - Direct changes to color by filling a direct color table
+    - Simple changes to color by filling a simple color table
     - Complete control with ability to use skinning to decorate widgets
 - Bendable UI library with widget ranging from/to
     - Basic widgets like buttons, checkboxes, slider, ...
@@ -292,7 +292,7 @@ extern "C" {
 #endif
 
 #ifndef NK_STATIC_ASSERT
-  #define NK_STATIC_ASSERT(exp) typedef char NK_UNIQUE_NAME(_sovereign_array)[(exp)?1:-1]
+  #define NK_STATIC_ASSERT(exp) typedef char NK_UNIQUE_NAME(_dummy_array)[(exp)?1:-1]
 #endif
 
 #ifndef NK_FILE_LINE
@@ -733,7 +733,7 @@ NK_API void nk_set_user_data(struct nk_context*, nk_handle handle);
  * It is worth noting that no direct OS or window handling is done in nuklear.
  * Instead all input state has to be provided by platform specific code. This on one hand
  * expects more work from the user and complicates usage but on the other hand
- * provides direct abstraction over a big number of platforms, libraries and other
+ * provides simple abstraction over a big number of platforms, libraries and other
  * already provided functionality.
  *
  * ```c
@@ -2798,7 +2798,7 @@ NK_API struct nk_rect nk_layout_space_rect_to_local(const struct nk_context *ctx
 
 /**
  * # # nk_spacer
- * Spacer is a sovereign widget that consumes space as usual but doesn't draw anything
+ * Spacer is a dummy widget that consumes space as usual but doesn't draw anything
  * ```c
  * void nk_spacer(struct nk_context* );
  * ```
@@ -3736,8 +3736,8 @@ enum nk_edit_flags {
     NK_EDIT_GOTO_END_ON_ACTIVATE    = NK_FLAG(11)
 };
 enum nk_edit_types {
-    NK_EDIT_DIRECT  = NK_EDIT_ALWAYS_INSERT_MODE,
-    NK_EDIT_FIELD   = NK_EDIT_DIRECT|NK_EDIT_SELECTABLE|NK_EDIT_CLIPBOARD,
+    NK_EDIT_SIMPLE  = NK_EDIT_ALWAYS_INSERT_MODE,
+    NK_EDIT_FIELD   = NK_EDIT_SIMPLE|NK_EDIT_SELECTABLE|NK_EDIT_CLIPBOARD,
     NK_EDIT_BOX     = NK_EDIT_ALWAYS_INSERT_MODE| NK_EDIT_SELECTABLE| NK_EDIT_MULTILINE|NK_EDIT_ALLOW_TAB|NK_EDIT_CLIPBOARD,
     NK_EDIT_EDITOR  = NK_EDIT_SELECTABLE|NK_EDIT_MULTILINE|NK_EDIT_ALLOW_TAB| NK_EDIT_CLIPBOARD
 };
@@ -4533,8 +4533,8 @@ NK_API int nk_str_len_char(const struct nk_str*);
  * as well as functionality controlled by flags.
  *
  * This library generally allows three different levels of memory control:
- * First of is the most basic way of just providing a direct char array with
- * string length. This method is probably the easiest way of handling direct
+ * First of is the most basic way of just providing a simple char array with
+ * string length. This method is probably the easiest way of handling simple
  * user text input. Main upside is complete control over memory while the biggest
  * downside in comparison with the other two approaches is missing undo/redo.
  *
@@ -6055,7 +6055,7 @@ struct nk_context {
 #define NK_ALIGN_PTR_BACK(x, mask)\
     (NK_UINT_TO_PTR((NK_PTR_TO_UINT((nk_byte*)(x)) & ~(mask-1))))
 
-#if ((defined(__GNUC__) && __GNUC__ >= 4) || defined(__clang__)) && !defined(EMSCRIPTEN)
+#if ((defined(__GNUC__) && __GNUC__ >= 4) || defined(__clang__)) && !defined(__EMSCRIPTEN__)
 #define NK_OFFSETOF(st,m) (__builtin_offsetof(st,m))
 #else
 #define NK_OFFSETOF(st,m) ((nk_ptr)&(((st*)0)->m))
@@ -6568,7 +6568,7 @@ nk_atan(float x)
 {
     /* ./lolremez --progress --float -d 9 -r "0:pi*2" "atan(x)" */
     float u = -1.0989005e-05f;
-    NK_ASSERT(x >= 0.0f && "COMPLETED support negative floats");
+    NK_ASSERT(x >= 0.0f && "TODO support negative floats");
     u = u * x + 0.00034117949f;
     u = u * x + -0.0044932296f;
     u = u * x + 0.032596264f;
@@ -11402,7 +11402,7 @@ STBRP_DEF void stbrp_setup_allow_out_of_mem(stbrp_context *context, int allow_ou
    if (allow_out_of_mem)
       /*  if it's ok to run out of memory, then don't bother aligning them; */
       /*  this gives better packing, but may fail due to OOM (even though */
-      /*  the rectangles easily fit). @COMPLETED a smarter approach would be to only */
+      /*  the rectangles easily fit). @TODO a smarter approach would be to only */
       /*  quantize once we've hit OOM, then we could get rid of this parameter. */
       context->align = 1;
    else {
@@ -11800,12 +11800,12 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 /*         render glyphs to one-channel bitmaps with antialiasing (box filter) */
 /*         render glyphs to one-channel SDF bitmaps (signed-distance field/function) */
 /*  */
-/*    ProTask: */
+/*    Todo: */
 /*         non-MS cmaps */
 /*         crashproof on bad data */
 /*         hinting? (no longer patented) */
 /*         cleartype-style AA? */
-/*         optimize: use direct memory allocator for intermediates */
+/*         optimize: use simple memory allocator for intermediates */
 /*         optimize: build edge-list directly from curves */
 /*         optimize: rasterize directly from curves? */
 /*  */
@@ -11883,7 +11883,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 /*    To make the implementation private to the file that generates the implementation, */
 /*       #define STBTT_STATIC */
 /*  */
-/*    Direct 3D API (don't ship this, but it's fine for tools and quick start) */
+/*    Simple 3D API (don't ship this, but it's fine for tools and quick start) */
 /*            stbtt_BakeFontBitmap()               -- bake a font to a bitmap for use as texture */
 /*            stbtt_GetBakedQuad()                 -- compute quad to draw for a given char */
 /*  */
@@ -12370,7 +12370,7 @@ typedef struct stbrp_rect stbrp_rect;
 
 STBTT_DEF int  stbtt_PackBegin(stbtt_pack_context *spc, unsigned char *pixels, int width, int height, int stride_in_bytes, int padding, void *alloc_context);
 /*  Initializes a packing context stored in the passed-in stbtt_pack_context. */
-/*  Enhanced calls using this context will pack characters into the bitmap passed */
+/*  Future calls using this context will pack characters into the bitmap passed */
 /*  in here: a 1-channel bitmap that is width * height. stride_in_bytes is */
 /*  the distance from one row to the next (or 0 to mean they are packed tightly */
 /*  together). "padding" is the amount of padding to leave between each */
@@ -12703,7 +12703,7 @@ STBTT_DEF void stbtt_GetGlyphBitmapBox(const stbtt_fontinfo *font, int glyph, fl
 STBTT_DEF void stbtt_GetGlyphBitmapBoxSubpixel(const stbtt_fontinfo *font, int glyph, float scale_x, float scale_y,float shift_x, float shift_y, int *ix0, int *iy0, int *ix1, int *iy1);
 
 
-/*  @COMPLETED: don't expose this structure */
+/*  @TODO: don't expose this structure */
 typedef struct
 {
    int w,h,stride;
@@ -13198,7 +13198,7 @@ static int stbtt_InitFont_internal(stbtt_fontinfo *info, unsigned char *data, in
       info->fontdicts = stbtt__new_buf(NULL, 0);
       info->fdselect = stbtt__new_buf(NULL, 0);
 
-      /*  @COMPLETED this should use size from table (not 512MB) */
+      /*  @TODO this should use size from table (not 512MB) */
       info->cff = stbtt__new_buf(data+cff, 512*1024*1024);
       b = info->cff;
 
@@ -13206,7 +13206,7 @@ static int stbtt_InitFont_internal(stbtt_fontinfo *info, unsigned char *data, in
       stbtt__buf_skip(&b, 2);
       stbtt__buf_seek(&b, stbtt__buf_get8(&b)); /*  hdrsize */
 
-      /*  @COMPLETED the name INDEX could list multiple fonts, */
+      /*  @TODO the name INDEX could list multiple fonts, */
       /*  but we just use the first one. */
       stbtt__cff_get_index(&b);  /*  name INDEX */
       topdictidx = stbtt__cff_get_index(&b);
@@ -13245,7 +13245,7 @@ static int stbtt_InitFont_internal(stbtt_fontinfo *info, unsigned char *data, in
    info->svg = -1;
 
    /*  find a cmap encoding table we understand *now* to avoid searching */
-   /*  later. (pro_task: could make this installable) */
+   /*  later. (todo: could make this installable) */
    /*  the same regardless of glyph. */
    numTables = ttUSHORT(data + cmap + 2);
    info->index_map = 0;
@@ -13294,7 +13294,7 @@ STBTT_DEF int stbtt_FindGlyphIndex(const stbtt_fontinfo *info, int unicode_codep
          return ttUSHORT(data + index_map + 10 + (unicode_codepoint - first)*2);
       return 0;
    } else if (format == 2) {
-      STBTT_assert(0); /*  @COMPLETED: high-byte mapping for japanese/chinese/korean */
+      STBTT_assert(0); /*  @TODO: high-byte mapping for japanese/chinese/korean */
       return 0;
    } else if (format == 4) { /*  standard mapping for windows fonts: binary search collection of ranges */
       stbtt_uint16 segcount = ttUSHORT(data+index_map+6) >> 1;
@@ -13364,7 +13364,7 @@ STBTT_DEF int stbtt_FindGlyphIndex(const stbtt_fontinfo *info, int unicode_codep
       }
       return 0; /*  not found */
    }
-   /*  @COMPLETED */
+   /*  @TODO */
    STBTT_assert(0);
    return 0;
 }
@@ -13617,7 +13617,7 @@ static int stbtt__GetGlyphShapeTT(const stbtt_fontinfo *info, int glyph_index, s
             }
          }
          else {
-            /*  @COMPLETED handle matching point */
+            /*  @TODO handle matching point */
             STBTT_assert(0);
          }
          if (flags & (1<<3)) { /*  WE_HAVE_A_SCALE */
@@ -13807,7 +13807,7 @@ static int stbtt__run_charstring(const stbtt_fontinfo *info, int glyph_index, st
       clear_stack = 1;
       b0 = stbtt__buf_get8(&b);
       switch (b0) {
-      /*  @COMPLETED implement hinting */
+      /*  @TODO implement hinting */
       case 0x13: /*  hintmask */
       case 0x14: /*  cntrmask */
          if (in_header)
@@ -13949,7 +13949,7 @@ static int stbtt__run_charstring(const stbtt_fontinfo *info, int glyph_index, st
          float dx, dy;
          int b1 = stbtt__buf_get8(&b);
          switch (b1) {
-         /*  @COMPLETED These "flex" implementations ignore the flex-depth and resolution, */
+         /*  @TODO These "flex" implementations ignore the flex-depth and resolution, */
          /*  and always draw beziers. */
          case 0x22: /*  hflex */
             if (sp < 7) return STBTT__CSERR("hflex stack");
@@ -14274,7 +14274,7 @@ static stbtt_int32  stbtt__GetGlyphClass(stbtt_uint8 *classDefTable, int glyph)
 }
 
 /*  Define to STBTT_assert(x) if you want to break on unimplemented formats. */
-#define STBTT_GPOS_COMPLETED_assert(x)
+#define STBTT_GPOS_TODO_assert(x)
 
 static stbtt_int32 stbtt__GetGlyphGPOSInfoAdvance(const stbtt_fontinfo *info, int glyph1, int glyph2)
 {
@@ -14914,7 +14914,7 @@ static void stbtt__fill_active_edges_new(float *scanline, float *scanline_fill, 
 
             if ((int) x_top == (int) x_bottom) {
                float height;
-               /*  direct case, only spans one pixel */
+               /*  simple case, only spans one pixel */
                int x = (int) x_top;
                height = (sy1 - sy0) * e->direction;
                STBTT_assert(x >= 0 && x < len);
@@ -14955,7 +14955,7 @@ static void stbtt__fill_active_edges_new(float *scanline, float *scanline_fill, 
                /*             |            |     xxxxx..|............|............|............| */
                /*             |            |     /-   xx*xxxx........|............|............| */
                /*             |            | dy <       |    xxxxxx..|............|............| */
-               /*    y_final  |            |     \-     |          xx*param.........|............| */
+               /*    y_final  |            |     \-     |          xx*xxx.........|............| */
                /*        sy1  |            |            |            |   xxxxxB...|............| */
                /*             |            |            |            |            |            | */
                /*             |            |            |            |            |            | */
@@ -14964,7 +14964,7 @@ static void stbtt__fill_active_edges_new(float *scanline, float *scanline_fill, 
                /*  goal is to measure the area covered by '.' in each pixel */
 
                /*  if x2 is right at the right edge of x1, y_crossing can blow up, github #1057 */
-               /*  @COMPLETED: maybe test against sy1 rather than y_bottom? */
+               /*  @TODO: maybe test against sy1 rather than y_bottom? */
                if (y_crossing > y_bottom)
                   y_crossing = y_bottom;
 
@@ -15027,7 +15027,7 @@ static void stbtt__fill_active_edges_new(float *scanline, float *scanline_fill, 
                /*  regions. intersections with top & bottom do not necessitate case-wise logic. */
                /*  */
                /*  the old way of doing this found the intersections with the left & right edges, */
-               /*  then used some direct logic to produce up to three segments in sorted order */
+               /*  then used some simple logic to produce up to three segments in sorted order */
                /*  from top-to-bottom. however, this had a problem: if an x edge was epsilon */
                /*  across the x border, then the corresponding y position might not be distinct */
                /*  from the other y segment, and it might ignored as an empty segment. to avoid */
@@ -15334,7 +15334,7 @@ static void stbtt__add_point(stbtt__point *points, int n, float x, float y)
    points[n].y = y;
 }
 
-/*  tessellate until threshold p is happy... @COMPLETED warped to compensate for non-linear stretching */
+/*  tessellate until threshold p is happy... @TODO warped to compensate for non-linear stretching */
 static int stbtt__tesselate_curve(stbtt__point *points, int *num_points, float x0, float y0, float x1, float y1, float x2, float y2, float objspace_flatness_squared, int n)
 {
    /*  midpoint */
@@ -15357,7 +15357,7 @@ static int stbtt__tesselate_curve(stbtt__point *points, int *num_points, float x
 
 static void stbtt__tesselate_cubic(stbtt__point *points, int *num_points, float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3, float objspace_flatness_squared, int n)
 {
-   /*  @COMPLETED this "flatness" calculation is just made-up nonsense that seems to work well enough */
+   /*  @TODO this "flatness" calculation is just made-up nonsense that seems to work well enough */
    float dx0 = x1-x0;
    float dy0 = y1-y0;
    float dx1 = x2-x1;
@@ -16664,7 +16664,7 @@ static int stbtt__matchpair(stbtt_uint8 *fc, stbtt_uint32 nm, stbtt_uint8 *name,
             }
          }
 
-         /*  @COMPLETED handle other encodings */
+         /*  @TODO handle other encodings */
       }
    }
    return 0;
@@ -17209,7 +17209,7 @@ nk_font_bake(struct nk_font_baker *baker, void *image_memory, int width, int hei
                 for (char_idx = 0; char_idx < range->num_chars; char_idx++)
                 {
                     nk_rune codepoint = 0;
-                    float sovereign_x = 0, sovereign_y = 0;
+                    float dummy_x = 0, dummy_y = 0;
                     stbtt_aligned_quad q;
                     struct nk_font_glyph *glyph;
 
@@ -17217,7 +17217,7 @@ nk_font_bake(struct nk_font_baker *baker, void *image_memory, int width, int hei
                     const stbtt_packedchar *pc = &range->chardata_for_range[char_idx];
                     codepoint = (nk_rune)(range->first_unicode_codepoint_in_range + char_idx);
                     stbtt_GetPackedQuad(range->chardata_for_range, (int)width,
-                        (int)height, char_idx, &sovereign_x, &sovereign_y, &q, 0);
+                        (int)height, char_idx, &dummy_x, &dummy_y, &q, 0);
 
                     /* fill own glyph type with data */
                     glyph = &glyphs[dst_font->glyph_offset + dst_font->glyph_count + (unsigned int)glyph_count];
@@ -17537,7 +17537,7 @@ NK_GLOBAL const char nk_custom_cursor_data[NK_CURSOR_DATA_W * NK_CURSOR_DATA_H +
 {
     "..-         -XXXXXXX-    X    -           X           -XXXXXXX          -          XXXXXXX"
     "..-         -X.....X-   X.X   -          X.X          -X.....X          -          X.....X"
-    "---         -CORE_SPEC.CORE_SPEC-  X...X  -         X...X         -X....X           -           X....X"
+    "---         -XXX.XXX-  X...X  -         X...X         -X....X           -           X....X"
     "X           -  X.X  - X.....X -        X.....X        -X...X            -            X...X"
     "XX          -  X.X  -X.......X-       X.......X       -X..X.X           -           X.X..X"
     "X.X         -  X.X  -XXXX.XXXX-       XXXX.XXXX       -X.X X.X          -          X.X X.X"
@@ -17548,7 +17548,7 @@ NK_GLOBAL const char nk_custom_cursor_data[NK_CURSOR_DATA_W * NK_CURSOR_DATA_H +
     "X......X    -  X.X  -   X.X   - X...XXXXXX.XXXXXX...X -         X.X   XX-XX   X.X         "
     "X.......X   -  X.X  -   X.X   -X.....................X-          X.X X.X-X.X X.X          "
     "X........X  -  X.X  -   X.X   - X...XXXXXX.XXXXXX...X -           X.X..X-X..X.X           "
-    "X.........X -CORE_SPEC.CORE_SPEC-   X.X   -  X..X    X.X    X..X  -            X...X-X...X            "
+    "X.........X -XXX.XXX-   X.X   -  X..X    X.X    X..X  -            X...X-X...X            "
     "X..........X-X.....X-   X.X   -   X.X    X.X    X.X   -           X....X-X....X           "
     "X......XXXXX-XXXXXXX-   X.X   -    XX    X.X    XX    -          X.....X-X.....X          "
     "X...X..X    ---------   X.X   -          X.X          -          XXXXXXX-XXXXXXX          "
@@ -19249,7 +19249,7 @@ nk_style_from_table(struct nk_context *ctx, const struct nk_color *table)
     /* default tooltip just down and to the right of the cursor
      * so it doesn't cover the text
      *
-     * COMPLETED might be worth consolidating tooltip styling
+     * TODO might be worth consolidating tooltip styling
      * into its own style structure, though it is a
      * type of window...*/
     win->tooltip_origin = NK_TOP_LEFT;
@@ -21729,7 +21729,7 @@ nk_contextual_end(struct nk_context *ctx)
     NK_ASSERT((int)panel->type & (int)NK_PANEL_SET_POPUP);
     if (panel->flags & NK_WINDOW_DYNAMIC) {
         /* Close behavior
-        This is a bit of a native_optimization solution since we do not know before we end our popup
+        This is a bit of a hack solution since we do not know before we end our popup
         how big it will be. We therefore do not directly know when a
         click outside the non-blocking popup must close it at that direct frame.
         Instead it will be closed in the next frame.*/
@@ -22816,8 +22816,8 @@ nk_layout_peek(struct nk_rect *bounds, const struct nk_context *ctx)
 NK_API void
 nk_spacer(struct nk_context *ctx )
 {
-    struct nk_rect sovereign_rect = { 0, 0, 0, 0 };
-    nk_panel_alloc_space( &sovereign_rect, ctx );
+    struct nk_rect dummy_rect = { 0, 0, 0, 0 };
+    nk_panel_alloc_space( &dummy_rect, ctx );
 }
 
 
@@ -23101,7 +23101,7 @@ nk_tree_element_image_push_hashed_base(struct nk_context *ctx, enum nk_tree_type
         *state = (*state == NK_MAXIMIZED) ? NK_MINIMIZED : NK_MAXIMIZED;}
 
     /* draw label */
-    {nk_flags sovereign = 0;
+    {nk_flags dummy = 0;
     struct nk_rect label;
     /* calculate size of the text and tooltip */
     text_len = nk_strlen(title);
@@ -23115,9 +23115,9 @@ nk_tree_element_image_push_hashed_base(struct nk_context *ctx, enum nk_tree_type
     label.h = style->font->height;
 
     if (img) {
-        nk_do_selectable_image(&sovereign, &win->buffer, label, title, title_len, NK_TEXT_LEFT,
+        nk_do_selectable_image(&dummy, &win->buffer, label, title, title_len, NK_TEXT_LEFT,
             selected, img, &style->selectable, in, style->font);
-    } else nk_do_selectable(&sovereign, &win->buffer, label, title, title_len, NK_TEXT_LEFT,
+    } else nk_do_selectable(&dummy, &win->buffer, label, title, title_len, NK_TEXT_LEFT,
             selected, &style->selectable, in, style->font);
     }
     /* increase x-axis cursor widget position pointer */
@@ -23253,7 +23253,7 @@ nk_group_scrolled_end(struct nk_context *ctx)
     NK_ASSERT(g->parent);
     parent = g->parent;
 
-    /* sovereign window */
+    /* dummy window */
     nk_zero_struct(pan);
     panel_padding = nk_panel_get_padding(&ctx->style, NK_PANEL_GROUP);
     pan.bounds.y = g->bounds.y - (g->header_height + g->menu.h);
@@ -24451,7 +24451,7 @@ nk_draw_symbol(struct nk_command_buffer *out, enum nk_symbol_type type,
     case NK_SYMBOL_CIRCLE_OUTLINE:
     case NK_SYMBOL_RECT_SOLID:
     case NK_SYMBOL_RECT_OUTLINE: {
-        /* direct empty/filled shapes */
+        /* simple empty/filled shapes */
         if (type == NK_SYMBOL_RECT_SOLID || type == NK_SYMBOL_RECT_OUTLINE) {
             nk_fill_rect(out, content,  0, foreground);
             if (type == NK_SYMBOL_RECT_OUTLINE)
@@ -27024,7 +27024,7 @@ nk_textedit_find_charpos(struct nk_text_find *find, struct nk_text_edit *state,
 
     nk_zero_struct(r);
     if (n == z) {
-        /* if it's at the end, then find the last line -- directr than trying to
+        /* if it's at the end, then find the last line -- simpler than trying to
         explicitly handle this case in the regular code */
         nk_textedit_layout_row(&r, state, 0, row_height, font);
         if (single_line) {
@@ -29092,12 +29092,12 @@ nk_property(struct nk_context *ctx, const char *name, struct nk_property_variant
     int old_state;
     int prev_state;
 
-    char sovereign_buffer[NK_MAX_NUMBER_BUFFER];
-    int sovereign_state = NK_PROPERTY_DEFAULT;
-    int sovereign_length = 0;
-    int sovereign_cursor = 0;
-    int sovereign_select_begin = 0;
-    int sovereign_select_end = 0;
+    char dummy_buffer[NK_MAX_NUMBER_BUFFER];
+    int dummy_state = NK_PROPERTY_DEFAULT;
+    int dummy_length = 0;
+    int dummy_cursor = 0;
+    int dummy_select_begin = 0;
+    int dummy_select_end = 0;
 
     NK_ASSERT(ctx);
     NK_ASSERT(ctx->current);
@@ -29133,12 +29133,12 @@ nk_property(struct nk_context *ctx, const char *name, struct nk_property_variant
         select_begin = &win->property.select_start;
         select_end = &win->property.select_end;
     } else {
-        buffer = sovereign_buffer;
-        len = &sovereign_length;
-        cursor = &sovereign_cursor;
-        state = &sovereign_state;
-        select_begin =  &sovereign_select_begin;
-        select_end = &sovereign_select_end;
+        buffer = dummy_buffer;
+        len = &dummy_length;
+        cursor = &dummy_cursor;
+        state = &dummy_state;
+        select_begin =  &dummy_select_begin;
+        select_end = &dummy_select_end;
     }
 
     /* execute property widget */

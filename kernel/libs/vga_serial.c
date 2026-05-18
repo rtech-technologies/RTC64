@@ -1,5 +1,6 @@
 #include <pro_os.h>
 #include <limine.h>
+#include <external/stb_truetype.h>
 
 #define COM1 0x3F8
 
@@ -14,11 +15,11 @@ static inline uint8_t inb(uint16_t port) {
 }
 
 static void serial_init() {
-    outb(COM1 + 1, 0x00);    // Disable all interrupts
-    outb(COM1 + 3, 0x80);    // Enable DLAB
-    outb(COM1 + 0, 0x03);    // 38400 baud
     outb(COM1 + 1, 0x00);
-    outb(COM1 + 3, 0x03);    // 8N1
+    outb(COM1 + 3, 0x80);
+    outb(COM1 + 0, 0x03);
+    outb(COM1 + 1, 0x00);
+    outb(COM1 + 3, 0x03);
     outb(COM1 + 2, 0xC7);
     outb(COM1 + 4, 0x0B);
 }
@@ -29,6 +30,10 @@ static void serial_putc(char c) {
 }
 
 struct limine_framebuffer *fb = NULL;
+stbtt_fontinfo font_info;
+uint8_t* font_data = NULL;
+static int cursor_x = 0;
+static int cursor_y = 20;
 
 void vga_serial_service(kernel_event_t event) {
     if (event == EVENT_INIT) {
@@ -43,11 +48,27 @@ void vga_serial_service(kernel_event_t event) {
     }
 }
 
-// Map characters to serial and framebuffer
 void vga_putc(char c) {
     serial_putc(c);
-    if (fb && fb->address) {
-        // Here we use stb_truetype to draw to fb->address
-        // For production-grade, we map 32-bit ARGB directly
+    if (fb && fb->address && font_data) {
+        float scale = stbtt_ScaleForPixelHeight(&font_info, 16.0);
+        int width, height, xoff, yoff;
+        uint8_t* bitmap = stbtt_GetCodepointBitmap(&font_info, 0, scale, c, &width, &height, &xoff, &yoff);
+        if (bitmap) {
+            uint32_t* pixels = (uint32_t*)fb->address;
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    int sx = cursor_x + xoff + x;
+                    int sy = cursor_y + yoff + y;
+                    if (sx >= 0 && sx < (int)fb->width && sy >= 0 && sy < (int)fb->height) {
+                        if (bitmap[y * width + x] > 128) {
+                            pixels[sy * (fb->pitch/4) + sx] = 0xFFFFFFFF;
+                        }
+                    }
+                }
+            }
+            cursor_x += (int)(scale * 10);
+            stbtt_FreeBitmap(bitmap, NULL);
+        }
     }
 }

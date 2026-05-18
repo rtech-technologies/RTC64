@@ -1,27 +1,21 @@
 #include <pro_os.h>
+#include <tlsf.h>
 
-#define HEAP_SIZE (16 * 1024 * 1024)
+#define HEAP_SIZE (64 * 1024 * 1024)
 static uint8_t heap[HEAP_SIZE] __attribute__((aligned(8)));
-static size_t heap_ptr = 0;
+static tlsf_t pool = NULL;
 
 void* bump_alloc(size_t size) {
-    size = (size + 7) & ~7; // 8-byte align
-
-    if (heap_ptr + size > HEAP_SIZE * 0.9) {
-        // Serial alert
-        const char *alert = "\n[ALERT] Bump Allocator threshold (90%) reached!\n";
-        while(*alert) {
-            extern void vga_putc(char c);
-            vga_putc(*alert++);
-        }
-        return NULL;
+    if (!pool) {
+        pool = tlsf_create_with_pool(heap, HEAP_SIZE);
     }
-
-    void* ptr = &heap[heap_ptr];
-    heap_ptr += size;
-    return ptr;
+    return tlsf_malloc(pool, size);
 }
 
 void bump_reset(void) {
-    heap_ptr = 0;
+    // With TLSF, reset means recreating the pool
+    pool = tlsf_create_with_pool(heap, HEAP_SIZE);
 }
+
+void* malloc(size_t size) { return bump_alloc(size); }
+void free(void* ptr) { if (pool && ptr) tlsf_free(pool, ptr); }
