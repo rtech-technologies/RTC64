@@ -21,4 +21,10 @@ void shell_main(void);
 // Serial/VGA
 void vga_serial_service(kernel_event_t event);
 
+// Memory
+void* malloc(size_t size);
+void free(void* ptr);
+void* realloc(void* ptr, size_t size);
+void* arc_alloc(size_t size);
+
 #endif

@@ -1,6 +1,15 @@
+#include <stdint.h>
+#include <stddef.h>
 #include <pro_os.h>
-#include <ff.h>
 #include <tlsf.h>
+
+#define KERNEL_HEAP_SIZE (64 * 1024 * 1024)
+static uint8_t kernel_heap[KERNEL_HEAP_SIZE] __attribute__((aligned(8)));
+static tlsf_t kernel_pool = NULL;
+
+void libc_init(void) {
+    kernel_pool = tlsf_create_with_pool(kernel_heap, KERNEL_HEAP_SIZE);
+}
 
 void* memset(void* s, int c, size_t n) {
     uint8_t* p = (uint8_t*)s;
@@ -27,7 +36,7 @@ int memcmp(const void* s1, const void* s2, size_t n) {
 
 size_t strlen(const char* s) {
     size_t len = 0;
-    while(*s++) len++;
+    while(s[len]) len++;
     return len;
 }
 
@@ -37,6 +46,20 @@ char* strchr(const char* s, int c) {
         s++;
     }
     return NULL;
+}
+
+void* malloc(size_t size) {
+    if (!kernel_pool) libc_init();
+    return tlsf_malloc(kernel_pool, size);
+}
+
+void free(void* ptr) {
+    if (kernel_pool && ptr) tlsf_free(kernel_pool, ptr);
+}
+
+void* realloc(void* ptr, size_t size) {
+    if (!kernel_pool) libc_init();
+    return tlsf_realloc(kernel_pool, ptr, size);
 }
 
 void __assert_fail(const char * assertion, const char * file, unsigned int line, const char * function) {
