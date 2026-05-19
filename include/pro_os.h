@@ -23,6 +23,8 @@ int strcmp(const char* s1, const char* s2);
 int strncmp(const char* s1, const char* s2, size_t n);
 char* strchr(const char* s, int c);
 int snprintf(char* str, size_t size, const char* format, ...);
+void* malloc(size_t size);
+void free(void* ptr);
 
 /* Scheduler / Task Manager */
 #define MAX_TASKS 5

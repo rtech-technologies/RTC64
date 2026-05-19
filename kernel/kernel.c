@@ -82,10 +82,11 @@ static void init_gdt(void) {
 
 // The true, freestanding entry point
 void kernel_main(void) {
+    // --- Phase 1: Processor Prep ---
     init_cpu_features();
     init_gdt();
 
-    // 1. Initial Proof of Life & Check Blindness
+    // Initial Proof of Life & Check Blindness
     if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
         while (1) { __asm__("hlt"); }
     }
@@ -97,18 +98,26 @@ void kernel_main(void) {
     struct limine_framebuffer *fb = framebuffer_request.response->framebuffers[0];
     tgx_canvas_t canvas = { (uint32_t*)fb->address, fb->width, fb->height, fb->pitch };
 
-    // 2. System Bootstrap
+    // --- Phase 2: Memory Sovereignty ---
     // Allocate 16MB for the kernel heap
     static uint8_t kernel_heap[16 * 1024 * 1024];
     hal_malloc_init(kernel_heap, sizeof(kernel_heap));
 
+    // --- Phase 3: Hardware Discovery ---
     hal_storage_init();
     hal_input_init();
-    scheduler_init();
+
+    extern void pci_scan(void);
+    pci_scan();
+
+    // --- Phase 4: Logical Services ---
     vfs_init();
+    scheduler_init();
+
+    // --- Phase 5: Peripheral Activation ---
     hal_usb_init();
 
-    // 3. UI Initialization
+    // --- Phase 6: UI Subsystem ---
     struct nk_context ctx;
     struct nk_user_font font;
     font.userdata = nk_handle_ptr(0);
@@ -125,20 +134,19 @@ void kernel_main(void) {
     int cursor_x = fb->width / 2;
     int cursor_y = fb->height / 2;
 
-    // 4. Main Executive Loop
+    // --- Phase 7: Main Executive Loop ---
     while (1) {
         tgx_clear(&canvas, 0x001010); // Dark Teal Background
+
+        /* Event Polling */
         hal_usb_poll();
 
         input_event_t ev;
         nk_input_begin(&ctx);
         while (hal_input_pop_event(&ev)) {
             if (ev.type == INPUT_TYPE_MOUSE) {
-                // Handle relative movement
                 cursor_x += ev.mouse.x;
                 cursor_y += ev.mouse.y;
-
-                // Clamp to screen
                 if (cursor_x < 0) cursor_x = 0;
                 if (cursor_y < 0) cursor_y = 0;
                 if (cursor_x >= (int)fb->width) cursor_x = fb->width - 1;
@@ -150,19 +158,19 @@ void kernel_main(void) {
         }
         nk_input_end(&ctx);
 
-        // Run the scheduler to handle background tasks
+        /* Logic Update */
         scheduler_run();
 
+        /* UI Render */
         ui_render(&ctx, &app, fb->width, fb->height);
 
         struct nk_sw_fb sw_fb = { fb->address, fb->width, fb->height, fb->pitch };
         nk_sw_render(&sw_fb, &ctx);
 
-        // Draw Hardware Cursor (Triangle)
-        tgx_blit_rect(&canvas, cursor_x, cursor_y, 5, 5, 0x00FFFF); // Cyan Cursor
-        tgx_blit_rect(&canvas, cursor_x+1, cursor_y+1, 3, 3, 0xFFFFFF); // White center
+        /* FB Flush / Hardware Cursor Draw */
+        tgx_blit_rect(&canvas, cursor_x, cursor_y, 5, 5, 0x00FFFF);
+        tgx_blit_rect(&canvas, cursor_x+1, cursor_y+1, 3, 3, 0xFFFFFF);
 
-        // Logical flow delay using scheduler-aware mechanics
         __asm__("pause");
     }
 }
