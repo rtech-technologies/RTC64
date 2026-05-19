@@ -134,8 +134,16 @@ void kernel_main(void) {
         nk_input_begin(&ctx);
         while (hal_input_pop_event(&ev)) {
             if (ev.type == INPUT_TYPE_MOUSE) {
-                cursor_x = ev.mouse.x;
-                cursor_y = ev.mouse.y;
+                // Handle relative movement
+                cursor_x += ev.mouse.x;
+                cursor_y += ev.mouse.y;
+
+                // Clamp to screen
+                if (cursor_x < 0) cursor_x = 0;
+                if (cursor_y < 0) cursor_y = 0;
+                if (cursor_x >= (int)fb->width) cursor_x = fb->width - 1;
+                if (cursor_y >= (int)fb->height) cursor_y = fb->height - 1;
+
                 nk_input_motion(&ctx, cursor_x, cursor_y);
                 nk_input_button(&ctx, NK_BUTTON_LEFT, cursor_x, cursor_y, (ev.mouse.buttons & 1));
             }
@@ -150,8 +158,9 @@ void kernel_main(void) {
         struct nk_sw_fb sw_fb = { fb->address, fb->width, fb->height, fb->pitch };
         nk_sw_render(&sw_fb, &ctx);
 
-        // Draw Hardware Cursor
-        tgx_blit_rect(&canvas, cursor_x, cursor_y, 4, 4, 0xFFFFFF);
+        // Draw Hardware Cursor (Triangle)
+        tgx_blit_rect(&canvas, cursor_x, cursor_y, 5, 5, 0x00FFFF); // Cyan Cursor
+        tgx_blit_rect(&canvas, cursor_x+1, cursor_y+1, 3, 3, 0xFFFFFF); // White center
 
         // Logical flow delay using scheduler-aware mechanics
         __asm__("pause");
