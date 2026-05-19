@@ -11,6 +11,7 @@
 #include "nuklear.h"
 #include "app_ui.h"
 #include "pro_os.h"
+#include "ff.h"
 
 void ui_init_style(struct nk_context *ctx)
 {
@@ -144,17 +145,30 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
                 NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE))
             {
                 nk_layout_row_dynamic(ctx, 30, 1);
-                nk_label(ctx, "Devices:", NK_TEXT_LEFT);
+                nk_label(ctx, "Physical Devices:", NK_TEXT_LEFT);
                 int count = hal_storage_get_device_count();
                 for (int i = 0; i < count; i++) {
                     storage_device_t *dev = hal_storage_get_device(i);
-                    nk_layout_row_dynamic(ctx, 30, 1);
-                    nk_label(ctx, dev->name, NK_TEXT_LEFT);
+                    char buf[64];
+                    snprintf(buf, 64, "  [DISK %d] %s (%lu blocks)", i, dev->name, (unsigned long)dev->total_blocks);
+                    nk_label(ctx, buf, NK_TEXT_LEFT);
+
+                    nk_layout_row_dynamic(ctx, 30, 2);
+                    if (nk_button_label(ctx, "Format FAT32")) {
+                        char drv[4];
+                        snprintf(drv, 4, "%d:", i);
+                        void* work = malloc(FF_MAX_SS);
+                        if (work) {
+                            f_mkfs(drv, NULL, work, FF_MAX_SS);
+                            free(work);
+                        }
+                    }
                 }
+
                 nk_layout_row_dynamic(ctx, 30, 1);
-                nk_label(ctx, "Files (VFS):", NK_TEXT_LEFT);
-                nk_label(ctx, "/root", NK_TEXT_LEFT);
-                nk_label(ctx, "/dev", NK_TEXT_LEFT);
+                nk_label(ctx, "Filesystems:", NK_TEXT_LEFT);
+                // In a real impl we'd list directories here
+                nk_label(ctx, "/mnt/usb0 (Genuine FatFs)", NK_TEXT_LEFT);
             }
             if (nk_window_is_closed(ctx, "Explorer")) app->show_explorer = 0;
             nk_end(ctx);

@@ -53,6 +53,10 @@ int hal_storage_register_device(storage_device_t *dev);
 int hal_storage_get_device_count(void);
 storage_device_t* hal_storage_get_device(int index);
 
+/* Sovereign Block Interface */
+int hal_storage_read(storage_device_t* dev, uint64_t sector, void* buffer, uint32_t count);
+int hal_storage_write(storage_device_t* dev, uint64_t sector, const void* buffer, uint32_t count);
+
 /* --- USB System --- */
 void hal_usb_init(void);
 void hal_usb_poll(void);
