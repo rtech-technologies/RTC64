@@ -48,6 +48,10 @@ all: environment kernel.elf
 environment:
 	chmod +x build.sh
 	./build.sh
+	mkdir -p external/FatFs/src
+	cp external/FatFs/include/*.h external/FatFs/src/ || true
+	cp external/FatFs/*.c external/FatFs/src/ || true
+	cp external/FatFs/option/*.c external/FatFs/src/ || true
 
 kernel.elf: $(KERNEL_OBJS)
 	$(LD) $(LDFLAGS) $(KERNEL_OBJS) -o kernel.elf
