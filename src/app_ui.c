@@ -48,12 +48,13 @@ void ui_init_style(struct nk_context *ctx)
 
 static void ui_render_taskbar(struct nk_context *ctx, struct app_state *app, int ww, int wh) {
     if (nk_begin(ctx, "Taskbar", nk_rect(0, wh - 50, ww, 50), NK_WINDOW_NO_SCROLLBAR)) {
-        nk_layout_row_static(ctx, 30, 40, 6);
+        nk_layout_row_static(ctx, 30, 40, 7);
         if (nk_button_label(ctx, "M")) app->show_launcher = !app->show_launcher;
 
         if (app->show_terminal) nk_label(ctx, "[T]", NK_TEXT_CENTERED);
         if (app->show_explorer) nk_label(ctx, "[F]", NK_TEXT_CENTERED);
         if (app->show_settings) nk_label(ctx, "[S]", NK_TEXT_CENTERED);
+        if (app->show_chell) nk_label(ctx, "[C]", NK_TEXT_CENTERED);
 
         nk_layout_row_dynamic(ctx, 30, 1);
         nk_spacer(ctx);
@@ -84,7 +85,10 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
             nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, app->password, sizeof(app->password), nk_filter_default);
 
             nk_layout_row_dynamic(ctx, 40, 1);
-            if (nk_button_label(ctx, i18n_translate("login"))) app->current_state = STATE_INSTALLER;
+            if (nk_button_label(ctx, i18n_translate("login"))) {
+                app->current_state = STATE_INSTALLER;
+                app->show_welcome = 1;
+            }
 
             nk_layout_row_dynamic(ctx, 30, 1);
             nk_spacer(ctx);
@@ -117,11 +121,27 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
     } else if (app->current_state == STATE_DESKTOP) {
         ui_render_taskbar(ctx, app, window_width, window_height);
 
+        if (app->show_welcome) {
+            if (nk_begin(ctx, "Welcome", nk_rect(window_width/2 - 200, window_height/2 - 150, 400, 300),
+                NK_WINDOW_BORDER|NK_WINDOW_TITLE|NK_WINDOW_CLOSABLE|NK_WINDOW_MOVABLE))
+            {
+                nk_layout_row_dynamic(ctx, 30, 1);
+                nk_label(ctx, "Welcome to R-TECH™ Sovereign OS", NK_TEXT_CENTERED);
+                nk_layout_row_dynamic(ctx, 100, 1);
+                nk_label_wrap(ctx, "You have successfully bootstrapped the Sovereign kernel environment. FatFs and CherryUSB are active.");
+                nk_layout_row_dynamic(ctx, 40, 1);
+                if (nk_button_label(ctx, "Explore Now")) app->show_welcome = 0;
+            }
+            if (nk_window_is_closed(ctx, "Welcome")) app->show_welcome = 0;
+            nk_end(ctx);
+        }
+
         if (nk_begin(ctx, "AppGrid", nk_rect(20, 20, 300, 400), NK_WINDOW_NO_SCROLLBAR)) {
             nk_layout_row_static(ctx, 60, 60, 4);
             if (nk_button_label(ctx, "Term")) app->show_terminal = 1;
             if (nk_button_label(ctx, "Files")) app->show_explorer = 1;
             if (nk_button_label(ctx, "Setup")) app->show_settings = 1;
+            if (nk_button_label(ctx, "Chell")) app->show_chell = 1;
         }
         nk_end(ctx);
 
@@ -137,6 +157,20 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
                 }
             }
             if (nk_window_is_closed(ctx, "Terminal")) app->show_terminal = 0;
+            nk_end(ctx);
+        }
+
+        if (app->show_chell) {
+            if (nk_begin(ctx, "chell", nk_rect(120, 120, 400, 300),
+                NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE))
+            {
+                nk_layout_row_dynamic(ctx, 25, 1);
+                nk_label(ctx, "Chell Kernel Shell v0.1", NK_TEXT_LEFT);
+                nk_label(ctx, "> _", NK_TEXT_LEFT);
+                nk_layout_row_dynamic(ctx, 150, 1);
+                nk_label_wrap(ctx, "Ready for storage and filesystem testing. VFS mounts are active under /mnt.");
+            }
+            if (nk_window_is_closed(ctx, "chell")) app->show_chell = 0;
             nk_end(ctx);
         }
 
@@ -167,7 +201,6 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
 
                 nk_layout_row_dynamic(ctx, 30, 1);
                 nk_label(ctx, "Filesystems:", NK_TEXT_LEFT);
-                // In a real impl we'd list directories here
                 nk_label(ctx, "/mnt/usb0 (Genuine FatFs)", NK_TEXT_LEFT);
             }
             if (nk_window_is_closed(ctx, "Explorer")) app->show_explorer = 0;

@@ -17,14 +17,6 @@ typedef struct {
 static usb_storage_device_t usb_devices[4];
 static int usb_device_count = 0;
 
-static int usb_read_wrapper(uint64_t lba, void* buffer, uint32_t count) {
-    // We need to find the instance... this is the problem with the original hal.h signature.
-    // It doesn't pass the device pointer.
-    // Let's assume for now there's only one or we use the first one if we can't distinguish.
-    // But better to keep the hal_storage_read/write as the entry point.
-    return -1;
-}
-
 void hal_storage_init(void) {
     /* Ready for hotplug events */
     usb_device_count = 0;
@@ -45,11 +37,12 @@ void usbh_msc_run(struct usbh_msc *msc_class) {
     udev->base.type = STORAGE_TYPE_USB;
     udev->base.total_blocks = msc_class->blocknum;
     udev->base.block_size = msc_class->blocksize;
-    udev->base.read = usb_read_wrapper; // Placeholder to match struct
+    udev->base.read = NULL; // We use hal_storage_read as dispatcher
+    udev->base.write = NULL;
 
     hal_storage_register_device(&udev->base);
 
-    /* Refresh VFS logic to reflect new mount /dev/usbN */
+    /* Refresh VFS logic to reflect new mount /mnt/usbN */
     extern void vfs_refresh_mounts(void);
     vfs_refresh_mounts();
 }

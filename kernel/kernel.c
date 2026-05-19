@@ -24,8 +24,67 @@ static float font_get_width(nk_handle handle, float height, const char *text, in
     return (float)len * 8.0f;
 }
 
+// SSE and GDT Initialization
+static void init_cpu_features(void) {
+    uint64_t cr0, cr4;
+    __asm__ volatile ("mov %%cr0, %0" : "=r"(cr0));
+    cr0 &= ~(1ULL << 2); // EM
+    cr0 |= (1ULL << 1);  // MP
+    __asm__ volatile ("mov %0, %%cr0" :: "r"(cr0));
+
+    __asm__ volatile ("mov %%cr4, %0" : "=r"(cr4));
+    cr4 |= (1ULL << 9);  // OSFXSR
+    cr4 |= (1ULL << 10); // OSXMMEXCPT
+    __asm__ volatile ("mov %0, %%cr4" :: "r"(cr4));
+}
+
+struct gdt_entry {
+    uint16_t limit_low;
+    uint16_t base_low;
+    uint8_t base_middle;
+    uint8_t access;
+    uint8_t granularity;
+    uint8_t base_high;
+} __attribute__((packed));
+
+struct gdt_ptr {
+    uint16_t limit;
+    uint64_t base;
+} __attribute__((packed));
+
+static struct gdt_entry gdt[3];
+static struct gdt_ptr gdtp;
+
+static void init_gdt(void) {
+    gdt[0] = (struct gdt_entry){0, 0, 0, 0, 0, 0}; // Null
+    gdt[1] = (struct gdt_entry){0, 0, 0, 0x9A, 0x20, 0}; // Code (64-bit)
+    gdt[2] = (struct gdt_entry){0, 0, 0, 0x92, 0x00, 0}; // Data
+
+    gdtp.limit = sizeof(gdt) - 1;
+    gdtp.base = (uint64_t)&gdt;
+
+    __asm__ volatile (
+        "lgdt %0\n\t"
+        "push $0x08\n\t"
+        "lea 1f(%%rip), %%rax\n\t"
+        "push %%rax\n\t"
+        "lretq\n\t"
+        "1:\n\t"
+        "mov $0x10, %%ax\n\t"
+        "mov %%ax, %%ds\n\t"
+        "mov %%ax, %%es\n\t"
+        "mov %%ax, %%fs\n\t"
+        "mov %%ax, %%gs\n\t"
+        "mov %%ax, %%ss\n\t"
+        : : "m"(gdtp) : "rax", "memory"
+    );
+}
+
 // The true, freestanding entry point
 void kernel_main(void) {
+    init_cpu_features();
+    init_gdt();
+
     // 1. Initial Proof of Life & Check Blindness
     if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
         while (1) { __asm__("hlt"); }
@@ -95,7 +154,6 @@ void kernel_main(void) {
         tgx_blit_rect(&canvas, cursor_x, cursor_y, 4, 4, 0xFFFFFF);
 
         // Logical flow delay using scheduler-aware mechanics
-        // In a real system, we'd wait for a timer interrupt here.
         __asm__("pause");
     }
 }

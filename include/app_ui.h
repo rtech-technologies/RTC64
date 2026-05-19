@@ -17,6 +17,8 @@ struct app_state {
     int show_settings;
     int show_launcher;
     int show_uac;
+    int show_welcome;
+    int show_chell;
 
     /* Permits */
     int perm_net;
