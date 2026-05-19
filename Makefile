@@ -17,7 +17,7 @@ CFLAGS = -Wall -Wextra -std=c11 -ffreestanding -fno-stack-protector \
 LDFLAGS = -nostdlib -static -m elf_x86_64 -z max-page-size=0x1000 -T kernel/linker.ld
 
 # All Source Objects
-KERNEL_OBJS = kernel/kernel.o src/app_ui.o src/chell.o kernel/nuklear_kernel_impl.o \
+KERNEL_OBJS = kernel/kernel.o src/app_ui.o src/chell.o src/lab.o kernel/nuklear_kernel_impl.o \
               src/nk_software_renderer.o kernel/usb_osal.o \
               kernel/usb_hal_ports.o kernel/storage.o kernel/input.o \
               kernel/usb_hal.o kernel/vfs.o kernel/scheduler.o \

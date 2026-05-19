@@ -131,6 +131,7 @@ void kernel_main(void) {
     memset(&app, 0, sizeof(app));
     app.current_state = STATE_LOGIN;
     chell_init(&app.chell);
+    lab_init(&app.lab);
 
     int cursor_x = fb->width / 2;
     int cursor_y = fb->height / 2;
@@ -155,8 +156,12 @@ void kernel_main(void) {
 
                 nk_input_motion(&ctx, cursor_x, cursor_y);
                 nk_input_button(&ctx, NK_BUTTON_LEFT, cursor_x, cursor_y, (ev.mouse.buttons & 1));
+
+                app.lab.last_x = cursor_x;
+                app.lab.last_y = cursor_y;
             } else if (ev.type == INPUT_TYPE_KEYBOARD) {
                 if (ev.kbd.down) {
+                    app.lab.last_key = ev.kbd.key;
                     // Extremely basic HID to ASCII for Chell testing
                     char c = 0;
                     if (ev.kbd.key >= 0x04 && ev.kbd.key <= 0x1D) c = 'a' + (ev.kbd.key - 0x04);

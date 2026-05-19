@@ -4,6 +4,7 @@
 #include "nuklear_config.h"
 #include "nuklear.h"
 #include "chell.h"
+#include "lab.h"
 
 struct app_state {
     int current_state;
@@ -21,6 +22,8 @@ struct app_state {
     int show_welcome;
     int show_chell;
     struct chell_state chell;
+    int show_lab;
+    struct lab_state lab;
 
     /* Permits */
     int perm_net;

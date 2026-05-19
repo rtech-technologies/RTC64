@@ -142,6 +142,7 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
             if (nk_button_label(ctx, "Files")) app->show_explorer = 1;
             if (nk_button_label(ctx, "Setup")) app->show_settings = 1;
             if (nk_button_label(ctx, "Chell")) app->show_chell = 1;
+            if (nk_button_label(ctx, "Lab")) app->show_lab = 1;
         }
         nk_end(ctx);
 
@@ -164,6 +165,12 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
             app->chell.active = 1;
             chell_ui_render(ctx, &app->chell);
             if (!app->chell.active) app->show_chell = 0;
+        }
+
+        if (app->show_lab) {
+            app->lab.active = 1;
+            lab_ui_render(ctx, &app->lab);
+            if (!app->lab.active) app->show_lab = 0;
         }
 
         if (app->show_explorer) {
