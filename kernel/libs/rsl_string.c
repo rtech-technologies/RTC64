@@ -1,5 +1,4 @@
 #include <rsl.h>
-#define STB_SPRINTF_IMPLEMENTATION
 #include <external/stb_sprintf.h>
 
 extern void* arc_alloc(size_t size);

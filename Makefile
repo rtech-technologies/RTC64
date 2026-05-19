@@ -7,13 +7,15 @@ CFLAGS = -Wall -Wextra -std=c11 -ffreestanding -fno-stack-protector \
          -I./external/CherryUSB/common \
          -I./external/CherryUSB/core \
          -I./external/CherryUSB/core/host \
-         -I./external/FatFs/src \
+         -I./external/FatFs/include \
          -I./external/TLSF \
          -I./external/lwip/src/include \
          -I./external/wolfssl \
          -I./include \
          -I./include/external \
-         -DFS_FATFS_WINDOW_ALIGNMENT=4
+         -DFS_FATFS_WINDOW_ALIGNMENT=4 \
+         -DLWIP_NO_CTYPE_H=1 \
+         -DWOLFSSL_USER_SETTINGS
 
 LDFLAGS = -nostdlib -static -m elf_x86_64 -z max-page-size=0x1000 -T boot/linker.ld
 
@@ -22,6 +24,7 @@ KERNEL_OBJS = kernel/unice64/limine_reqs.o \
               kernel/libs/services.o \
               kernel/libs/vga_serial.o \
               kernel/libs/arc_mem.o \
+              kernel/libs/bump_alloc.o \
               kernel/libs/vdisk.o \
               kernel/libs/usb_xhci.o \
               kernel/libs/ahci.o \
@@ -32,26 +35,31 @@ KERNEL_OBJS = kernel/unice64/limine_reqs.o \
               kernel/libs/panic.o \
               kernel/libs/libc.o \
               kernel/libs/typography.o \
-              kernel/libs/math_stubs.o \
+              kernel/libs/math_core.o \
               kernel/libs/gdt.o \
               kernel/libs/paging.o \
               kernel/libs/syscall.o \
               kernel/libs/syscall_entry.o \
-              external/FatFs/src/ff.o \
-              external/FatFs/src/ffunicode.o \
-              external/TLSF/tlsf.o
+              kernel/libs/lwip_hal.o \
+              external/FatFs/include/ff.o \
+              external/FatFs/include/ffunicode.o \
+              external/TLSF/tlsf.o \
+              external/lwip/src/core/init.o \
+              external/lwip/src/core/mem.o \
+              external/lwip/src/core/memp.o \
+              external/lwip/src/core/netif.o \
+              external/lwip/src/core/pbuf.o \
+              external/lwip/src/core/ip.o \
+              external/lwip/src/core/ipv4/ip4.o \
+              external/lwip/src/core/ipv4/ip4_addr.o \
+              external/wolfssl/wolfcrypt/src/wc_port.o \
+              external/wolfssl/wolfcrypt/src/logging.o \
+              external/wolfssl/wolfcrypt/src/memory.o \
+              external/wolfssl/wolfcrypt/src/error.o
 
 .PHONY: all clean environment iso run
 
-all: environment kernel.elf
-
-environment:
-	chmod +x build.sh
-	./build.sh
-	mkdir -p external/FatFs/src
-	cp external/FatFs/include/*.h external/FatFs/src/ || true
-	cp external/FatFs/*.c external/FatFs/src/ || true
-	cp external/FatFs/option/*.c external/FatFs/src/ || true
+all: kernel.elf
 
 kernel.elf: $(KERNEL_OBJS)
 	$(LD) $(LDFLAGS) $(KERNEL_OBJS) -o kernel.elf
@@ -77,9 +85,6 @@ iso: kernel.elf
 		-efi-boot-part --efi-boot-image --protective-msdos-label \
 		iso_root -o os.iso
 	./external/limine/limine bios-install os.iso
-
-run: iso
-	qemu-system-x86_64 -m 256M -cdrom os.iso -serial stdio
 
 clean:
 	rm -f $(KERNEL_OBJS) kernel.elf os.iso

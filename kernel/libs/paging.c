@@ -7,9 +7,10 @@
 typedef uint64_t pt_entry_t;
 
 extern uint64_t get_hhdm_offset(void);
+extern void* aligned_alloc(size_t alignment, size_t size);
 
 void* paging_create_user_space() {
-    pt_entry_t* pml4 = malloc(4096);
+    pt_entry_t* pml4 = aligned_alloc(4096, 4096);
     memset(pml4, 0, 4096);
 
     uint64_t current_cr3;
@@ -27,11 +28,11 @@ void* paging_create_user_space() {
     // are correctly marked as PAGE_USER at all levels.
 
     // Identity map the first 1GB for Ring 3 testing (Simplified for audit pass)
-    pt_entry_t* pdpt = malloc(4096);
+    pt_entry_t* pdpt = aligned_alloc(4096, 4096);
     memset(pdpt, 0, 4096);
     pml4[0] = (uint64_t)pdpt | PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER;
 
-    pt_entry_t* pd = malloc(4096);
+    pt_entry_t* pd = aligned_alloc(4096, 4096);
     memset(pd, 0, 4096);
     pdpt[0] = (uint64_t)pd | PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER;
 

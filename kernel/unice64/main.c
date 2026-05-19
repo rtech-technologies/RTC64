@@ -53,7 +53,6 @@ void draw_nk_commands(struct nk_context *ctx) {
             case NK_COMMAND_TRIANGLE_FILLED: {
                 const struct nk_command_triangle_filled *t = (const struct nk_command_triangle_filled*)cmd;
                 uint32_t col = (t->color.a << 24) | (t->color.r << 16) | (t->color.g << 8) | t->color.b;
-                // Simplified triangle bounding box fill
                 int min_x = NK_MIN(t->a.x, NK_MIN(t->b.x, t->c.x));
                 int max_x = NK_MAX(t->a.x, NK_MAX(t->b.x, t->c.x));
                 int min_y = NK_MIN(t->a.y, NK_MIN(t->b.y, t->c.y));
@@ -68,6 +67,7 @@ void draw_nk_commands(struct nk_context *ctx) {
                 uint32_t col = (t->foreground.a << 24) | (t->foreground.r << 16) | (t->foreground.g << 8) | t->foreground.b;
                 typography_draw_text((const char*)t->string, t->x, t->y, col);
             } break;
+            default: break;
         }
     }
     nk_clear(ctx);
@@ -78,8 +78,17 @@ void _start(void) {
     gdt_init();
     extern void syscall_init(void);
     syscall_init();
+    extern void vga_serial_service(kernel_event_t event);
     register_service(vga_serial_service);
     dispatch_event(EVENT_INIT);
+
+    extern void xhci_init(void);
+    extern void ahci_init(void);
+    xhci_init();
+    ahci_init();
+
+    extern void vfs_init(void);
+    vfs_init();
 
     extern struct limine_module_response *get_modules(void);
     struct limine_module_response *mod_res = get_modules();

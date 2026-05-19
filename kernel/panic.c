@@ -7,27 +7,27 @@
 /* ========================================================================= */
 
 // Global definitions so your Interrupt Descriptor Table (IDT) can link them
-void page_fault_stub(void);
-void gpf_stub(void);
-void double_fault_stub(void);
+void page_fault_entry(void);
+void gpf_entry(void);
+void double_fault_entry(void);
 void core_panic_handler(void *rsp_pointer);
 
 __asm__(
-    ".global page_fault_stub\n"
-    ".global gpf_stub\n"
-    ".global double_fault_stub\n"
+    ".global page_fault_entry\n"
+    ".global gpf_entry\n"
+    ".global double_fault_entry\n"
 
-    "page_fault_stub:\n"
+    "page_fault_entry:\n"
     "    cli\n"
     "    pushq $14\n" // Vector 14 (Page Fault)
     "    jmp exception_common\n"
 
-    "gpf_stub:\n"
+    "gpf_entry:\n"
     "    cli\n"
     "    pushq $13\n" // Vector 13 (GPF)
     "    jmp exception_common\n"
 
-    "double_fault_stub:\n"
+    "double_fault_entry:\n"
     "    cli\n"
     "    pushq $8\n"  // Vector 8 (Double Fault)
     "    jmp exception_common\n"
@@ -338,7 +338,7 @@ void display_panic_screen(const char* message, struct cpu_state* state) {
     raw_print(fb, 40, y, "ESTATE SECURED. EXECUTION HALTED SAFELY.", white);
 }
 
-// Master authoritative entry-point routed from your assembly stubs
+// Master authoritative entry-point routed from your assembly entrys
 void core_panic_handler(void *rsp_pointer) {
     struct cpu_state* state = (struct cpu_state*)rsp_pointer;
     const char* msg = "GENERIC KERNEL UNHANDLED EXECUTION VIOLATION";

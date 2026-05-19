@@ -49,6 +49,10 @@ void xhci_bios_handover(void* base) {
     }
 }
 
+void xhci_init(void) {
+    xhci_pci_scan();
+}
+
 void xhci_pci_scan(void) {
     for (uint32_t bus = 0; bus < 256; bus++) {
         for (uint32_t slot = 0; slot < 32; slot++) {

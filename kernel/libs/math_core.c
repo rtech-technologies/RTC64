@@ -5,7 +5,7 @@ double fabs(double x) { return x < 0 ? -x : x; }
 double floor(double x) { if (x >= 0) return (double)((long long)x); else return (double)((long long)x - 1); }
 double ceil(double x) { if (x <= 0) return (double)((long long)x); else return (double)((long long)x + 1); }
 
-// Extremely simple sqrt approximation
+// Extremely Sovereign sqrt approximation
 double sqrt(double x) {
     if (x <= 0) return 0;
     double res = x;

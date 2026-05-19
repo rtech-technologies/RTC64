@@ -1,4 +1,6 @@
 #include <pro_os.h>
+#define STB_SPRINTF_IMPLEMENTATION
+#include <external/stb_sprintf.h>
 #include <external/TLSF/tlsf.h>
 
 #define KERNEL_HEAP_SIZE (64 * 1024 * 1024)
@@ -53,6 +55,34 @@ size_t strlen(const char* s) {
     return len;
 }
 
+int tolower(int c) {
+    if (c >= 'A' && c <= 'Z') return c + ('a' - 'A');
+    return c;
+}
+
+int atoi(const char* s) {
+    int res = 0;
+    while (*s >= '0' && *s <= '9') {
+        res = res * 10 + (*s - '0');
+        s++;
+    }
+    return res;
+}
+
+char* strstr(const char* haystack, const char* needle) {
+    if (!*needle) return (char*)haystack;
+    for (; *haystack; haystack++) {
+        if (*haystack == *needle) {
+            const char *h = haystack, *n = needle;
+            while (*h && *n && *h == *n) {
+                h++; n++;
+            }
+            if (!*n) return (char*)haystack;
+        }
+    }
+    return NULL;
+}
+
 int strcmp(const char* s1, const char* s2) {
     while (*s1 && (*s1 == *s2)) {
         s1++; s2++;
@@ -94,6 +124,11 @@ void* malloc(size_t size) {
     return tlsf_malloc(kernel_pool, size);
 }
 
+void* aligned_alloc(size_t alignment, size_t size) {
+    if (!kernel_pool) libc_init();
+    return tlsf_memalign(kernel_pool, alignment, size);
+}
+
 void free(void* ptr) {
     if (kernel_pool && ptr) tlsf_free(kernel_pool, ptr);
 }
@@ -115,6 +150,35 @@ void __assert_fail(const char * assertion, const char * file, unsigned int line,
     quartermaster_panic("Assertion Failed");
 }
 
-int printf(const char* fmt, ...) {
-    (void)fmt; return 0;
+static char* printf_cb(const char* buf, void* user, int len) {
+    (void)user;
+    for (int i = 0; i < len; ++i) {
+        vga_putc(buf[i]);
+    }
+    return (char*)buf;
 }
+
+int printf(const char* fmt, ...) {
+    char buf[STB_SPRINTF_MIN];
+    va_list va;
+    va_start(va, fmt);
+    int ret = stbsp_vsprintfcb(printf_cb, buf, buf, fmt, va);
+    va_end(va);
+    return ret;
+}
+
+int snprintf(char* buf, size_t n, const char* fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    int ret = stbsp_vsnprintf(buf, (int)n, fmt, va);
+    va_end(va);
+    return ret;
+}
+
+// POSIX Stubs for wolfSSL (Internal OS implementations)
+int fcntl(int fd, int cmd, ...) { (void)fd; (void)cmd; return -1; }
+int open(const char* path, int flags, ...) { (void)path; (void)flags; return -1; }
+int socket(int domain, int type, int protocol) { (void)domain; (void)type; (void)protocol; return -1; }
+int accept4(int sockfd, void* addr, void* addrlen, int flags) { (void)sockfd; (void)addr; (void)addrlen; (void)flags; return -1; }
+int accept(int sockfd, void* addr, void* addrlen) { (void)sockfd; (void)addr; (void)addrlen; return -1; }
+int* __errno_location(void) { static int e; return &e; }

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdarg.h>
 #include <limine.h>
 
 typedef enum {
@@ -29,6 +30,8 @@ void* realloc(void* ptr, size_t size);
 void* arc_alloc(size_t size);
 
 // Standard C
+int printf(const char* fmt, ...);
+int snprintf(char* buf, size_t n, const char* fmt, ...);
 void* memset(void* s, int c, size_t n);
 void* memcpy(void* dest, const void* src, size_t n);
 int memcmp(const void* s1, const void* s2, size_t n);

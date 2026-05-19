@@ -28,11 +28,12 @@ if [ ! -f "include/external/stb_sprintf.h" ]; then
     curl -Lo include/external/stb_sprintf.h https://raw.githubusercontent.com/nothings/stb/master/stb_sprintf.h
 fi
 
-# 4. Fetch FatFs (Using stable Zephyr mirror)
-if [ ! -d "external/FatFs" ]; then
-    echo "[4/8] Fetching FatFs..."
-    git clone https://github.com/zephyrproject-rtos/fatfs.git external/FatFs --depth=1
-fi
+# 4. Fetch FatFs (Using stm32duino mirror)
+echo "[4/8] Fetching FatFs..."
+rm -rf external/FatFs
+git clone https://github.com/stm32duino/FatFs.git external/FatFs --depth=1
+mkdir -p external/FatFs/include
+cp external/FatFs/src/*.h external/FatFs/include/
 
 # 5. Fetch Nuklear
 if [ ! -f "include/nuklear.h" ]; then
