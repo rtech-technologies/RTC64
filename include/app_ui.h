@@ -5,6 +5,7 @@
 #include "nuklear.h"
 #include "chell.h"
 #include "lab.h"
+#include "installer.h"
 
 struct app_state {
     int current_state;
@@ -24,6 +25,8 @@ struct app_state {
     struct chell_state chell;
     int show_lab;
     struct lab_state lab;
+    int show_installer;
+    struct installer_state installer;
 
     /* Permits */
     int perm_net;

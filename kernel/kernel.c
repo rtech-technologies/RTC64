@@ -132,6 +132,7 @@ void kernel_main(void) {
     app.current_state = STATE_LOGIN;
     chell_init(&app.chell);
     lab_init(&app.lab);
+    installer_init(&app.installer);
 
     int cursor_x = fb->width / 2;
     int cursor_y = fb->height / 2;

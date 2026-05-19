@@ -87,6 +87,7 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
             nk_layout_row_dynamic(ctx, 40, 1);
             if (nk_button_label(ctx, i18n_translate("login"))) {
                 app->current_state = STATE_INSTALLER;
+                app->show_installer = 1;
                 app->show_welcome = 1;
             }
 
@@ -171,6 +172,11 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
             app->lab.active = 1;
             lab_ui_render(ctx, &app->lab);
             if (!app->lab.active) app->show_lab = 0;
+        }
+
+        if (app->show_installer) {
+            installer_ui_render(ctx, &app->installer);
+            if (!app->installer.active) app->show_installer = 0;
         }
 
         if (app->show_explorer) {

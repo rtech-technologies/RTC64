@@ -17,14 +17,14 @@ CFLAGS = -Wall -Wextra -std=c11 -ffreestanding -fno-stack-protector \
 LDFLAGS = -nostdlib -static -m elf_x86_64 -z max-page-size=0x1000 -T kernel/linker.ld
 
 # All Source Objects
-KERNEL_OBJS = kernel/kernel.o src/app_ui.o src/chell.o src/lab.o kernel/nuklear_kernel_impl.o \
+KERNEL_OBJS = kernel/kernel.o src/app_ui.o src/chell.o src/lab.o src/installer.o kernel/nuklear_kernel_impl.o \
               src/nk_software_renderer.o kernel/usb_osal.o \
               kernel/usb_hal_ports.o kernel/storage.o kernel/input.o \
               kernel/usb_hal.o kernel/vfs.o kernel/scheduler.o \
               kernel/i18n.o kernel/uac_policy.o kernel/tgx_impl.o \
               kernel/tlsf_impl.o kernel/math.o kernel/panic.o \
               kernel/malloc_glue.o kernel/storage_hal.o kernel/panic_hal.o \
-              kernel/diskio_impl.o kernel/ffsystem_impl.o \
+              kernel/diskio_impl.o kernel/ffsystem_impl.o kernel/ff_partitions.o \
               external/FatFs/ff.o external/FatFs/ffunicode.o \
               kernel/drivers/pci.o kernel/drivers/xhci.o kernel/drivers/ehci.o \
               kernel/drivers/nvme.o kernel/drivers/ahci.o \
