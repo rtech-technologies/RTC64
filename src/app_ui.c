@@ -161,17 +161,9 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
         }
 
         if (app->show_chell) {
-            if (nk_begin(ctx, "chell", nk_rect(120, 120, 400, 300),
-                NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE))
-            {
-                nk_layout_row_dynamic(ctx, 25, 1);
-                nk_label(ctx, "Chell Kernel Shell v0.1", NK_TEXT_LEFT);
-                nk_label(ctx, "> _", NK_TEXT_LEFT);
-                nk_layout_row_dynamic(ctx, 150, 1);
-                nk_label_wrap(ctx, "Ready for storage and filesystem testing. VFS mounts are active under /mnt.");
-            }
-            if (nk_window_is_closed(ctx, "chell")) app->show_chell = 0;
-            nk_end(ctx);
+            app->chell.active = 1;
+            chell_ui_render(ctx, &app->chell);
+            if (!app->chell.active) app->show_chell = 0;
         }
 
         if (app->show_explorer) {
@@ -201,7 +193,16 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
 
                 nk_layout_row_dynamic(ctx, 30, 1);
                 nk_label(ctx, "Filesystems:", NK_TEXT_LEFT);
-                nk_label(ctx, "/mnt/usb0 (Genuine FatFs)", NK_TEXT_LEFT);
+
+                static char ls_buf[512];
+                static int ls_done = 0;
+                if (!ls_done) {
+                    if (vfs_ls("0:", ls_buf, 512) == 0) ls_done = 1;
+                    else snprintf(ls_buf, 512, "No files found or device not ready.");
+                }
+
+                nk_layout_row_dynamic(ctx, 150, 1);
+                nk_label_wrap(ctx, ls_buf);
             }
             if (nk_window_is_closed(ctx, "Explorer")) app->show_explorer = 0;
             nk_end(ctx);

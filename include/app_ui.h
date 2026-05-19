@@ -3,6 +3,7 @@
 
 #include "nuklear_config.h"
 #include "nuklear.h"
+#include "chell.h"
 
 struct app_state {
     int current_state;
@@ -19,6 +20,7 @@ struct app_state {
     int show_uac;
     int show_welcome;
     int show_chell;
+    struct chell_state chell;
 
     /* Permits */
     int perm_net;

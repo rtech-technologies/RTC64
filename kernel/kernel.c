@@ -130,6 +130,7 @@ void kernel_main(void) {
     struct app_state app;
     memset(&app, 0, sizeof(app));
     app.current_state = STATE_LOGIN;
+    chell_init(&app.chell);
 
     int cursor_x = fb->width / 2;
     int cursor_y = fb->height / 2;
@@ -154,6 +155,12 @@ void kernel_main(void) {
 
                 nk_input_motion(&ctx, cursor_x, cursor_y);
                 nk_input_button(&ctx, NK_BUTTON_LEFT, cursor_x, cursor_y, (ev.mouse.buttons & 1));
+            } else if (ev.type == INPUT_TYPE_KEYBOARD) {
+                // Map basic HID keys to Nuklear if needed, for now just proved the pipeline
+                // In a real system we'd use a lookup table for HID -> NK mapping
+                if (ev.kbd.down) {
+                    /* Proof of pipeline - keyboard data reaches here */
+                }
             }
         }
         nk_input_end(&ctx);

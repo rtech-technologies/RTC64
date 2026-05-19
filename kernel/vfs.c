@@ -62,3 +62,26 @@ const char* vfs_resolve(const char *path) {
     }
     return "/root";
 }
+
+int vfs_ls(const char* path, char* out_buf, size_t buf_size) {
+    /* Sovereign Directory Listing using FatFs */
+    DIR dir;
+    FILINFO fno;
+    FRESULT res;
+    int offset = 0;
+
+    res = f_opendir(&dir, path);
+    if (res == FR_OK) {
+        for (;;) {
+            res = f_readdir(&dir, &fno);
+            if (res != FR_OK || fno.fname[0] == 0) break;
+            int len = snprintf(out_buf + offset, buf_size - offset, "%s %s\n",
+                               (fno.fattrib & AM_DIR) ? "<DIR>" : "     ", fno.fname);
+            offset += len;
+            if (offset >= (int)buf_size - 1) break;
+        }
+        f_closedir(&dir);
+        return 0;
+    }
+    return -1;
+}

@@ -44,6 +44,7 @@ void scheduler_run(void);
 /* VFS */
 void vfs_init(void);
 const char* vfs_resolve(const char *path);
+int vfs_ls(const char* path, char* out_buf, size_t buf_size);
 
 /* Security / UAC */
 typedef struct {

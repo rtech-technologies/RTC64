@@ -43,10 +43,10 @@ struct mouse_report {
 } __attribute__((packed));
 
 USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX static uint8_t mouse_buffer[32];
+USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX static uint8_t kbd_buffer[32];
 
 static void usbh_hid_mouse_callback(void *arg, int nbytes) {
     struct usbh_hid *hid_class = (struct usbh_hid *)arg;
-
     if (nbytes >= 3) {
         struct mouse_report *m = (struct mouse_report *)mouse_buffer;
         input_event_t ev;
@@ -57,16 +57,36 @@ static void usbh_hid_mouse_callback(void *arg, int nbytes) {
         ev.mouse.scroll = (nbytes > 3) ? m->wheel : 0;
         hal_input_push_event(ev);
     }
+    usbh_submit_urb(&hid_class->intin_urb);
+}
 
-    /* Resubmit URB for next report */
+static void usbh_hid_kbd_callback(void *arg, int nbytes) {
+    struct usbh_hid *hid_class = (struct usbh_hid *)arg;
+    if (nbytes >= 8) {
+        /* Standard 8-byte HID keyboard report: [modifiers, reserved, key1, key2, key3, key4, key5, key6] */
+        // We simplified this for the demo shell
+        for (int i = 2; i < 8; i++) {
+            if (kbd_buffer[i] != 0) {
+                input_event_t ev;
+                ev.type = INPUT_TYPE_KEYBOARD;
+                ev.kbd.key = kbd_buffer[i];
+                ev.kbd.down = true;
+                hal_input_push_event(ev);
+            }
+        }
+    }
     usbh_submit_urb(&hid_class->intin_urb);
 }
 
 void usbh_hid_run(struct usbh_hid *hid_class) {
-    /* Check if it's a mouse (Protocol 2 in Boot Interface) */
-    if (hid_class->hport->config.intf[hid_class->intf].altsetting[0].intf_desc.bInterfaceProtocol == 2) {
+    uint8_t protocol = hid_class->hport->config.intf[hid_class->intf].altsetting[0].intf_desc.bInterfaceProtocol;
+    if (protocol == 2) { /* Mouse */
         usbh_int_urb_fill(&hid_class->intin_urb, hid_class->hport, hid_class->intin, mouse_buffer,
                          hid_class->intin->wMaxPacketSize, 0, usbh_hid_mouse_callback, hid_class);
+        usbh_submit_urb(&hid_class->intin_urb);
+    } else if (protocol == 1) { /* Keyboard */
+        usbh_int_urb_fill(&hid_class->intin_urb, hid_class->hport, hid_class->intin, kbd_buffer,
+                         hid_class->intin->wMaxPacketSize, 0, usbh_hid_kbd_callback, hid_class);
         usbh_submit_urb(&hid_class->intin_urb);
     }
 }
