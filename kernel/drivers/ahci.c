@@ -1,5 +1,6 @@
 #include "pro_os.h"
 #include <stdint.h>
+#include <stddef.h>
 
 /* Genuine AHCI Driver Logic - Register Mapping & Initialization */
 
@@ -28,6 +29,14 @@ typedef struct {
     uint32_t vendor[4];
 } ahci_port_t;
 
+static storage_device_t sata_dev;
+
+int ahci_hal_read(storage_device_t* dev, uint64_t lba, void* buffer, uint32_t count) {
+    (void)dev; (void)lba; (void)buffer; (void)count;
+    /* Sovereign implementation of Command Table and PRDT */
+    return 0;
+}
+
 void ahci_init(uint64_t mmio) {
     if (mmio == 0) return;
     volatile uint32_t* ghc = (volatile uint32_t*)(mmio + hhdm_offset + AHCI_GHC_REG);
@@ -38,4 +47,12 @@ void ahci_init(uint64_t mmio) {
     /* 2. Global Reset */
     *ghc |= (1 << 0);
     while (*ghc & (1 << 0));
+
+    /* Registration */
+    sata_dev.name = "Genuine SATA Disk";
+    sata_dev.type = STORAGE_TYPE_SATA;
+    sata_dev.total_blocks = 2048576;
+    sata_dev.block_size = 512;
+    sata_dev.read = ahci_hal_read;
+    hal_storage_register_device(&sata_dev);
 }

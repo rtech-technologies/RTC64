@@ -39,14 +39,16 @@ typedef enum {
     STORAGE_TYPE_SATAPI
 } storage_type_t;
 
-typedef struct {
+typedef struct storage_device storage_device_t;
+
+struct storage_device {
     const char *name;
     storage_type_t type;
     uint64_t total_blocks;
     uint32_t block_size;
-    int (*read)(uint64_t lba, void *buffer, uint32_t count);
-    int (*write)(uint64_t lba, const void *buffer, uint32_t count);
-} storage_device_t;
+    int (*read)(storage_device_t* dev, uint64_t lba, void *buffer, uint32_t count);
+    int (*write)(storage_device_t* dev, uint64_t lba, const void *buffer, uint32_t count);
+};
 
 void hal_storage_init(void);
 int hal_storage_register_device(storage_device_t *dev);

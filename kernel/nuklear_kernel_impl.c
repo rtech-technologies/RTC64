@@ -117,6 +117,15 @@ static void itoa(int n, char* s) {
     reverse(s);
 }
 
+static void utoa(uint64_t n, char* s) {
+    int i = 0;
+    do {
+        s[i++] = n % 10 + '0';
+    } while ((n /= 10) > 0);
+    s[i] = '\0';
+    reverse(s);
+}
+
 int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
     size_t i = 0;
     while (*format && i < size - 1) {
@@ -133,6 +142,22 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
                 itoa(d, buf);
                 const char* s = buf;
                 while (*s && i < size - 1) str[i++] = *s++;
+            } else if (*format == 'u') {
+                unsigned int d = va_arg(ap, unsigned int);
+                char buf[16];
+                utoa(d, buf);
+                const char* s = buf;
+                while (*s && i < size - 1) str[i++] = *s++;
+            } else if (*format == 'l') {
+                format++;
+                if (*format == 'l') format++;
+                if (*format == 'u' || *format == 'd') {
+                    uint64_t d = va_arg(ap, uint64_t);
+                    char buf[32];
+                    utoa(d, buf);
+                    const char* s = buf;
+                    while (*s && i < size - 1) str[i++] = *s++;
+                }
             } else {
                 str[i++] = *format;
             }
@@ -142,7 +167,7 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
         format++;
     }
     str[i] = '\0';
-    return i;
+    return (int)i;
 }
 
 int snprintf(char* str, size_t size, const char* format, ...) {

@@ -156,10 +156,16 @@ void kernel_main(void) {
                 nk_input_motion(&ctx, cursor_x, cursor_y);
                 nk_input_button(&ctx, NK_BUTTON_LEFT, cursor_x, cursor_y, (ev.mouse.buttons & 1));
             } else if (ev.type == INPUT_TYPE_KEYBOARD) {
-                // Map basic HID keys to Nuklear if needed, for now just proved the pipeline
-                // In a real system we'd use a lookup table for HID -> NK mapping
                 if (ev.kbd.down) {
-                    /* Proof of pipeline - keyboard data reaches here */
+                    // Extremely basic HID to ASCII for Chell testing
+                    char c = 0;
+                    if (ev.kbd.key >= 0x04 && ev.kbd.key <= 0x1D) c = 'a' + (ev.kbd.key - 0x04);
+                    else if (ev.kbd.key >= 0x1E && ev.kbd.key <= 0x27) c = (ev.kbd.key == 0x27) ? '0' : '1' + (ev.kbd.key - 0x1E);
+                    else if (ev.kbd.key == 0x28) c = '\n'; // Enter
+                    else if (ev.kbd.key == 0x2C) c = ' ';  // Space
+                    else if (ev.kbd.key == 0x2A) c = '\b'; // Backspace
+
+                    if (c) nk_input_char(&ctx, c);
                 }
             }
         }
