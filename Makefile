@@ -7,7 +7,7 @@ CFLAGS = -Wall -Wextra -std=c11 -ffreestanding -fno-stack-protector \
          -I./external/CherryUSB/common \
          -I./external/CherryUSB/core \
          -I./external/CherryUSB/core/host \
-         -I./external/FatFs/include \
+         -I./kernel/fatfs \
          -I./external/TLSF \
          -I./external/lwip/src/include \
          -I./external/wolfssl \
@@ -41,8 +41,8 @@ KERNEL_OBJS = kernel/unice64/limine_reqs.o \
               kernel/libs/syscall.o \
               kernel/libs/syscall_entry.o \
               kernel/libs/lwip_hal.o \
-              external/FatFs/include/ff.o \
-              external/FatFs/include/ffunicode.o \
+              kernel/fatfs/ff.o \
+              kernel/fatfs/ffunicode.o \
               external/TLSF/tlsf.o \
               external/lwip/src/core/init.o \
               external/lwip/src/core/mem.o \
