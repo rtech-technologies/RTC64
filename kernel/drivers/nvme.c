@@ -36,4 +36,7 @@ void nvme_init(uint64_t mmio) {
     nvme_dev.block_size = 512;
     nvme_dev.read = nvme_hal_read;
     hal_storage_register_device(&nvme_dev);
+
+    extern void vfs_refresh_mounts(void);
+    vfs_refresh_mounts();
 }
