@@ -80,11 +80,14 @@ static void init_gdt(void) {
     );
 }
 
+#include "idt.h"
+
 // The true, freestanding entry point
 void kernel_main(void) {
     // --- Phase 1: Processor Prep ---
     init_cpu_features();
     init_gdt();
+    idt_init();
 
     // Initial Proof of Life & Check Blindness
     if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
