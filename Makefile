@@ -34,9 +34,13 @@ KERNEL_OBJS = kernel/kernel.o src/app_ui.o src/chell.o src/lab.o src/installer.o
               kernel/cherryusb/class/hub/usbh_hub.o \
               kernel/cherryusb/port/ehci/usb_hc_ehci.o
 
-.PHONY: all clean iso run
+.PHONY: all clean iso run environment
 
-all: hdd.img kernel/kernel iso
+all: environment hdd.img kernel/kernel iso
+
+environment:
+	chmod +x build.sh
+	./build.sh
 
 hdd.img:
 	chmod +x scripts/gen_disk.sh
@@ -52,9 +56,12 @@ iso: kernel/kernel
 	mkdir -p iso_root/boot/sys
 	cp kernel/kernel iso_root/boot/sys/kernel.elf
 	cp kernel/limine.conf iso_root/boot/
+	cp external/limine/limine-bios.sys iso_root/boot/
+	cp external/limine/limine-bios-cd.bin iso_root/boot/
 	xorriso -as mkisofs -b boot/limine-bios-cd.bin \
 		-no-emul-boot -boot-load-size 4 -boot-info-table \
 		iso_root -o os.iso
+	./external/limine/limine bios-install os.iso
 
 QEMU = qemu-system-x86_64
 QEMU_FLAGS = -m 512M -cdrom os.iso -boot d -device qemu-xhci -device usb-kbd -device usb-mouse -serial stdio
@@ -63,4 +70,4 @@ run: all
 	$(QEMU) $(QEMU_FLAGS) $(EXTRA_QEMU_FLAGS) -drive file=hdd.img,format=raw,if=none,id=dr0 -device nvme,drive=dr0,serial=1234
 
 clean:
-	rm -rf $(KERNEL_OBJS) kernel/kernel os.iso hdd.img iso_root/boot/sys/kernel.elf
+	rm -rf $(KERNEL_OBJS) kernel/kernel os.iso hdd.img iso_root/boot/sys/kernel.elf iso_root/boot/limine.conf iso_root/boot/limine-bios.sys iso_root/boot/limine-bios-cd.bin

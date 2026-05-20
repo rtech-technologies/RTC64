@@ -14,23 +14,5 @@ if [ ! -d "external/limine" ]; then
     make -C external/limine limine
 fi
 
-# 2. Fetch the Real CherryUSB Source Tree
-if [ ! -d "external/CherryUSB" ]; then
-    echo "[2/2] Fetching Genuine CherryUSB Stack..."
-    git clone https://github.com/cherry-embedded/CherryUSB.git external/CherryUSB --depth=1
-    rm -rf external/CherryUSB/.git
-fi
-
-# 3. Fetch FatFs
-if [ ! -d "external/FatFs" ]; then
-    echo "[3/3] Fetching FatFs R0.15..."
-    git clone https://github.com/ElectricRCAircraftGuy/FatFs.git external/FatFs --depth=1
-    mkdir -p tmp_fatfs
-    mv external/FatFs/source/ff.c external/FatFs/source/ff.h external/FatFs/source/ffconf.h external/FatFs/source/ffunicode.c external/FatFs/source/diskio.h tmp_fatfs/
-    rm -rf external/FatFs
-    mkdir -p external/FatFs
-    mv tmp_fatfs/* external/FatFs/
-    rm -rf tmp_fatfs
-fi
-
+# Note: Source files are now tracked in the kernel/ tree to ensure build stability and compliance.
 echo "Environment Armed. Ready for 'make'."
