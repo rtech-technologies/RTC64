@@ -5,6 +5,7 @@
 #include "limine.h"
 #include "app_ui.h"
 #include "nk_software_renderer.h"
+#include "serial.h"
 
 // Tell the bootloader we want a graphical framebuffer
 volatile struct limine_framebuffer_request framebuffer_request = {
@@ -84,6 +85,10 @@ static void init_gdt(void) {
 
 // The true, freestanding entry point
 void kernel_main(void) {
+    // --- Phase 0: Immediate Logging ---
+    serial_init();
+    serial_write("Sovereign OS Kernel Booting...\n");
+
     // --- Phase 1: Processor Prep ---
     init_cpu_features();
     init_gdt();

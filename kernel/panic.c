@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stddef.h>
+#include "serial.h"
 
 /* ========================================================================= */
 /* 1. DATA STRUCTURES & EXTERNS                                              */
@@ -115,8 +116,10 @@ static void panic_printf(struct panic_framebuffer* fb, const char* fmt, ...) {
             if (*p == 's') {
                 const char* s = (const char*)val;
                 while (*s) {
+                    char c = *s++;
+                    serial_putc(c);
                     if (cursor_x + 16 > (int)fb->width) { cursor_x = 40; cursor_y += 24; }
-                    panic_draw_char(fb, *s++, cursor_x, cursor_y, 0xFFFFFF);
+                    panic_draw_char(fb, c, cursor_x, cursor_y, 0xFFFFFF);
                     cursor_x += 16;
                 }
             } else if (*p == 'x') {
@@ -124,15 +127,18 @@ static void panic_printf(struct panic_framebuffer* fb, const char* fmt, ...) {
                 const char* hex = "0123456789ABCDEF";
                 for (int i = 15; i >= 0; i--) {
                     char c = hex[(val >> (i * 4)) & 0xF];
+                    serial_putc(c);
                     if (cursor_x + 16 > (int)fb->width) { cursor_x = 40; cursor_y += 24; }
                     panic_draw_char(fb, c, cursor_x, cursor_y, 0xFFFFFF);
                     cursor_x += 16;
                 }
             }
         } else if (*p == '\n') {
+            serial_putc('\n');
             cursor_x = 40;
             cursor_y += 24;
         } else {
+            serial_putc(*p);
             if (cursor_x + 16 > (int)fb->width) { cursor_x = 40; cursor_y += 24; }
             panic_draw_char(fb, *p, cursor_x, cursor_y, 0xFFFFFF);
             cursor_x += 16;
