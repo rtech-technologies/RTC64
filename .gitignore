@@ -5,3 +5,5 @@ nuklear_cherry_usb
 os.iso
 hdd.img
 kernel/kernel
+external/
+iso_root/
