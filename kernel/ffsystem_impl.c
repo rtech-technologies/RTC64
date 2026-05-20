@@ -13,3 +13,7 @@ void* ff_memalloc(UINT msize) {
 void ff_memfree(void* mblock) {
     free(mblock);
 }
+
+DWORD get_fattime(void) {
+    return 0; // Return dummy time for now
+}

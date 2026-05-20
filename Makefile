@@ -37,11 +37,11 @@ KERNEL_OBJS = kernel/kernel.o src/app_ui.o src/chell.o src/lab.o src/installer.o
 
 .PHONY: all clean environment iso run
 
-all: environment kernel/kernel iso
+all: hdd.img kernel/kernel iso
 
-environment:
-	chmod +x build.sh
-	./build.sh
+hdd.img:
+	chmod +x scripts/gen_disk.sh
+	./scripts/gen_disk.sh
 
 kernel/kernel: $(KERNEL_OBJS)
 	$(LD) $(LDFLAGS) $(KERNEL_OBJS) -o kernel/kernel
@@ -64,7 +64,7 @@ QEMU = qemu-system-x86_64
 QEMU_FLAGS = -m 512M -cdrom os.iso -boot d -device qemu-xhci -device usb-kbd -device usb-mouse -serial stdio
 
 run: iso
-	$(QEMU) $(QEMU_FLAGS) $(EXTRA_QEMU_FLAGS)
+	$(QEMU) $(QEMU_FLAGS) $(EXTRA_QEMU_FLAGS) -drive file=hdd.img,format=raw,if=none,id=dr0 -device nvme,drive=dr0,serial=1234
 
 clean:
 	rm -rf $(KERNEL_OBJS) kernel/kernel os.iso iso_root/boot/sys/kernel.elf iso_root/boot/limine.conf iso_root/boot/limine-bios.sys iso_root/boot/limine-bios-cd.bin
