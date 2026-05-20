@@ -53,15 +53,8 @@ kernel/kernel: $(KERNEL_OBJS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 iso: kernel/kernel
-	mkdir -p iso_root/boot/sys
-	cp kernel/kernel iso_root/boot/sys/kernel.elf
-	cp kernel/limine.conf iso_root/boot/
-	cp external/limine/limine-bios.sys iso_root/boot/
-	cp external/limine/limine-bios-cd.bin iso_root/boot/
-	xorriso -as mkisofs -b boot/limine-bios-cd.bin \
-		-no-emul-boot -boot-load-size 4 -boot-info-table \
-		iso_root -o os.iso
-	./external/limine/limine bios-install os.iso
+	chmod +x scripts/make_iso.sh
+	./scripts/make_iso.sh
 
 QEMU = qemu-system-x86_64
 QEMU_FLAGS = -m 512M -cdrom os.iso -boot d -device qemu-xhci -device usb-kbd -device usb-mouse -serial stdio
@@ -70,4 +63,4 @@ run: all
 	$(QEMU) $(QEMU_FLAGS) $(EXTRA_QEMU_FLAGS) -drive file=hdd.img,format=raw,if=none,id=dr0 -device nvme,drive=dr0,serial=1234
 
 clean:
-	rm -rf $(KERNEL_OBJS) kernel/kernel os.iso hdd.img iso_root/boot/sys/kernel.elf iso_root/boot/limine.conf iso_root/boot/limine-bios.sys iso_root/boot/limine-bios-cd.bin
+	rm -rf $(KERNEL_OBJS) kernel/kernel os.iso hdd.img iso_root/

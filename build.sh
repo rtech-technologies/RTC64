@@ -1,18 +1,17 @@
 #!/bin/bash
 set -e
 
-echo "=== Baking Real Bare-Metal Environment ==="
+echo "=== Preparing Sovereign OS Boot Environment ==="
 
 mkdir -p external
-mkdir -p iso_root/boot/sys
+mkdir -p iso_root/boot
 
-# 1. Get the Real Limine Binaries (using valid tracking branch)
+# 1. Fetch Limine Binaries for ISO creation
 if [ ! -d "external/limine" ]; then
-    echo "[1/2] Fetching Static Limine Assets..."
+    echo "[1/1] Fetching Limine Bootloader Assets..."
     git clone https://github.com/limine-bootloader/limine.git external/limine --branch=v5.x-branch-binary --depth=1
-    echo "Building Limine deployment tool..."
+    echo "Building Limine tool..."
     make -C external/limine limine
 fi
 
-# Note: Source files are now tracked in the kernel/ tree to ensure build stability and compliance.
-echo "Environment Armed. Ready for 'make'."
+echo "Environment Ready."
