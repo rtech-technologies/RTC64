@@ -139,6 +139,7 @@ void kernel_main(void) {
     serial_write("[PHASE 4] Initializing Logical Services (VFS, Scheduler)...\n");
     vfs_init();
     scheduler_init();
+    scheduler_add_task("USB Poller", hal_usb_poll);
 
     // --- Phase 5: Peripheral Activation ---
     serial_write("[PHASE 5] Activating USB Stack...\n");
@@ -175,7 +176,7 @@ void kernel_main(void) {
         tgx_clear(&canvas, 0x001010); // Dark Teal Background
 
         /* Event Polling */
-        hal_usb_poll();
+        // hal_usb_poll is now called by the scheduler
 
         input_event_t ev;
         nk_input_begin(&ctx);

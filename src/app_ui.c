@@ -198,7 +198,7 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
                         snprintf(drv, 4, "%d:", i);
                         void* work = malloc(FF_MAX_SS);
                         if (work) {
-                            f_mkfs(drv, NULL, work, FF_MAX_SS);
+                            f_mkfs(drv, NULL, work, dev->block_size);
                             free(work);
                         }
                     }

@@ -85,33 +85,16 @@ static void panic_draw_char(struct panic_framebuffer* fb, char c, int x, int y, 
 static int cursor_x = 40;
 static int cursor_y = 40;
 
-static void panic_printf(struct panic_framebuffer* fb, const char* fmt, ...) {
-    // Manual x86-64 calling convention argument parsing
-    // RDI = fb, RSI = fmt, RDX, RCX, R8, R9 are the first 4 variadic args
-    // Additional args are on the stack.
-
-    uint64_t* args;
-    __asm__ volatile ("movq %%rbp, %0" : "=r"(args));
-    // Skip saved RBP and return address
-    args += 2;
-
-    // Capture registers that might hold arguments
-    uint64_t rdx_val, rcx_val, r8_val, r9_val;
-    __asm__ volatile ("movq %%rdx, %0" : "=r"(rdx_val));
-    __asm__ volatile ("movq %%rcx, %0" : "=r"(rcx_val));
-    __asm__ volatile ("movq %%r8, %0"  : "=r"(r8_val));
-    __asm__ volatile ("movq %%r9, %0"  : "=r"(r9_val));
-
-    uint64_t reg_args[4] = {rdx_val, rcx_val, r8_val, r9_val};
+static void panic_printf(struct panic_framebuffer* fb, const char* fmt, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4) {
+    uint64_t reg_args[4] = {a1, a2, a3, a4};
     int arg_idx = 0;
 
     const char* p = fmt;
     while (*p) {
         if (*p == '%' && *(p+1)) {
             p++;
-            uint64_t val;
+            uint64_t val = 0;
             if (arg_idx < 4) val = reg_args[arg_idx++];
-            else val = *args++;
 
             if (*p == 's') {
                 const char* s = (const char*)val;
@@ -238,24 +221,24 @@ void core_panic_handler(void* rsp_pointer) {
     }
 
     cursor_x = 40; cursor_y = 40;
-    panic_printf(fb, "SOVEREIGN OS KERNEL PANIC\n");
-    panic_printf(fb, "--------------------------\n");
-    panic_printf(fb, "VECTOR: %x\n", state->interrupt_number);
-    panic_printf(fb, "RIP:    %x\n", state->rip);
-    panic_printf(fb, "CS:     %x\n", state->cs);
-    panic_printf(fb, "ERR:    %x\n", state->error_code);
-    panic_printf(fb, "CR2:    %x\n", state->cr2);
-    panic_printf(fb, "CR3:    %x\n", state->cr3);
-    panic_printf(fb, "CR4:    %x\n", state->cr4);
-    panic_printf(fb, "\nREGISTERS:\n");
-    panic_printf(fb, "RAX: %x RBX: %x\n", state->rax, state->rbx);
-    panic_printf(fb, "RCX: %x RDX: %x\n", state->rcx, state->rdx);
-    panic_printf(fb, "RSI: %x RDI: %x\n", state->rsi, state->rdi);
-    panic_printf(fb, "RBP: %x RSP: %x\n", state->rbp, state->rsp);
-    panic_printf(fb, "R8 : %x R9 : %x\n", state->r8,  state->r9);
-    panic_printf(fb, "R10: %x R11: %x\n", state->r10, state->r11);
-    panic_printf(fb, "R12: %x R13: %x\n", state->r12, state->r13);
-    panic_printf(fb, "R14: %x R15: %x\n", state->r14, state->r15);
+    panic_printf(fb, "SOVEREIGN OS KERNEL PANIC\n", 0, 0, 0, 0);
+    panic_printf(fb, "--------------------------\n", 0, 0, 0, 0);
+    panic_printf(fb, "VECTOR: %x\n", state->interrupt_number, 0, 0, 0);
+    panic_printf(fb, "RIP:    %x\n", state->rip, 0, 0, 0);
+    panic_printf(fb, "CS:     %x\n", state->cs, 0, 0, 0);
+    panic_printf(fb, "ERR:    %x\n", state->error_code, 0, 0, 0);
+    panic_printf(fb, "CR2:    %x\n", state->cr2, 0, 0, 0);
+    panic_printf(fb, "CR3:    %x\n", state->cr3, 0, 0, 0);
+    panic_printf(fb, "CR4:    %x\n", state->cr4, 0, 0, 0);
+    panic_printf(fb, "\nREGISTERS:\n", 0, 0, 0, 0);
+    panic_printf(fb, "RAX: %x RBX: %x\n", state->rax, state->rbx, 0, 0);
+    panic_printf(fb, "RCX: %x RDX: %x\n", state->rcx, state->rdx, 0, 0);
+    panic_printf(fb, "RSI: %x RDI: %x\n", state->rsi, state->rdi, 0, 0);
+    panic_printf(fb, "RBP: %x RSP: %x\n", state->rbp, state->rsp, 0, 0);
+    panic_printf(fb, "R8 : %x R9 : %x\n", state->r8,  state->r9,  0, 0);
+    panic_printf(fb, "R10: %x R11: %x\n", state->r10, state->r11, 0, 0);
+    panic_printf(fb, "R12: %x R13: %x\n", state->r12, state->r13, 0, 0);
+    panic_printf(fb, "R14: %x R15: %x\n", state->r14, state->r15, 0, 0);
 
     while(1) __asm__("cli; hlt");
 }
@@ -269,6 +252,6 @@ void kpanic(const char* msg) {
     }
 
     cursor_x = 40; cursor_y = 40;
-    panic_printf(fb, "SOFTWARE KERNEL PANIC: %s\n", msg);
+    panic_printf(fb, "SOFTWARE KERNEL PANIC: %s\n", (uintptr_t)msg, 0, 0, 0);
     while(1) __asm__("cli; hlt");
 }

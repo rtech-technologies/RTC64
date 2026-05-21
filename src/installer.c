@@ -33,7 +33,7 @@ static void installer_format(struct installer_state *state) {
     if (!work) return;
 
     snprintf(state->status, 128, "Formatting %s... please wait.", dev->name);
-    FRESULT res = f_mkfs(drv, &opt, work, FF_MAX_SS);
+    FRESULT res = f_mkfs(drv, &opt, work, dev->block_size);
     free(work);
 
     if (res == FR_OK) {

@@ -141,52 +141,58 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
     while (*format && i < size - 1) {
         if (*format == '%') {
             format++;
+            int width = 0;
+            int zero_pad = 0;
+            if (*format == '0') { zero_pad = 1; format++; }
+            while (*format >= '0' && *format <= '9') {
+                width = width * 10 + (*format - '0');
+                format++;
+            }
+
             if (*format == '%') {
                 str[i++] = '%';
             } else if (*format == 's') {
                 const char* s = va_arg(ap, const char*);
                 while (*s && i < size - 1) str[i++] = *s++;
-            } else if (*format == 'd') {
-                int d = va_arg(ap, int);
-                char buf[16];
-                itoa(d, buf);
-                const char* s = buf;
-                while (*s && i < size - 1) str[i++] = *s++;
-            } else if (*format == 'u') {
-                unsigned int d = va_arg(ap, unsigned int);
-                char buf[16];
-                utoa(d, buf);
-                const char* s = buf;
-                while (*s && i < size - 1) str[i++] = *s++;
-            } else if (*format == 'x' || *format == 'p') {
-                uint64_t d = (*format == 'p') ? va_arg(ap, uint64_t) : va_arg(ap, unsigned int);
-                char buf[20];
-                xtoa(d, buf, 0);
-                const char* s = buf;
-                while (*s && i < size - 1) str[i++] = *s++;
-            } else if (*format == 'l') {
-                format++;
-                if (*format == 'l') format++;
-                if (*format == 'u' || *format == 'd') {
-                    uint64_t d = va_arg(ap, uint64_t);
-                    char buf[32];
-                    utoa(d, buf);
-                    const char* s = buf;
-                    while (*s && i < size - 1) str[i++] = *s++;
-                } else if (*format == 'x') {
-                    uint64_t d = va_arg(ap, uint64_t);
-                    char buf[32];
-                    xtoa(d, buf, 0);
-                    const char* s = buf;
-                    while (*s && i < size - 1) str[i++] = *s++;
+            } else if (*format == 'c') {
+                char c = (char)va_arg(ap, int);
+                str[i++] = c;
+            } else if (*format == 'd' || *format == 'u' || *format == 'x' || *format == 'p' || *format == 'l') {
+                uint64_t val;
+                char buf[64];
+                int is_x = (*format == 'x' || *format == 'p');
+
+                if (*format == 'l') {
+                    format++;
+                    if (*format == 'l') format++;
+                    val = va_arg(ap, uint64_t);
+                    if (*format == 'x') is_x = 1;
+                } else if (*format == 'p') {
+                    val = va_arg(ap, uintptr_t);
+                    is_x = 1;
+                } else if (*format == 'd') {
+                    val = (uint64_t)va_arg(ap, int);
+                } else {
+                    val = (uint64_t)va_arg(ap, unsigned int);
                 }
+
+                if (is_x) xtoa(val, buf, 0);
+                else utoa(val, buf);
+
+                int len = strlen(buf);
+                while (width > len && i < size - 1) {
+                    str[i++] = zero_pad ? '0' : ' ';
+                    width--;
+                }
+                const char* s = buf;
+                while (*s && i < size - 1) str[i++] = *s++;
             } else {
                 str[i++] = *format;
             }
         } else {
             str[i++] = *format;
         }
-        format++;
+        if (*format) format++;
     }
     str[i] = '\0';
     return (int)i;
