@@ -87,31 +87,37 @@ static void init_gdt(void) {
 void kernel_main(void) {
     // --- Phase 0: Immediate Logging ---
     serial_init();
-    serial_write("Sovereign OS Kernel Booting...\n");
+    serial_write("[PHASE 0] Sovereign OS Kernel Booting...\n");
 
     // --- Phase 1: Processor Prep ---
+    serial_write("[PHASE 1] Initializing CPU features (SSE, GDT, IDT)...\n");
     init_cpu_features();
     init_gdt();
     idt_init();
 
     // Initial Proof of Life & Check Blindness
     if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
+        serial_write("[ERROR] No graphical framebuffer available!\n");
         while (1) { __asm__("hlt"); }
     }
+    serial_write("[INFO] Graphical framebuffer acquired.\n");
 
     if (hhdm_request.response != NULL) {
         hhdm_offset = hhdm_request.response->offset;
+        serial_write("[INFO] HHDM Offset integrated.\n");
     }
 
     struct limine_framebuffer *fb = framebuffer_request.response->framebuffers[0];
     tgx_canvas_t canvas = { (uint32_t*)fb->address, fb->width, fb->height, fb->pitch };
 
     // --- Phase 2: Memory Sovereignty ---
+    serial_write("[PHASE 2] Initializing Kernel Heap (TLSF, 16MB)...\n");
     // Allocate 16MB for the kernel heap
     static uint8_t kernel_heap[16 * 1024 * 1024];
     hal_malloc_init(kernel_heap, sizeof(kernel_heap));
 
     // --- Phase 3: Hardware Discovery ---
+    serial_write("[PHASE 3] Starting hardware discovery...\n");
     hal_storage_init();
     hal_input_init();
 
@@ -119,13 +125,16 @@ void kernel_main(void) {
     pci_scan();
 
     // --- Phase 4: Logical Services ---
+    serial_write("[PHASE 4] Initializing Logical Services (VFS, Scheduler)...\n");
     vfs_init();
     scheduler_init();
 
     // --- Phase 5: Peripheral Activation ---
+    serial_write("[PHASE 5] Activating USB Stack...\n");
     hal_usb_init();
 
     // --- Phase 6: UI Subsystem ---
+    serial_write("[PHASE 6] Initializing Nuklear UI...\n");
     struct nk_context ctx;
     struct nk_user_font font;
     font.userdata = nk_handle_ptr(0);
@@ -146,6 +155,7 @@ void kernel_main(void) {
     int cursor_y = fb->height / 2;
 
     // --- Phase 7: Main Executive Loop ---
+    serial_write("[PHASE 7] Entering Main Executive Loop.\n");
     while (1) {
         tgx_clear(&canvas, 0x001010); // Dark Teal Background
 

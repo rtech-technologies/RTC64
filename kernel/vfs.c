@@ -1,6 +1,7 @@
 #include "pro_os.h"
 #include "hal.h"
 #include "ff.h"
+#include "serial.h"
 #include <string.h>
 
 /* Virtual File System - Sovereign Implementation with Comprehensive Storage Support */
@@ -21,6 +22,7 @@ void vfs_init(void) {
 }
 
 void vfs_refresh_mounts(void) {
+    serial_write("[VFS] Refreshing mount points...\n");
     int dev_count = hal_storage_get_device_count();
 
     for (int i = 0; i < dev_count; i++) {
@@ -49,6 +51,15 @@ void vfs_refresh_mounts(void) {
             snprintf(drv_path, 4, "%d:", i);
             FRESULT res = f_mount(&m->fs, drv_path, 1);
             m->mounted = (res == FR_OK);
+            if (m->mounted) {
+                serial_write("[VFS] Successfully mounted drive to ");
+                serial_write(m->mount_point);
+                serial_write("\n");
+            } else {
+                serial_write("[VFS] Failed to mount drive ");
+                serial_write(drv_path);
+                serial_write("\n");
+            }
             mount_count++;
         }
     }
