@@ -141,7 +141,11 @@ void kernel_main(void) {
     font.height = 8.0f;
     font.width = font_get_width;
 
-    nk_init_default(&ctx, &font);
+    struct nk_allocator alloc;
+    alloc.userdata.ptr = NULL;
+    alloc.alloc = (nk_plugin_alloc)((void*)malloc);
+    alloc.free = (nk_plugin_free)((void*)free);
+    nk_init(&ctx, &alloc, &font);
     ui_init_style(&ctx);
 
     struct app_state app;
