@@ -42,32 +42,36 @@ void pci_scan(void) {
                 uint16_t vendor = vendor_device & 0xFFFF;
                 uint16_t device = (vendor_device >> 16) & 0xFFFF;
 
+                serial_printf("[PCI] %02x:%02x.%x - ID %04x:%04x\n", bus, slot, func, vendor, device);
+
                 uint32_t class_rev = pci_read_config(bus, slot, func, 0x08);
                 uint8_t base_class = (class_rev >> 24) & 0xFF;
                 uint8_t sub_class = (class_rev >> 16) & 0xFF;
                 uint8_t prog_if = (class_rev >> 8) & 0xFF;
 
+                serial_printf("      Class: %02x Sub: %02x PI: %02x\n", base_class, sub_class, prog_if);
+
                 /* Identify xHCI (USB 3.0), EHCI (USB 2.0), NVMe, AHCI */
                 if (base_class == 0x0C && sub_class == 0x03 && prog_if == 0x30) {
-                    serial_write("[PCI] Found xHCI Controller\n");
                     uint64_t mmio = pci_get_bar(bus, slot, func, 0);
+                    serial_printf("[PCI] Found xHCI Controller at %lx\n", mmio);
                     xhci_mmio_base = mmio;
                     xhci_init(mmio);
                 } else if (base_class == 0x0C && sub_class == 0x03 && prog_if == 0x20) {
-                    serial_write("[PCI] Found EHCI Controller\n");
                     uint64_t mmio = pci_get_bar(bus, slot, func, 0);
+                    serial_printf("[PCI] Found EHCI Controller at %lx\n", mmio);
                     ehci_mmio_base = mmio;
                     ehci_init(mmio);
                 } else if (base_class == 0x01 && sub_class == 0x08 && prog_if == 0x02) {
-                    serial_write("[PCI] Found NVMe Controller\n");
                     uint64_t mmio = pci_get_bar(bus, slot, func, 0);
+                    serial_printf("[PCI] Found NVMe Controller at %lx\n", mmio);
                     nvme_mmio_base = mmio;
                     void hal_nvme_init(void);
                     hal_nvme_init();
                     nvme_init(mmio);
                 } else if (base_class == 0x01 && sub_class == 0x06 && prog_if == 0x01) {
-                    serial_write("[PCI] Found AHCI Controller\n");
                     uint64_t mmio = pci_get_bar(bus, slot, func, 5); /* AHCI BAR is usually 5 */
+                    serial_printf("[PCI] Found AHCI Controller at %lx\n", mmio);
                     ahci_mmio_base = mmio;
                     void hal_sata_init(void);
                     hal_sata_init();

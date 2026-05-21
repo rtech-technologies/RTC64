@@ -56,6 +56,17 @@ struct gdt_ptr {
 static struct gdt_entry gdt[3];
 static struct gdt_ptr gdtp;
 
+static void* nk_malloc(nk_handle handle, void* old, nk_size size) {
+    (void)handle;
+    if (old) return realloc(old, size);
+    return malloc(size);
+}
+
+static void nk_mfree(nk_handle handle, void* ptr) {
+    (void)handle;
+    free(ptr);
+}
+
 static void init_gdt(void) {
     gdt[0] = (struct gdt_entry){0, 0, 0, 0, 0, 0}; // Null
     gdt[1] = (struct gdt_entry){0, 0, 0, 0x9A, 0x20, 0}; // Code (64-bit)
@@ -143,8 +154,8 @@ void kernel_main(void) {
 
     struct nk_allocator alloc;
     alloc.userdata.ptr = NULL;
-    alloc.alloc = (nk_plugin_alloc)((void*)malloc);
-    alloc.free = (nk_plugin_free)((void*)free);
+    alloc.alloc = nk_malloc;
+    alloc.free = nk_mfree;
     nk_init(&ctx, &alloc, &font);
     ui_init_style(&ctx);
 

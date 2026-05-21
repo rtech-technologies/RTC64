@@ -782,7 +782,7 @@ int usb_hc_init(struct usbh_bus *bus)
 
     for (uint8_t index = 0; index < CONFIG_USB_EHCI_QH_NUM; index++) {
         qh = &ehci_qh_pool[bus->hcd.hcd_id][index];
-        if ((uint32_t)&qh->hw % 32) {
+        if ((uintptr_t)&qh->hw % 32) {
             USB_LOG_ERR("struct ehci_qh_hw is not align 32\r\n");
             return -USB_ERR_INVAL;
         }
@@ -790,7 +790,7 @@ int usb_hc_init(struct usbh_bus *bus)
 
     for (uint8_t index = 0; index < CONFIG_USB_EHCI_QTD_NUM; index++) {
         qtd = &ehci_qtd_pool[bus->hcd.hcd_id][index];
-        if ((uint32_t)&qtd->hw % 32) {
+        if ((uintptr_t)&qtd->hw % 32) {
             USB_LOG_ERR("struct ehci_qtd_hw is not align 32\r\n");
             return -USB_ERR_INVAL;
         }

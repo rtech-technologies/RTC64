@@ -171,10 +171,10 @@
 
 #define QH_HLP_END 0x1
 
-#define QH_HLP_ITD(x)  (((uint32_t)(x) & ~0x1F) | 0x0) /* Isochronous Transfer Descriptor */
-#define QH_HLP_QH(x)   (((uint32_t)(x) & ~0x1F) | 0x2) /* Queue Head */
-#define QH_HLP_SITD(x) (((uint32_t)(x) & ~0x1F) | 0x4) /* Split Transaction Isochronous Transfer Descriptor */
-#define QH_HLP_FSTN(x) (((uint32_t)(x) & ~0x1F) | 0x6) /* Frame Span Traversal Node */
+#define QH_HLP_ITD(x)  (((uintptr_t)(x) & ~0x1F) | 0x0) /* Isochronous Transfer Descriptor */
+#define QH_HLP_QH(x)   (((uintptr_t)(x) & ~0x1F) | 0x2) /* Queue Head */
+#define QH_HLP_SITD(x) (((uintptr_t)(x) & ~0x1F) | 0x4) /* Split Transaction Isochronous Transfer Descriptor */
+#define QH_HLP_FSTN(x) (((uintptr_t)(x) & ~0x1F) | 0x6) /* Frame Span Traversal Node */
 
 /* Endpoint Characteristics: Queue Head DWord 1. Table 3-19 */
 
@@ -248,10 +248,10 @@
 
 /* iTD Next Link Pointer. Paragraph 3.3.1 */
 
-#define ITD_NLP_ITD(x)  (((uint32_t)(x) & ~0x1F) | 0x0)
-#define ITD_NLP_QH(x)   (((uint32_t)(x) & ~0x1F) | 0x2)
-#define ITD_NLP_SITD(x) (((uint32_t)(x) & ~0x1F) | 0x4)
-#define ITD_NLP_FSTN(x) (((uint32_t)(x) & ~0x1F) | 0x6)
+#define ITD_NLP_ITD(x)  (((uintptr_t)(x) & ~0x1F) | 0x0)
+#define ITD_NLP_QH(x)   (((uintptr_t)(x) & ~0x1F) | 0x2)
+#define ITD_NLP_SITD(x) (((uintptr_t)(x) & ~0x1F) | 0x4)
+#define ITD_NLP_FSTN(x) (((uintptr_t)(x) & ~0x1F) | 0x6)
 
 /* iTD Transaction Status and Control List. Paragraph 3.3.2 */
 #define ITD_TSCL_XOFFS_SHIFT    (0) /* Bits 0-11: Transaction X offset */

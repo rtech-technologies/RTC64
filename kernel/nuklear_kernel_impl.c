@@ -126,6 +126,16 @@ static void utoa(uint64_t n, char* s) {
     reverse(s);
 }
 
+static void xtoa(uint64_t n, char* s, int caps) {
+    int i = 0;
+    const char* digits = caps ? "0123456789ABCDEF" : "0123456789abcdef";
+    do {
+        s[i++] = digits[n % 16];
+    } while ((n /= 16) > 0);
+    s[i] = '\0';
+    reverse(s);
+}
+
 int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
     size_t i = 0;
     while (*format && i < size - 1) {
@@ -148,6 +158,12 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
                 utoa(d, buf);
                 const char* s = buf;
                 while (*s && i < size - 1) str[i++] = *s++;
+            } else if (*format == 'x' || *format == 'p') {
+                uint64_t d = (*format == 'p') ? va_arg(ap, uint64_t) : va_arg(ap, unsigned int);
+                char buf[20];
+                xtoa(d, buf, 0);
+                const char* s = buf;
+                while (*s && i < size - 1) str[i++] = *s++;
             } else if (*format == 'l') {
                 format++;
                 if (*format == 'l') format++;
@@ -155,6 +171,12 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
                     uint64_t d = va_arg(ap, uint64_t);
                     char buf[32];
                     utoa(d, buf);
+                    const char* s = buf;
+                    while (*s && i < size - 1) str[i++] = *s++;
+                } else if (*format == 'x') {
+                    uint64_t d = va_arg(ap, uint64_t);
+                    char buf[32];
+                    xtoa(d, buf, 0);
                     const char* s = buf;
                     while (*s && i < size - 1) str[i++] = *s++;
                 }

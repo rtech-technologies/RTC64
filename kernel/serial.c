@@ -1,4 +1,6 @@
 #include "serial.h"
+#include <stdarg.h>
+#include "pro_os.h"
 
 #define COM1 0x3F8
 
@@ -35,4 +37,13 @@ void serial_write(const char* str) {
     while (*str) {
         serial_putc(*str++);
     }
+}
+
+void serial_printf(const char* fmt, ...) {
+    char buf[512];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    serial_write(buf);
+    va_end(args);
 }
