@@ -6,224 +6,123 @@
 #include "app_ui.h"
 #include "nk_software_renderer.h"
 #include "serial.h"
-
-// Tell the bootloader we want a graphical framebuffer
-volatile struct limine_framebuffer_request framebuffer_request = {
-    .id = LIMINE_FRAMEBUFFER_REQUEST,
-    .revision = 0
-};
-
-static volatile struct limine_hhdm_request hhdm_request = {
-    .id = LIMINE_HHDM_REQUEST,
-    .revision = 0
-};
-
-uint64_t hhdm_offset = 0;
-
-static float font_get_width(nk_handle handle, float height, const char *text, int len) {
-    (void)handle; (void)height; (void)text;
-    return (float)len * 8.0f;
-}
-
-// SSE and GDT Initialization
-static void init_cpu_features(void) {
-    uint64_t cr0, cr4;
-    __asm__ volatile ("mov %%cr0, %0" : "=r"(cr0));
-    cr0 &= ~(1ULL << 2); // EM
-    cr0 |= (1ULL << 1);  // MP
-    __asm__ volatile ("mov %0, %%cr0" :: "r"(cr0));
-
-    __asm__ volatile ("mov %%cr4, %0" : "=r"(cr4));
-    cr4 |= (1ULL << 9);  // OSFXSR
-    cr4 |= (1ULL << 10); // OSXMMEXCPT
-    __asm__ volatile ("mov %0, %%cr4" :: "r"(cr4));
-}
-
-struct gdt_entry {
-    uint16_t limit_low;
-    uint16_t base_low;
-    uint8_t base_middle;
-    uint8_t access;
-    uint8_t granularity;
-    uint8_t base_high;
-} __attribute__((packed));
-
-struct gdt_ptr {
-    uint16_t limit;
-    uint64_t base;
-} __attribute__((packed));
-
-static struct gdt_entry gdt[3];
-static struct gdt_ptr gdtp;
-
-static void* nk_malloc(nk_handle handle, void* old, nk_size size) {
-    (void)handle;
-    if (old) return realloc(old, size);
-    return malloc(size);
-}
-
-static void nk_mfree(nk_handle handle, void* ptr) {
-    (void)handle;
-    free(ptr);
-}
-
-static void init_gdt(void) {
-    gdt[0] = (struct gdt_entry){0, 0, 0, 0, 0, 0}; // Null
-    gdt[1] = (struct gdt_entry){0, 0, 0, 0x9A, 0x20, 0}; // Code (64-bit)
-    gdt[2] = (struct gdt_entry){0, 0, 0, 0x92, 0x00, 0}; // Data
-
-    gdtp.limit = sizeof(gdt) - 1;
-    gdtp.base = (uint64_t)&gdt;
-
-    __asm__ volatile (
-        "lgdt %0\n\t"
-        "push $0x08\n\t"
-        "lea 1f(%%rip), %%rax\n\t"
-        "push %%rax\n\t"
-        "lretq\n\t"
-        "1:\n\t"
-        "mov $0x10, %%ax\n\t"
-        "mov %%ax, %%ds\n\t"
-        "mov %%ax, %%es\n\t"
-        "mov %%ax, %%fs\n\t"
-        "mov %%ax, %%gs\n\t"
-        "mov %%ax, %%ss\n\t"
-        : : "m"(gdtp) : "rax", "memory"
-    );
-}
-
+#include "pmm.h"
 #include "idt.h"
 
-// The true, freestanding entry point
+// --- Sovereign 4-Stage Boot Architecture ---
+typedef enum { STAGE_1_PRIMING=1, STAGE_2_MULTITASKING=2, STAGE_3_USB=3, STAGE_4_USER=4 } boot_stage_t;
+static boot_stage_t current_stage = STAGE_1_PRIMING;
+#define ASSERT_STAGE(s) if (current_stage < s) { serial_printf("[ERROR] Dependency Violation: Stage %d required\n", s); kpanic("Boot Order Violation"); }
+
+volatile struct limine_framebuffer_request framebuffer_request = { .id = LIMINE_FRAMEBUFFER_REQUEST, .revision = 0 };
+static volatile struct limine_hhdm_request hhdm_request = { .id = LIMINE_HHDM_REQUEST, .revision = 0 };
+static volatile struct limine_memmap_request memmap_request = { .id = LIMINE_MEMMAP_REQUEST, .revision = 0 };
+uint64_t hhdm_offset = 0;
+
+static float font_get_width(nk_handle handle, float height, const char *text, int len) { (void)handle; (void)height; return (float)len * 8.0f; }
+static void* nk_malloc(nk_handle handle, void* old, nk_size size) { (void)handle; return old ? realloc(old, size) : malloc(size); }
+static void nk_mfree(nk_handle handle, void* ptr) { (void)handle; free(ptr); }
+
 void kernel_main(void) {
-    // --- Phase 0: Immediate Logging ---
+    // STAGE 1: SYSTEM PRIMING (Interrupts DISABLED)
     serial_init();
-    serial_write("[PHASE 0] Sovereign OS Kernel Booting...\n");
+    serial_write("[STAGE 1] System Priming (Step 1-7)...\n");
 
-    // --- Phase 1: Processor Prep ---
-    serial_write("[PHASE 1] Initializing CPU features (SSE, GDT, IDT)...\n");
-    init_cpu_features();
-    init_gdt();
-    idt_init();
+    // Step 1: Parse Limine
+    if (hhdm_request.response) hhdm_offset = hhdm_request.response->offset;
+    if (memmap_request.response) pmm_init(memmap_request.response);
 
-    // Initial Proof of Life & Check Blindness
-    if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
-        serial_write("[ERROR] No graphical framebuffer available!\n");
-        while (1) { __asm__("hlt"); }
-    }
-    serial_write("[INFO] Graphical framebuffer acquired.\n");
+    // Step 2-3: GDT & IDT
+    extern void init_gdt(void); init_gdt();
+    idt_init(); // Vectors 0-31 only setup here
 
-    if (hhdm_request.response != NULL) {
-        hhdm_offset = hhdm_request.response->offset;
-        serial_write("[INFO] HHDM Offset integrated.\n");
+    // Step 4-6: PMM & Hardware Discovery (ACPI Skeletal)
+    if (!framebuffer_request.response || framebuffer_request.response->framebuffer_count < 1) {
+        serial_write("[ERROR] No Graphical Framebuffer\n"); while(1) __asm__("hlt");
     }
 
-    struct limine_framebuffer *fb = framebuffer_request.response->framebuffers[0];
-    tgx_canvas_t canvas = { (uint32_t*)fb->address, fb->width, fb->height, fb->pitch };
-
-    // --- Phase 2: Memory Sovereignty ---
-    serial_write("[PHASE 2] Initializing Kernel Heap (TLSF, 16MB)...\n");
-    // Allocate 16MB for the kernel heap
+    // Step 7: Early Storage (Heap required)
     static uint8_t kernel_heap[16 * 1024 * 1024];
     hal_malloc_init(kernel_heap, sizeof(kernel_heap));
-
-    // --- Phase 3: Hardware Discovery ---
-    serial_write("[PHASE 3] Starting hardware discovery...\n");
     hal_storage_init();
     hal_input_init();
 
+    // STAGE 2: MULTITASKING & BUS RUNTIMES (Interrupts ENABLED)
+    current_stage = STAGE_2_MULTITASKING;
+    serial_write("[STAGE 2] Runtime Start (Step 8-11)...\n");
+    __asm__ volatile("sti"); // Trigger interrupts exactly here
+
+    scheduler_init();
+    vfs_init();
+
+    // Step 10: Scan PCI (Must complete before any device init)
     extern void pci_scan(void);
     pci_scan();
 
-    // --- Phase 4: Logical Services ---
-    serial_write("[PHASE 4] Initializing Logical Services (VFS, Scheduler)...\n");
-    vfs_init();
-    scheduler_init();
-    scheduler_add_task("USB Poller", hal_usb_poll);
+    // Step 11: Spawn Daemons (VFS Refresh)
+    vfs_refresh_mounts();
 
-    // --- Phase 5: Peripheral Activation ---
-    serial_write("[PHASE 5] Activating USB Stack...\n");
+    // STAGE 3: USB SUBSYSTEM (Step 12-15)
+    current_stage = STAGE_3_USB;
+    serial_write("[STAGE 3] USB Subsystem Activation...\n");
+    scheduler_add_task("USB Poller", hal_usb_poll);
     hal_usb_init();
 
-    // --- Phase 6: UI Subsystem ---
-    serial_write("[PHASE 6] Initializing Nuklear UI...\n");
-    struct nk_context ctx;
-    struct nk_user_font font;
-    font.userdata = nk_handle_ptr(0);
-    font.height = 8.0f;
-    font.width = font_get_width;
+    // STAGE 4: USER SPACE & GUI (Step 16-18)
+    current_stage = STAGE_4_USER;
+    serial_write("[STAGE 4] Launching User Space UI...\n");
 
-    struct nk_allocator alloc;
-    alloc.userdata.ptr = NULL;
-    alloc.alloc = nk_malloc;
-    alloc.free = nk_mfree;
+    struct nk_context ctx; struct nk_user_font font;
+    font.userdata = nk_handle_ptr(0); font.height = 8.0f; font.width = font_get_width;
+    struct nk_allocator alloc = { .alloc = nk_malloc, .free = nk_mfree };
     nk_init(&ctx, &alloc, &font);
     ui_init_style(&ctx);
 
-    struct app_state app;
-    memset(&app, 0, sizeof(app));
+    struct app_state app; memset(&app, 0, sizeof(app));
     app.current_state = STATE_LOGIN;
-    chell_init(&app.chell);
-    lab_init(&app.lab);
-    installer_init(&app.installer);
+    chell_init(&app.chell); lab_init(&app.lab); installer_init(&app.installer);
 
-    int cursor_x = fb->width / 2;
-    int cursor_y = fb->height / 2;
+    struct limine_framebuffer *fb = framebuffer_request.response->framebuffers[0];
+    tgx_canvas_t canvas = { (uint32_t*)fb->address, fb->width, fb->height, fb->pitch };
+    int cx = fb->width / 2, cy = fb->height / 2;
 
-    // --- Phase 7: Main Executive Loop ---
-    serial_write("[PHASE 7] Entering Main Executive Loop.\n");
     while (1) {
-        tgx_clear(&canvas, 0x001010); // Dark Teal Background
-
-        /* Event Polling */
-        // hal_usb_poll is now called by the scheduler
-
-        input_event_t ev;
+        tgx_clear(&canvas, 0x001010);
         nk_input_begin(&ctx);
+        input_event_t ev;
         while (hal_input_pop_event(&ev)) {
             if (ev.type == INPUT_TYPE_MOUSE) {
-                cursor_x += ev.mouse.x;
-                cursor_y += ev.mouse.y;
-                if (cursor_x < 0) cursor_x = 0;
-                if (cursor_y < 0) cursor_y = 0;
-                if (cursor_x >= (int)fb->width) cursor_x = fb->width - 1;
-                if (cursor_y >= (int)fb->height) cursor_y = fb->height - 1;
-
-                nk_input_motion(&ctx, cursor_x, cursor_y);
-                nk_input_button(&ctx, NK_BUTTON_LEFT, cursor_x, cursor_y, (ev.mouse.buttons & 1));
-
-                app.lab.last_x = cursor_x;
-                app.lab.last_y = cursor_y;
-            } else if (ev.type == INPUT_TYPE_KEYBOARD) {
-                if (ev.kbd.down) {
-                    app.lab.last_key = ev.kbd.key;
-                    // Extremely basic HID to ASCII for Chell testing
-                    char c = 0;
-                    if (ev.kbd.key >= 0x04 && ev.kbd.key <= 0x1D) c = 'a' + (ev.kbd.key - 0x04);
-                    else if (ev.kbd.key >= 0x1E && ev.kbd.key <= 0x27) c = (ev.kbd.key == 0x27) ? '0' : '1' + (ev.kbd.key - 0x1E);
-                    else if (ev.kbd.key == 0x28) c = '\n'; // Enter
-                    else if (ev.kbd.key == 0x2C) c = ' ';  // Space
-                    else if (ev.kbd.key == 0x2A) c = '\b'; // Backspace
-
-                    if (c) nk_input_char(&ctx, c);
-                }
+                cx += ev.mouse.x; cy += ev.mouse.y;
+                if (cx < 0) cx = 0; if (cy < 0) cy = 0;
+                if (cx >= (int)fb->width) cx = fb->width-1;
+                if (cy >= (int)fb->height) cy = fb->height-1;
+                nk_input_motion(&ctx, cx, cy);
+                nk_input_button(&ctx, NK_BUTTON_LEFT, cx, cy, (ev.mouse.buttons & 1));
+            } else if (ev.type == INPUT_TYPE_KEYBOARD && ev.kbd.down) {
+                char c = 0;
+                if (ev.kbd.key >= 0x04 && ev.kbd.key <= 0x1D) c = 'a' + (ev.kbd.key - 0x04);
+                else if (ev.kbd.key == 0x28) c = '\n';
+                if (c) nk_input_char(&ctx, c);
             }
         }
         nk_input_end(&ctx);
-
-        /* Logic Update */
         scheduler_run();
-
-        /* UI Render */
         ui_render(&ctx, &app, fb->width, fb->height);
-
         struct nk_sw_fb sw_fb = { fb->address, fb->width, fb->height, fb->pitch };
         nk_sw_render(&sw_fb, &ctx);
 
-        /* FB Flush / Hardware Cursor Draw */
-        tgx_blit_rect(&canvas, cursor_x, cursor_y, 5, 5, 0x00FFFF);
-        tgx_blit_rect(&canvas, cursor_x+1, cursor_y+1, 3, 3, 0xFFFFFF);
+        // Software Cursor (Arrow Representation)
+        tgx_blit_rect(&canvas, cx, cy, 2, 10, 0x00FFFF);
+        tgx_blit_rect(&canvas, cx, cy, 10, 2, 0x00FFFF);
 
         __asm__("pause");
     }
+}
+
+// Minimal GDT Helper
+struct gdt_ptr { uint16_t limit; uint64_t base; } __attribute__((packed));
+static uint64_t gdt_raw[3] = { 0, 0x00AF9A000000FFFF, 0x00CF92000000FFFF };
+void init_gdt(void) {
+    static struct gdt_ptr gp; gp.limit = sizeof(gdt_raw)-1; gp.base = (uint64_t)&gdt_raw;
+    __asm__ volatile("lgdt %0\n\tpush $0x08\n\tlea 1f(%%rip), %%rax\n\tpush %%rax\n\tlretq\n\t1:\n\tmov $0x10, %%ax\n\tmov %%ax, %%ds\n\tmov %%ax, %%es\n\tmov %%ax, %%fs\n\tmov %%ax, %%gs\n\tmov %%ax, %%ss" : : "m"(gp) : "rax", "memory");
 }

@@ -1,70 +1,26 @@
 #include "idt.h"
 #include <string.h>
-
-static struct idt_entry idt[256];
-static struct idtr idtr;
-
-extern void isr0_stub(void); extern void isr1_stub(void); extern void isr2_stub(void); extern void isr3_stub(void);
-extern void isr4_stub(void); extern void isr5_stub(void); extern void isr6_stub(void); extern void isr7_stub(void);
-extern void isr8_stub(void); extern void isr9_stub(void); extern void isr10_stub(void); extern void isr11_stub(void);
-extern void isr12_stub(void); extern void isr13_stub(void); extern void isr14_stub(void); extern void isr15_stub(void);
-extern void isr16_stub(void); extern void isr17_stub(void); extern void isr18_stub(void); extern void isr19_stub(void);
-extern void isr20_stub(void); extern void isr21_stub(void); extern void isr22_stub(void); extern void isr23_stub(void);
-extern void isr24_stub(void); extern void isr25_stub(void); extern void isr26_stub(void); extern void isr27_stub(void);
-extern void isr28_stub(void); extern void isr29_stub(void); extern void isr30_stub(void); extern void isr31_stub(void);
-
-static void idt_set_descriptor(uint8_t vector, void* isr, uint8_t flags) {
-    struct idt_entry* entry = &idt[vector];
-    uint64_t addr = (uint64_t)isr;
-
-    entry->isr_low = addr & 0xFFFF;
-    entry->kernel_cs = 0x08; // Kernel Code Segment
-    entry->ist = 0;
-    entry->attributes = flags;
-    entry->isr_mid = (addr >> 16) & 0xFFFF;
-    entry->isr_high = (addr >> 32) & 0xFFFFFFFF;
-    entry->reserved = 0;
+static struct idt_entry idt[256]; static struct idtr idtr;
+#define ISR_EXT(n) extern void isr##n##_stub(void);
+ISR_EXT(0) ISR_EXT(1) ISR_EXT(2) ISR_EXT(3) ISR_EXT(4) ISR_EXT(5) ISR_EXT(6) ISR_EXT(7)
+ISR_EXT(8) ISR_EXT(9) ISR_EXT(10) ISR_EXT(11) ISR_EXT(12) ISR_EXT(13) ISR_EXT(14) ISR_EXT(15)
+ISR_EXT(16) ISR_EXT(17) ISR_EXT(18) ISR_EXT(19) ISR_EXT(20) ISR_EXT(21) ISR_EXT(22) ISR_EXT(23)
+ISR_EXT(24) ISR_EXT(25) ISR_EXT(26) ISR_EXT(27) ISR_EXT(28) ISR_EXT(29) ISR_EXT(30) ISR_EXT(31)
+static void idt_set(uint8_t v, void* isr) {
+    struct idt_entry* e = &idt[v]; uint64_t a = (uint64_t)isr;
+    e->isr_low = a & 0xFFFF; e->kernel_cs = 0x08; e->ist = 0; e->attributes = 0x8E;
+    e->isr_mid = (a >> 16) & 0xFFFF; e->isr_high = (a >> 32) & 0xFFFFFFFF; e->reserved = 0;
 }
-
 void idt_init(void) {
     memset(idt, 0, sizeof(idt));
-
-    // IDT Attributes: 0x8E (Interrupt Gate, Present, Ring 0)
-    idt_set_descriptor(0, isr0_stub, 0x8E);
-    idt_set_descriptor(1, isr1_stub, 0x8E);
-    idt_set_descriptor(2, isr2_stub, 0x8E);
-    idt_set_descriptor(3, isr3_stub, 0x8E);
-    idt_set_descriptor(4, isr4_stub, 0x8E);
-    idt_set_descriptor(5, isr5_stub, 0x8E);
-    idt_set_descriptor(6, isr6_stub, 0x8E);
-    idt_set_descriptor(7, isr7_stub, 0x8E);
-    idt_set_descriptor(8, isr8_stub, 0x8E);
-    idt_set_descriptor(9, isr9_stub, 0x8E);
-    idt_set_descriptor(10, isr10_stub, 0x8E);
-    idt_set_descriptor(11, isr11_stub, 0x8E);
-    idt_set_descriptor(12, isr12_stub, 0x8E);
-    idt_set_descriptor(13, isr13_stub, 0x8E);
-    idt_set_descriptor(14, isr14_stub, 0x8E);
-    idt_set_descriptor(15, isr15_stub, 0x8E);
-    idt_set_descriptor(16, isr16_stub, 0x8E);
-    idt_set_descriptor(17, isr17_stub, 0x8E);
-    idt_set_descriptor(18, isr18_stub, 0x8E);
-    idt_set_descriptor(19, isr19_stub, 0x8E);
-    idt_set_descriptor(20, isr20_stub, 0x8E);
-    idt_set_descriptor(21, isr21_stub, 0x8E);
-    idt_set_descriptor(22, isr22_stub, 0x8E);
-    idt_set_descriptor(23, isr23_stub, 0x8E);
-    idt_set_descriptor(24, isr24_stub, 0x8E);
-    idt_set_descriptor(25, isr25_stub, 0x8E);
-    idt_set_descriptor(26, isr26_stub, 0x8E);
-    idt_set_descriptor(27, isr27_stub, 0x8E);
-    idt_set_descriptor(28, isr28_stub, 0x8E);
-    idt_set_descriptor(29, isr29_stub, 0x8E);
-    idt_set_descriptor(30, isr30_stub, 0x8E);
-    idt_set_descriptor(31, isr31_stub, 0x8E);
-
-    idtr.limit = sizeof(idt) - 1;
-    idtr.base = (uint64_t)&idt;
-
+    idt_set(0, isr0_stub); idt_set(1, isr1_stub); idt_set(2, isr2_stub); idt_set(3, isr3_stub);
+    idt_set(4, isr4_stub); idt_set(5, isr5_stub); idt_set(6, isr6_stub); idt_set(7, isr7_stub);
+    idt_set(8, isr8_stub); idt_set(9, isr9_stub); idt_set(10, isr10_stub); idt_set(11, isr11_stub);
+    idt_set(12, isr12_stub); idt_set(13, isr13_stub); idt_set(14, isr14_stub); idt_set(15, isr15_stub);
+    idt_set(16, isr16_stub); idt_set(17, isr17_stub); idt_set(18, isr18_stub); idt_set(19, isr19_stub);
+    idt_set(20, isr20_stub); idt_set(21, isr21_stub); idt_set(22, isr22_stub); idt_set(23, isr23_stub);
+    idt_set(24, isr24_stub); idt_set(25, isr25_stub); idt_set(26, isr26_stub); idt_set(27, isr27_stub);
+    idt_set(28, isr28_stub); idt_set(29, isr29_stub); idt_set(30, isr30_stub); idt_set(31, isr31_stub);
+    idtr.limit = sizeof(idt)-1; idtr.base = (uint64_t)&idt;
     __asm__ volatile ("lidt %0" : : "m"(idtr));
 }

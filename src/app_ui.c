@@ -11,7 +11,6 @@
 #include "nuklear.h"
 #include "app_ui.h"
 #include "pro_os.h"
-#include "ff.h"
 
 void ui_init_style(struct nk_context *ctx)
 {
@@ -48,13 +47,12 @@ void ui_init_style(struct nk_context *ctx)
 
 static void ui_render_taskbar(struct nk_context *ctx, struct app_state *app, int ww, int wh) {
     if (nk_begin(ctx, "Taskbar", nk_rect(0, wh - 50, ww, 50), NK_WINDOW_NO_SCROLLBAR)) {
-        nk_layout_row_static(ctx, 30, 40, 7);
+        nk_layout_row_static(ctx, 30, 40, 6);
         if (nk_button_label(ctx, "M")) app->show_launcher = !app->show_launcher;
 
         if (app->show_terminal) nk_label(ctx, "[T]", NK_TEXT_CENTERED);
         if (app->show_explorer) nk_label(ctx, "[F]", NK_TEXT_CENTERED);
         if (app->show_settings) nk_label(ctx, "[S]", NK_TEXT_CENTERED);
-        if (app->show_chell) nk_label(ctx, "[C]", NK_TEXT_CENTERED);
 
         nk_layout_row_dynamic(ctx, 30, 1);
         nk_spacer(ctx);
@@ -85,11 +83,7 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
             nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, app->password, sizeof(app->password), nk_filter_default);
 
             nk_layout_row_dynamic(ctx, 40, 1);
-            if (nk_button_label(ctx, i18n_translate("login"))) {
-                app->current_state = STATE_INSTALLER;
-                app->show_installer = 1;
-                app->show_welcome = 1;
-            }
+            if (nk_button_label(ctx, i18n_translate("login"))) app->current_state = STATE_INSTALLER;
 
             nk_layout_row_dynamic(ctx, 30, 1);
             nk_spacer(ctx);
@@ -122,28 +116,11 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
     } else if (app->current_state == STATE_DESKTOP) {
         ui_render_taskbar(ctx, app, window_width, window_height);
 
-        if (app->show_welcome) {
-            if (nk_begin(ctx, "Welcome", nk_rect(window_width/2 - 200, window_height/2 - 150, 400, 300),
-                NK_WINDOW_BORDER|NK_WINDOW_TITLE|NK_WINDOW_CLOSABLE|NK_WINDOW_MOVABLE))
-            {
-                nk_layout_row_dynamic(ctx, 30, 1);
-                nk_label(ctx, "Welcome to R-TECH™ Sovereign OS", NK_TEXT_CENTERED);
-                nk_layout_row_dynamic(ctx, 100, 1);
-                nk_label_wrap(ctx, "You have successfully bootstrapped the Sovereign kernel environment. FatFs and CherryUSB are active.");
-                nk_layout_row_dynamic(ctx, 40, 1);
-                if (nk_button_label(ctx, "Explore Now")) app->show_welcome = 0;
-            }
-            if (nk_window_is_closed(ctx, "Welcome")) app->show_welcome = 0;
-            nk_end(ctx);
-        }
-
         if (nk_begin(ctx, "AppGrid", nk_rect(20, 20, 300, 400), NK_WINDOW_NO_SCROLLBAR)) {
             nk_layout_row_static(ctx, 60, 60, 4);
             if (nk_button_label(ctx, "Term")) app->show_terminal = 1;
             if (nk_button_label(ctx, "Files")) app->show_explorer = 1;
             if (nk_button_label(ctx, "Setup")) app->show_settings = 1;
-            if (nk_button_label(ctx, "Chell")) app->show_chell = 1;
-            if (nk_button_label(ctx, "Lab")) app->show_lab = 1;
         }
         nk_end(ctx);
 
@@ -162,60 +139,22 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
             nk_end(ctx);
         }
 
-        if (app->show_chell) {
-            app->chell.active = 1;
-            chell_ui_render(ctx, &app->chell);
-            if (!app->chell.active) app->show_chell = 0;
-        }
-
-        if (app->show_lab) {
-            app->lab.active = 1;
-            lab_ui_render(ctx, &app->lab);
-            if (!app->lab.active) app->show_lab = 0;
-        }
-
-        if (app->show_installer) {
-            installer_ui_render(ctx, &app->installer);
-            if (!app->installer.active) app->show_installer = 0;
-        }
-
         if (app->show_explorer) {
             if (nk_begin(ctx, "Explorer", nk_rect(150, 150, 500, 350),
                 NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE))
             {
                 nk_layout_row_dynamic(ctx, 30, 1);
-                nk_label(ctx, "Physical Devices:", NK_TEXT_LEFT);
+                nk_label(ctx, "Devices:", NK_TEXT_LEFT);
                 int count = hal_storage_get_device_count();
                 for (int i = 0; i < count; i++) {
                     storage_device_t *dev = hal_storage_get_device(i);
-                    char buf[64];
-                    snprintf(buf, 64, "  [DISK %d] %s (%lu blocks)", i, dev->name, (unsigned long)dev->total_blocks);
-                    nk_label(ctx, buf, NK_TEXT_LEFT);
-
-                    nk_layout_row_dynamic(ctx, 30, 2);
-                    if (nk_button_label(ctx, "Format FAT32")) {
-                        char drv[4];
-                        snprintf(drv, 4, "%d:", i);
-                        void* work = malloc(FF_MAX_SS);
-                        if (work) {
-                            f_mkfs(drv, NULL, work, dev->block_size);
-                            free(work);
-                        }
-                    }
+                    nk_layout_row_dynamic(ctx, 30, 1);
+                    nk_label(ctx, dev->name, NK_TEXT_LEFT);
                 }
-
                 nk_layout_row_dynamic(ctx, 30, 1);
-                nk_label(ctx, "Filesystems:", NK_TEXT_LEFT);
-
-                static char ls_buf[512];
-                static int ls_done = 0;
-                if (!ls_done) {
-                    if (vfs_ls("0:", ls_buf, 512) == 0) ls_done = 1;
-                    else snprintf(ls_buf, 512, "No files found or device not ready.");
-                }
-
-                nk_layout_row_dynamic(ctx, 150, 1);
-                nk_label_wrap(ctx, ls_buf);
+                nk_label(ctx, "Files (VFS):", NK_TEXT_LEFT);
+                nk_label(ctx, "/root", NK_TEXT_LEFT);
+                nk_label(ctx, "/dev", NK_TEXT_LEFT);
             }
             if (nk_window_is_closed(ctx, "Explorer")) app->show_explorer = 0;
             nk_end(ctx);

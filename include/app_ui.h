@@ -1,48 +1,19 @@
 #ifndef APP_UI_H
 #define APP_UI_H
-
-#include "nuklear_config.h"
-#include "nuklear.h"
-#include "chell.h"
-#include "lab.h"
-#include "installer.h"
-
+#include "pro_os.h"
+typedef enum { STATE_LOGIN, STATE_INSTALLER, STATE_DESKTOP, STATE_LAB, STATE_CHELL } app_screen_t;
 struct app_state {
-    int current_state;
-    char username[64];
-    char password[64];
-    int progress;
-    int install_started;
-
-    /* Desktop windows */
-    int show_terminal;
-    int show_explorer;
-    int show_settings;
-    int show_launcher;
-    int show_uac;
-    int show_welcome;
-    int show_chell;
-    struct chell_state chell;
-    int show_lab;
-    struct lab_state lab;
-    int show_installer;
-    struct installer_state installer;
-
-    /* Permits */
-    int perm_net;
-    int perm_storage;
-
-    /* Metrics */
-    int cpu_usage;
+    app_screen_t current_state;
+    void* chell;
+    void* lab;
+    void* installer;
 };
-
-enum {
-    STATE_LOGIN,
-    STATE_INSTALLER,
-    STATE_DESKTOP
-};
-
-void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, int window_height);
-void ui_init_style(struct nk_context *ctx);
-
+void ui_init_style(struct nk_context* ctx);
+void ui_render(struct nk_context* ctx, struct app_state* app, int width, int height);
+void chell_init(void** state);
+void chell_update(struct nk_context* ctx, void* state);
+void lab_init(void** state);
+void lab_update(struct nk_context* ctx, void* state);
+void installer_init(void** state);
+void installer_update(struct nk_context* ctx, void* state);
 #endif

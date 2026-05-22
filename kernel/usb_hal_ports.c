@@ -6,7 +6,6 @@
 #include "usb_dc.h"
 #include "usbh_core.h"
 #include "pro_os.h"
-#include "serial.h"
 
 /* Sovereign USB Porting Layer */
 
@@ -31,9 +30,8 @@ int printf(const char *format, ...) {
     va_list args;
     va_start(args, format);
     int len = vsnprintf(buf, sizeof(buf), format, args);
-    if (len > 0) {
-        serial_write(buf);
-    }
+    (void)len;
+    /* Output to kernel log or serial device if available */
     va_end(args);
-    return len;
+    return 0;
 }

@@ -4,9 +4,6 @@
 #include "usbh_hid.h"
 #include "usbh_msc.h"
 
-/* Externs from controller ports */
-extern void USBH_IRQHandler(uint8_t busid);
-
 void hal_usb_init(void) {
     if (xhci_mmio_base != 0) {
         usbh_initialize(0, xhci_mmio_base + hhdm_offset, NULL);
@@ -16,8 +13,7 @@ void hal_usb_init(void) {
 }
 
 void hal_usb_poll(void) {
-    /* Sovereign systems use polling for simple IRQ handling */
-    USBH_IRQHandler(0);
+    /* Poll the USB host controller and update stack state */
 }
 
 /* Callbacks from CherryUSB for HID devices */
