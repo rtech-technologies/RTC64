@@ -10,9 +10,9 @@ static mount_t mounts[16];
 void vfs_init(void) { memset(mounts, 0, sizeof(mounts)); }
 void vfs_refresh_mounts(void) {
     serial_write("[VFS] Syncing Physical -> Logical mounts...\n");
-    int dev_count = hal_storage_get_device_count();
+    int dev_count = devmgr_get_count();
     for (int i = 0; i < dev_count; i++) {
-        storage_device_t *dev = hal_storage_get_device(i);
+        storage_device_t *dev = devmgr_get_device(i);
         if (!dev) continue;
         bool already = false;
         for (int j=0; j<16; j++) if (mounts[j].device == dev) already = true;
@@ -20,11 +20,19 @@ void vfs_refresh_mounts(void) {
             for (int j=0; j<16; j++) if (!mounts[j].device) {
                 mounts[j].device = dev;
                 mounts[j].id = i;
-                const char* pr = (dev->type == STORAGE_TYPE_NVME) ? "nvme" : (dev->type == STORAGE_TYPE_SATA ? "sata" : "usb");
-                snprintf(mounts[j].mount_point, 32, "/mnt/%s%d", pr, j);
+                const char* label = devmgr_get_label(i);
+                // Simplify label for mount point: "SATA(0) Disk 0" -> "/mnt/sata0"
+                char mnt[32]; int mptr = 0;
+                for(int k=0; label[k] && label[k]!=' '; k++) {
+                    if(label[k]>='A' && label[k]<='Z') mnt[mptr++] = label[k]+32;
+                    else if(label[k]>='0' && label[k]<='9') mnt[mptr++] = label[k];
+                }
+                mnt[mptr] = '\0';
+                snprintf(mounts[j].mount_point, 32, "/mnt/%s", mnt);
+
                 char drv[4]; snprintf(drv, 4, "%d:", i);
                 mounts[j].mounted = (f_mount(&mounts[j].fs, drv, 1) == FR_OK);
-                if (mounts[j].mounted) serial_printf("[VFS] Mounted %s to %s (ID %d)\n", dev->name, mounts[j].mount_point, i);
+                if (mounts[j].mounted) serial_printf("[VFS] Mounted %s to %s\n", dev->name, mounts[j].mount_point);
                 break;
             }
         }
@@ -54,12 +62,9 @@ int vfs_ls(const char* path, char* out, size_t sz) {
         }
         return 0;
     }
-
-    DIR dir; FILINFO fno; int off = 0;
-    char drv[8]; char fpath[256];
+    DIR dir; FILINFO fno; int off = 0; char drv[8], fpath[256];
     const char* translated = vfs_translate(path, drv);
     snprintf(fpath, sizeof(fpath), "%s%s", (path[0] == '/') ? drv : "", translated);
-
     if (f_opendir(&dir, fpath) == FR_OK) {
         while (f_readdir(&dir, &fno) == FR_OK && fno.fname[0]) {
             int len = snprintf(out + off, sz - off, "%s %s\n", (fno.fattrib & AM_DIR) ? "<DIR>" : "     ", fno.fname);
@@ -71,38 +76,24 @@ int vfs_ls(const char* path, char* out, size_t sz) {
 }
 
 int vfs_cat(const char* path, char* out, size_t sz) {
-    FIL fil; UINT br;
-    char drv[8]; char fpath[256];
+    FIL fil; UINT br; char drv[8], fpath[256];
     const char* translated = vfs_translate(path, drv);
     snprintf(fpath, sizeof(fpath), "%s%s", (path[0] == '/') ? drv : "", translated);
-
-    if (f_open(&fil, fpath, FA_READ) == FR_OK) {
-        f_read(&fil, out, sz - 1, &br);
-        out[br] = '\0';
-        f_close(&fil);
-        return 0;
-    }
+    if (f_open(&fil, fpath, FA_READ) == FR_OK) { f_read(&fil, out, sz - 1, &br); out[br] = '\0'; f_close(&fil); return 0; }
     return -1;
 }
 
 int vfs_mkdir(const char* path) {
-    char drv[8]; char fpath[256];
-    const char* translated = vfs_translate(path, drv);
+    char drv[8], fpath[256]; const char* translated = vfs_translate(path, drv);
     snprintf(fpath, sizeof(fpath), "%s%s", (path[0] == '/') ? drv : "", translated);
     return f_mkdir(fpath) == FR_OK ? 0 : -1;
 }
 
 int vfs_write(const char* path, const char* content) {
-    FIL fil; UINT bw;
-    char drv[8]; char fpath[256];
+    FIL fil; UINT bw; char drv[8], fpath[256];
     const char* translated = vfs_translate(path, drv);
     snprintf(fpath, sizeof(fpath), "%s%s", (path[0] == '/') ? drv : "", translated);
-
-    if (f_open(&fil, fpath, FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {
-        f_write(&fil, content, strlen(content), &bw);
-        f_close(&fil);
-        return 0;
-    }
+    if (f_open(&fil, fpath, FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) { f_write(&fil, content, strlen(content), &bw); f_close(&fil); return 0; }
     return -1;
 }
 
@@ -110,7 +101,7 @@ int vfs_get_mounts(char* out, size_t sz) {
     int off = 0;
     for (int i = 0; i < 16; i++) {
         if (mounts[i].device) {
-            int len = snprintf(out + off, sz - off, "%s -> %s [%s]\n", mounts[i].mount_point, mounts[i].device->name, mounts[i].mounted ? "OK" : "ERR");
+            int len = snprintf(out + off, sz - off, "%s -> %s [%s]\n", mounts[i].mount_point, devmgr_get_label(mounts[i].id), mounts[i].mounted ? "OK" : "ERR");
             off += len; if (off >= (int)sz - 1) break;
         }
     }

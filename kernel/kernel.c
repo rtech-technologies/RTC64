@@ -58,6 +58,7 @@ void kernel_main(void) {
     static uint8_t kernel_heap[16 * 1024 * 1024];
     hal_malloc_init(kernel_heap, sizeof(kernel_heap));
     hal_storage_init();
+    extern void rsl_init(void); rsl_init();
     hal_input_init();
 
     // STAGE 2: MULTITASKING & BUS RUNTIMES (Interrupts ENABLED)

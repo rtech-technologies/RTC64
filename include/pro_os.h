@@ -43,6 +43,11 @@ void scheduler_run(void);
 
 void pci_scan(void);
 void vfs_refresh_mounts(void);
+void devmgr_register_storage(storage_device_t* d);
+int devmgr_get_count(void);
+const char* devmgr_get_label(int index);
+storage_device_t* devmgr_get_device(int index);
+int devmgr_list(char* out, size_t sz);
 void acpi_init(void* rsdp_addr);
 /* VFS */
 void vfs_init(void);

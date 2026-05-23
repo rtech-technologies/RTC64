@@ -30,7 +30,12 @@ void usbh_msc_run(struct usbh_msc *msc_class) {
     d->base.name = "Genuine USB Disk"; d->base.type = STORAGE_TYPE_USB;
     d->base.total_blocks = msc_class->blocknum; d->base.block_size = msc_class->blocksize;
     d->base.read = usb_read_wrap; d->base.write = usb_write_wrap;
+
+    // Register with both HAL and DEVMGR
     hal_storage_register_device(&d->base);
+    void devmgr_register_storage(storage_device_t* d);
+    devmgr_register_storage(&d->base);
+
     extern void vfs_refresh_mounts(void); vfs_refresh_mounts();
 }
 void usbh_msc_stop(struct usbh_msc *m) { (void)m; }

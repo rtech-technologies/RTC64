@@ -9,7 +9,7 @@ void chell_update(struct nk_context* ctx, void* s) {
     (void)s;
     if (nk_begin(ctx, "Chell", nk_rect(50, 50, 600, 450), NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_TITLE|NK_WINDOW_CLOSABLE)) {
         nk_layout_row_dynamic(ctx, 30, 1);
-        nk_label(ctx, "Sovereign Shell v1.6 [R-TECH Core]", NK_TEXT_LEFT);
+        nk_label(ctx, "Sovereign Shell v1.7 [R-TECH Sovereign]", NK_TEXT_LEFT);
 
         static char output[4096];
         nk_layout_row_dynamic(ctx, 250, 1);
@@ -29,7 +29,7 @@ void chell_update(struct nk_context* ctx, void* s) {
             serial_printf("[Chell] Exec: %s\n", cmd);
 
             if (strncmp(cmd, "ls ", 3) == 0) {
-                if (vfs_ls(cmd + 3, output, sizeof(output)) != 0) strcpy(output, "Error: Path not found or inaccessible.");
+                if (vfs_ls(cmd + 3, output, sizeof(output)) != 0) strcpy(output, "Error: Path not found.");
             } else if (strncmp(cmd, "cat ", 4) == 0) {
                 if (vfs_cat(cmd + 4, output, sizeof(output)) != 0) strcpy(output, "Error: File not found.");
             } else if (strncmp(cmd, "mkdir ", 6) == 0) {
@@ -44,18 +44,16 @@ void chell_update(struct nk_context* ctx, void* s) {
                 } else strcpy(output, "Usage: write <path> <content>");
             } else if (strcmp(cmd, "mount") == 0) {
                 vfs_get_mounts(output, sizeof(output));
+            } else if (strcmp(cmd, "device") == 0) {
+                devmgr_list(output, sizeof(output));
+            } else if (strcmp(cmd, "whoami") == 0) {
+                strcpy(output, "Sovereign Root Administrator (UAC level 0)");
             } else if (strcmp(cmd, "help") == 0) {
-                strcpy(output, "Sovereign OS Shell Commands:\n"
-                               "mount          - List mounted volumes\n"
-                               "ls <path>      - List directory contents\n"
-                               "cat <path>     - Display file content\n"
-                               "mkdir <path>   - Create directory\n"
-                               "write <path> <txt> - Create file with text\n"
-                               "help           - Show this help");
+                strcpy(output, "Commands:\nmount - list mounts\ndevice - list hardware\nls <path> - list files\ncat <path> - read file\nmkdir <path> - create dir\nwrite <path> <txt> - write file\nclear - clear output\nhelp - this help");
             } else if (strcmp(cmd, "clear") == 0) {
                 memset(output, 0, sizeof(output));
             } else {
-                snprintf(output, sizeof(output), "Unknown command: %s. Type 'help' for options.", cmd);
+                snprintf(output, sizeof(output), "Unknown command: %s", cmd);
             }
             cmd_len = 0; memset(cmd, 0, sizeof(cmd));
         }
