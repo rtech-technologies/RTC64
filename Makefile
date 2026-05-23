@@ -20,8 +20,8 @@ KERNEL_OBJS = kernel/kernel.o src/app_ui.o src/chell.o src/lab.o src/installer.o
               kernel/input.o kernel/usb_hal.o kernel/vfs.o \
               kernel/scheduler.o kernel/i18n.o kernel/uac_policy.o \
               kernel/tgx_impl.o kernel/tlsf_impl.o kernel/math.o \
-              kernel/panic.o kernel/serial.o kernel/pmm.o kernel/malloc_glue.o kernel/storage_hal.o \
-              kernel/panic_hal.o kernel/diskio_impl.o kernel/ffsystem_impl.o \
+              kernel/panic.o kernel/serial.o kernel/acpi.o kernel/pmm.o kernel/malloc_glue.o kernel/storage.o \
+              kernel/diskio_impl.o kernel/ffsystem_impl.o \
               kernel/ff_partitions.o kernel/fatfs/ff.o kernel/fatfs/ffunicode.o \
               kernel/drivers/pci.o kernel/drivers/xhci.o kernel/drivers/ehci.o \
               kernel/drivers/nvme.o kernel/drivers/ahci.o \

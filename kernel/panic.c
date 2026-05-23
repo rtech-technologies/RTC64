@@ -1,16 +1,84 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "serial.h"
-struct panic_framebuffer { uint64_t address, width, height, pitch; };
-struct cpu_state { uint64_t gs,fs,es,ds,cr4,cr3,cr2,r15,r14,r13,r12,r11,r10,r9,r8,rbp,rdi,rsi,rdx,rcx,rbx,rax,int_no,err,rip,cs,rfl,rsp,ss; };
+
+struct panic_framebuffer { uint64_t address; uint64_t width; uint64_t height; uint64_t pitch; };
+struct cpu_state {
+    uint64_t gs, fs, es, ds; uint64_t cr4, cr3, cr2;
+    uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
+    uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
+    uint64_t int_no, err, rip, cs, rflags, rsp, ss;
+};
 extern struct panic_framebuffer* get_kernel_framebuffer(void);
-static int cx=40,cy=40;
+
+static const uint8_t panic_font[128][8] = {
+    ['0']={0x3C,0x66,0x6E,0x7E,0x76,0x66,0x3C,0x00}, ['1']={0x18,0x38,0x18,0x18,0x18,0x18,0x7E,0x00},
+    ['2']={0x3E,0x66,0x06,0x1E,0x30,0x62,0x7E,0x00}, ['3']={0x3E,0x66,0x06,0x1C,0x06,0x66,0x3E,0x00},
+    ['4']={0x06,0x0E,0x1E,0x36,0x7E,0x06,0x06,0x00}, ['5']={0x7E,0x60,0x7C,0x06,0x06,0x66,0x3E,0x00},
+    ['6']={0x1C,0x30,0x60,0x7C,0x66,0x66,0x3E,0x00}, ['7']={0x7E,0x46,0x0C,0x18,0x30,0x30,0x30,0x00},
+    ['8']={0x3C,0x66,0x66,0x3C,0x66,0x66,0x3C,0x00}, ['9']={0x3E,0x66,0x66,0x3E,0x06,0x0C,0x38,0x00},
+    ['A']={0x18,0x3C,0x66,0x66,0x7E,0x66,0x66,0x00}, ['B']={0x7C,0x66,0x66,0x7C,0x66,0x66,0x7C,0x00},
+    ['C']={0x3C,0x66,0x60,0x60,0x60,0x66,0x3C,0x00}, ['D']={0x78,0x6C,0x66,0x66,0x66,0x6C,0x78,0x00},
+    ['E']={0x7E,0x60,0x60,0x7C,0x60,0x60,0x7E,0x00}, ['F']={0x7E,0x60,0x60,0x7C,0x60,0x60,0x60,0x00},
+    ['x']={0x00,0x00,0x66,0x3C,0x18,0x3C,0x66,0x00}, [':']={0x00,0x12,0x12,0x00,0x00,0x12,0x12,0x00},
+    [' ']={0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}, ['-']={0x00,0x00,0x00,0x7E,0x00,0x00,0x00,0x00},
+    ['!']={0x18,0x18,0x18,0x18,0x18,0x00,0x18,0x00}, ['?']={0x3E,0x46,0x06,0x1C,0x18,0x00,0x18,0x00},
+    ['R']={0x7C,0x66,0x66,0x7C,0x6C,0x66,0x66,0x00}, ['I']={0x3E,0x0C,0x0C,0x0C,0x0C,0x0C,0x3E,0x00},
+    ['P']={0x7C,0x66,0x66,0x7C,0x60,0x60,0x60,0x00}, ['V']={0x66,0x66,0x66,0x66,0x66,0x3C,0x18,0x00},
+    ['T']={0x7E,0x18,0x18,0x18,0x18,0x18,0x18,0x00}, ['O']={0x3C,0x66,0x66,0x66,0x66,0x66,0x3C,0x00},
+    ['G']={0x3E,0x66,0x60,0x6E,0x66,0x66,0x3A,0x00}, ['N']={0x66,0x76,0x7E,0x7E,0x6E,0x66,0x66,0x00},
+    ['K']={0x66,0x6C,0x78,0x70,0x78,0x6C,0x66,0x00}, ['U']={0x66,0x66,0x66,0x66,0x66,0x66,0x3C,0x00},
+    ['L']={0x60,0x60,0x60,0x60,0x60,0x60,0x7E,0x00}, ['S']={0x3E,0x66,0x60,0x3C,0x06,0x66,0x3E,0x00}
+};
+
+static void raw_pixel(struct panic_framebuffer* fb, int x, int y, uint32_t c) {
+    if (x<0||x>=(int)fb->width||y<0||y>=(int)fb->height) return;
+    *(uint32_t*)(fb->address + y*fb->pitch + x*4) = c;
+}
+
+static void raw_char(struct panic_framebuffer* fb, char c, int x, int y, uint32_t color) {
+    uint8_t idx = (uint8_t)c; if (idx>127) idx='?';
+    for (int r=0; r<8; r++) { uint8_t bits = panic_font[idx][r];
+        for (int b=0; b<8; b++) if (bits & (0x80>>b)) {
+            for(int i=0;i<2;i++) for(int j=0;j<2;j++) raw_pixel(fb, x+b*2+i, y+r*2+j, color);
+        }
+    }
+}
+
+static int cx=40, cy=40;
+static void panic_printf(struct panic_framebuffer* fb, const char* fmt, uint64_t a1, uint64_t a2) {
+    uint64_t args[2] = {a1, a2}; int arg_idx = 0;
+    while (*fmt) {
+        if (*fmt == '%' && *(fmt+1)) {
+            fmt++; uint64_t v = (arg_idx<2)?args[arg_idx++]:0;
+            if (*fmt == 's') { const char* s = (const char*)v; while(*s) { serial_putc(*s); if (cx+16>fb->width) {cx=40; cy+=24;} raw_char(fb, *s++, cx, cy, 0xFFFFFF); cx+=16; } }
+            else if (*fmt == 'x') { const char* h = "0123456789ABCDEF"; for (int i=15; i>=0; i--) { char c = h[(v>>(i*4))&0xF]; serial_putc(c); if(cx+16>fb->width) {cx=40; cy+=24;} raw_char(fb, c, cx, cy, 0xFFFFFF); cx+=16; } }
+        } else if (*fmt == '\n') { serial_putc('\n'); cx=40; cy+=24; }
+        else { serial_putc(*fmt); if(cx+16>fb->width) {cx=40; cy+=24;} raw_char(fb, *fmt, cx, cy, 0xFFFFFF); cx+=16; }
+        fmt++;
+    }
+}
+
 void core_panic_handler(void* rsp) {
     struct cpu_state* s = (struct cpu_state*)rsp;
-    serial_printf("PANIC: INT %x RIP %lx\n", s->int_no, s->rip);
+    struct panic_framebuffer* fb = get_kernel_framebuffer();
+    if (!fb || !fb->address) { serial_write("PANIC NO FB\n"); while(1) __asm__("hlt"); }
+    for (uint64_t i=0; i<fb->height*fb->width; i++) ((uint32_t*)fb->address)[i] = 0xAA4400;
+    cx=40; cy=40;
+    panic_printf(fb, "SOVEREIGN OS KERNEL PANIC\n", 0, 0);
+    panic_printf(fb, "VECTOR: %x  RIP: %x\n", s->int_no, s->rip);
+    panic_printf(fb, "CR2: %x  CR3: %x\n", s->cr2, s->cr3);
+    panic_printf(fb, "RAX: %x  RBX: %x\n", s->rax, s->rbx);
     while(1) __asm__("cli; hlt");
 }
+
 #define G(n) ".global isr"#n"_stub\nisr"#n"_stub: cli\npushq $0\npushq $"#n"\njmp exc\n"
 #define E(n) ".global isr"#n"_stub\nisr"#n"_stub: cli\npushq $"#n"\njmp exc\n"
 __asm__(G(0)G(1)G(2)G(3)G(4)G(5)G(6)G(7)E(8)G(9)E(10)E(11)E(12)E(13)E(14)G(15)G(16)E(17)G(18)G(19)G(20)E(21)G(22)G(23)G(24)G(25)G(26)G(27)G(28)G(29)E(30)G(31)
 "exc: pushq %rax;pushq %rbx;pushq %rcx;pushq %rdx;pushq %rsi;pushq %rdi;pushq %rbp;pushq %r8;pushq %r9;pushq %r10;pushq %r11;pushq %r12;pushq %r13;pushq %r14;pushq %r15;movq %cr2,%rax;pushq %rax;movq %cr3,%rax;pushq %rax;movq %cr4,%rax;pushq %rax;xorq %rax,%rax;movw %ds,%ax;pushq %rax;movw %es,%ax;pushq %rax;movw %fs,%ax;pushq %rax;movw %gs,%ax;pushq %rax;movq %rsp,%rdi;subq $8,%rsp;call core_panic_handler;hlt");
+
+void kpanic(const char* m) {
+    struct panic_framebuffer* fb = get_kernel_framebuffer();
+    if (fb) panic_printf(fb, "PANIC: %s\n", (uintptr_t)m, 0);
+    while(1) __asm__("cli; hlt");
+}

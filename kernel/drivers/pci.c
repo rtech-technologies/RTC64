@@ -54,14 +54,10 @@ void pci_scan(void) {
                 } else if (base_class == 0x01 && sub_class == 0x08 && prog_if == 0x02) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 0);
                     nvme_mmio_base = mmio;
-                    void hal_nvme_init(void);
-                    hal_nvme_init();
                     nvme_init(mmio);
                 } else if (base_class == 0x01 && sub_class == 0x06 && prog_if == 0x01) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 5); /* AHCI BAR is usually 5 */
                     ahci_mmio_base = mmio;
-                    void hal_sata_init(void);
-                    hal_sata_init();
                     ahci_init(mmio);
                 }
 

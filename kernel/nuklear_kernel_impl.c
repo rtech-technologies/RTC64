@@ -1,10 +1,8 @@
 #include <stdint.h>
 #include <stddef.h>
-#include <stdbool.h>
 #include <stdarg.h>
 #include <string.h>
 
-extern double sqrt(double x); extern double pow(double x, double y); extern double sin(double x); extern double cos(double x); extern double fabs(double x);
 void* memset(void* s, int c, size_t n) { unsigned char* p = s; while(n--) *p++ = (unsigned char)c; return s; }
 void* memcpy(void* d, const void* s, size_t n) { unsigned char* dest = d; const unsigned char* src = s; while(n--) *dest++ = *src++; return d; }
 void* memmove(void* d, const void* s, size_t n) { unsigned char* dest = d; const unsigned char* src = s; if (dest < src) while (n--) *dest++ = *src++; else { dest += n; src += n; while (n--) *--dest = *--src; } return d; }
@@ -17,28 +15,41 @@ int strncmp(const char* s1, const char* s2, size_t n) { while(n--) { if(*s1 != *
 char* strchr(const char* s, int c) { while(*s) { if (*s == (char)c) return (char*)s; s++; } return (c == 0) ? (char*)s : NULL; }
 long strtol(const char* n, char** e, int b) { (void)n; (void)e; (void)b; return 0; }
 
-static void rev(char* s) { int i, j; for (i = 0, j = strlen(s)-1; i<j; i++, j--) { char c = s[i]; s[i] = s[j]; s[j] = c; } }
-static void utoa(uint64_t n, char* s) { int i = 0; do { s[i++] = n % 10 + '0'; } while ((n /= 10) > 0); s[i] = '\0'; rev(s); }
-static void xtoa(uint64_t n, char* s) { int i = 0; do { s[i++] = "0123456789abcdef"[n % 16]; } while ((n /= 16) > 0); s[i] = '\0'; rev(s); }
+static void reverse(char* s) { int i, j; for (i = 0, j = strlen(s)-1; i<j; i++, j--) { char c = s[i]; s[i] = s[j]; s[j] = c; } }
+static void utoa(uint64_t n, char* s) { int i = 0; do { s[i++] = n % 10 + '0'; } while ((n /= 10) > 0); s[i] = '\0'; reverse(s); }
+static void itoa(int64_t n, char* s) {
+    int i = 0; uint64_t u;
+    if (n < 0) { s[i++] = '-'; u = (uint64_t)-(n + 1) + 1; }
+    else u = (uint64_t)n;
+    int start = i;
+    do { s[i++] = u % 10 + '0'; } while ((u /= 10) > 0);
+    s[i] = '\0';
+    // Reverse only the digits
+    for (int j = start, k = i - 1; j < k; j++, k--) { char c = s[j]; s[j] = s[k]; s[k] = c; }
+}
+static void xtoa(uint64_t n, char* s, int c) { int i = 0; const char* d = c ? "0123456789ABCDEF" : "0123456789abcdef"; do { s[i++] = d[n % 16]; } while ((n /= 16) > 0); s[i] = '\0'; reverse(s); }
 
 int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
     size_t i = 0;
     while (*format && i < size - 1) {
         if (*format == '%') {
-            format++; int w = 0; bool zero = false;
-            if (*format == '0') { zero = true; format++; }
-            while (*format >= '0' && *format <= '9') { w = w * 10 + (*format - '0'); format++; }
+            format++;
+            int width = 0, zero = 0;
+            if (*format == '0') { zero = 1; format++; }
+            while (*format >= '0' && *format <= '9') { width = width * 10 + (*format - '0'); format++; }
             if (*format == 's') {
                 const char* s = va_arg(ap, const char*); if (!s) s = "(null)";
                 while (*s && i < size - 1) str[i++] = *s++;
             } else if (*format == 'd' || *format == 'u' || *format == 'x' || *format == 'p' || *format == 'l') {
-                uint64_t v; char buf[64]; bool is_x = (*format == 'x' || *format == 'p');
-                if (*format == 'l') { format++; if (*format == 'l') format++; v = va_arg(ap, uint64_t); if (*format == 'x') is_x = true; }
-                else if (*format == 'p') { v = (uintptr_t)va_arg(ap, void*); is_x = true; }
-                else if (*format == 'd') v = (uint64_t)va_arg(ap, int);
-                else v = (uint64_t)va_arg(ap, unsigned int);
-                if (is_x) xtoa(v, buf); else utoa(v, buf);
-                int l = strlen(buf); while (w > l && i < size - 1) { str[i++] = zero ? '0' : ' '; w--; }
+                uint64_t val; char buf[64]; int is_x = (*format == 'x' || *format == 'p');
+                int is_d = (*format == 'd');
+                if (*format == 'l') { format++; if (*format == 'l') format++; val = va_arg(ap, uint64_t); if (*format == 'x') is_x = 1; }
+                else if (*format == 'p') { val = (uintptr_t)va_arg(ap, void*); is_x = 1; }
+                else if (*format == 'd') val = (uint64_t)va_arg(ap, int);
+                else val = (uint64_t)va_arg(ap, unsigned int);
+                if (is_x) xtoa(val, buf, 0); else if (is_d) itoa((int64_t)val, buf); else utoa(val, buf);
+                int len = strlen(buf);
+                while (width > len && i < size - 1) { str[i++] = zero ? '0' : ' '; width--; }
                 const char* b = buf; while (*b && i < size - 1) str[i++] = *b++;
             } else str[i++] = *format;
         } else str[i++] = *format;
@@ -47,6 +58,8 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
     str[i] = '\0'; return (int)i;
 }
 int snprintf(char* str, size_t size, const char* format, ...) { va_list ap; va_start(ap, format); int ret = vsnprintf(str, size, format, ap); va_end(ap); return ret; }
+
+extern double sqrt(double x); extern double pow(double x, double y); extern double sin(double x); extern double cos(double x); extern double fabs(double x);
 #define NK_IMPLEMENTATION
 #include "pro_os.h"
 void __assert_fail(const char* a, const char* f, unsigned int l, const char* fn) { (void)a; (void)f; (void)l; (void)fn; }

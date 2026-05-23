@@ -1,6 +1,7 @@
 #include "nk_software_renderer.h"
 #include <string.h>
 #include <stdbool.h>
+#include "drivers/font_8x8.h"
 
 /* Genuine Pro Software Rasterizer
  * Implements precise triangle rasterization with barycentric coordinate testing.
