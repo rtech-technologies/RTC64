@@ -54,7 +54,6 @@ void vfs_init(void);
 const char* vfs_resolve(const char *path);
 int vfs_ls(const char* path, char* out, size_t sz);
 int vfs_cat(const char* path, char* out, size_t sz);
-void* vfs_read_file(const char* path, size_t* out_sz);
 int vfs_mkdir(const char* path);
 int vfs_write(const char* path, const char* content);
 int vfs_get_mounts(char* out, size_t sz);

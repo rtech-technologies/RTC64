@@ -41,10 +41,6 @@ int abs(int x) {
     return x < 0 ? -x : x;
 }
 
-double ldexp(double x, int exp_val) {
-    return x * pow(2.0, (double)exp_val);
-}
-
 double log(double x) {
     if (x <= 0) return 0;
     double res = 0;
@@ -92,6 +88,10 @@ double pow(double x, double y) {
 
     if (x < 0) return 0;
     return exp(y * log(x));
+}
+
+double ldexp(double x, int exp_val) {
+    return x * pow(2.0, (double)exp_val);
 }
 
 double sin(double x) {

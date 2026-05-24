@@ -71,39 +71,6 @@ void kernel_main(void) {
     extern void pci_scan(void); pci_scan();
     vfs_refresh_mounts();
 
-    struct limine_framebuffer *fb = framebuffer_request.response->framebuffers[0];
-    tgx_canvas_t canvas = { (uint32_t*)fb->address, fb->width, fb->height, fb->pitch };
-
-    // Boot Splash
-    size_t splash_sz;
-    void* splash_data = vfs_read_file("/mnt/nvme0/boot.png", &splash_sz);
-    if (!splash_data) splash_data = vfs_read_file("/mnt/sata0/boot.png", &splash_sz);
-
-    if (splash_data) {
-        int w, h, n;
-        unsigned char* img = stbi_load_from_memory(splash_data, (int)splash_sz, &w, &h, &n, 4);
-        if (img) {
-            tgx_clear(&canvas, 0x000000);
-            int start_x = (fb->width - w) / 2;
-            int start_y = (fb->height - h) / 2;
-            for (int y = 0; y < h; y++) {
-                for (int x = 0; x < w; x++) {
-                    uint32_t* p = (uint32_t*)&img[(y * w + x) * 4];
-                    uint32_t color = *p;
-                    // ABGR to ARGB (STB defaults to ABGR or RGBA based on config, but for simplicity let's assume it matches or fix it)
-                    uint8_t a = (color >> 24) & 0xFF;
-                    uint8_t b = (color >> 16) & 0xFF;
-                    uint8_t g = (color >> 8) & 0xFF;
-                    uint8_t r = color & 0xFF;
-                    uint32_t argb = (a << 24) | (r << 16) | (g << 8) | b;
-                    if (a > 0) tgx_blit_rect(&canvas, start_x + x, start_y + y, 1, 1, argb);
-                }
-            }
-            stbi_image_free(img);
-        }
-        free(splash_data);
-    }
-
     // STAGE 3: USB SUBSYSTEM (Step 12-15)
     current_stage = STAGE_3_USB;
     serial_write("[STAGE 3] USB Subsystem Activation...\n");
@@ -124,6 +91,8 @@ void kernel_main(void) {
     app.current_state = STATE_LOGIN;
     chell_init(&app.chell); lab_init(&app.lab); installer_init(&app.installer);
 
+    struct limine_framebuffer *fb = framebuffer_request.response->framebuffers[0];
+    tgx_canvas_t canvas = { (uint32_t*)fb->address, fb->width, fb->height, fb->pitch };
     int cx = fb->width / 2, cy = fb->height / 2;
 
     while (1) {

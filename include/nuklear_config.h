@@ -28,12 +28,6 @@
     #define NK_COS(x) cos(x)
     #define NK_SQRT(x) sqrt(x)
     #define NK_INV_SQRT(x) (1.0/sqrt(x))
-
-    #define STBI_NO_STDIO
-    #define STBI_ASSERT(x)
-    #define STBI_MALLOC(sz)           malloc(sz)
-    #define STBI_REALLOC(p,newsz)     realloc(p,newsz)
-    #define STBI_FREE(p)              free(p)
 #endif
 
 #endif
