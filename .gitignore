@@ -7,3 +7,13 @@ kernel/kernel
 *.img
 nuklear_cherry_usb
 iso_root/
+*.o
+*.d
+kernel/kernel
+os.iso
+hdd.img
+iso_root/
+make.log
+external/
+build/
+dist/

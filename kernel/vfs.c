@@ -83,6 +83,24 @@ int vfs_cat(const char* path, char* out, size_t sz) {
     return -1;
 }
 
+void* vfs_read_file(const char* path, size_t* out_sz) {
+    FIL fil; char drv[8], fpath[256];
+    const char* translated = vfs_translate(path, drv);
+    snprintf(fpath, sizeof(fpath), "%s%s", (path[0] == '/') ? drv : "", translated);
+    if (f_open(&fil, fpath, FA_READ) == FR_OK) {
+        FSIZE_t sz = f_size(&fil);
+        void* buf = malloc(sz);
+        if (buf) {
+            UINT br;
+            f_read(&fil, buf, (UINT)sz, &br);
+            if (out_sz) *out_sz = (size_t)br;
+        }
+        f_close(&fil);
+        return buf;
+    }
+    return NULL;
+}
+
 int vfs_mkdir(const char* path) {
     char drv[8], fpath[256]; const char* translated = vfs_translate(path, drv);
     snprintf(fpath, sizeof(fpath), "%s%s", (path[0] == '/') ? drv : "", translated);

@@ -61,5 +61,6 @@ int snprintf(char* str, size_t size, const char* format, ...) { va_list ap; va_s
 
 extern double sqrt(double x); extern double pow(double x, double y); extern double sin(double x); extern double cos(double x); extern double fabs(double x);
 #define NK_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
 #include "pro_os.h"
 void __assert_fail(const char* a, const char* f, unsigned int l, const char* fn) { (void)a; (void)f; (void)l; (void)fn; }
