@@ -30,7 +30,9 @@ KERNEL_OBJS = kernel/kernel.o src/app_ui.o src/chell.o src/lab.o src/installer.o
               kernel/cherryusb/class/msc/usbh_msc.o \
               kernel/cherryusb/class/hid/usbh_hid.o \
               kernel/cherryusb/class/hub/usbh_hub.o \
-              kernel/cherryusb/port/ehci/usb_hc_ehci.o
+              kernel/cherryusb/port/ehci/usb_hc_ehci.o \
+              kernel/audio.o kernel/net/lwip_init.o kernel/compiler/tcc_glue.o \
+              kernel/libc/musl_glue.o kernel/mesa/vulkan_infra.o
 
 .PHONY: all clean iso run environment
 

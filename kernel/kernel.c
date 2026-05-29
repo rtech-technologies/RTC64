@@ -39,10 +39,24 @@ static float font_get_width(nk_handle handle, float height, const char *text, in
 static void* nk_malloc(nk_handle handle, void* old, nk_size size) { (void)handle; return old ? realloc(old, size) : malloc(size); }
 static void nk_mfree(nk_handle handle, void* ptr) { (void)handle; free(ptr); }
 
+// SSE Initialization to prevent Invalid Opcode (Vector 6)
+static void init_sse(void) {
+    uint64_t cr0, cr4;
+    __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
+    cr0 &= ~(1ULL << 2); // Clear EM
+    cr0 |= (1ULL << 1);  // Set MP
+    __asm__ volatile("mov %0, %%cr0" : : "r"(cr0));
+    __asm__ volatile("mov %%cr4, %0" : "=r"(cr4));
+    cr4 |= (3ULL << 9);  // Set OSFXSR and OSXMMEXCPT
+    __asm__ volatile("mov %0, %%cr4" : : "r"(cr4));
+}
+
 void kernel_main(void) {
     // STAGE 1: SYSTEM PRIMING (Interrupts DISABLED)
     serial_init();
     serial_write("[STAGE 1] System Priming (Step 1-7)...\n");
+
+    init_sse(); // CRITICAL: Prevent Vector 6 in Nuklear/stb_image
 
     if (hhdm_request.response) hhdm_offset = hhdm_request.response->offset;
     if (memmap_request.response) pmm_init(memmap_request.response);
@@ -71,10 +85,21 @@ void kernel_main(void) {
     extern void pci_scan(void); pci_scan();
     vfs_refresh_mounts();
 
+    extern void hal_libc_init(void); hal_libc_init();
+    extern void hal_audio_init(void); hal_audio_init();
+    extern void hal_net_init(void); hal_net_init();
+    extern void hal_compiler_init(void); hal_compiler_init();
+    extern void hal_graphics_init(void); hal_graphics_init();
+
+    serial_write("[VFS] Preparing Sovereign environment (/temp)...\n");
+    vfs_mkdir("/temp");
+
     // STAGE 3: USB SUBSYSTEM (Step 12-15)
     current_stage = STAGE_3_USB;
     serial_write("[STAGE 3] USB Subsystem Activation...\n");
     scheduler_add_task("USB Poller", hal_usb_poll);
+    extern void hal_net_poll(void);
+    scheduler_add_task("Net Poller", hal_net_poll);
     hal_usb_init();
 
     // STAGE 4: USER SPACE & GUI (Step 16-18)
@@ -112,6 +137,10 @@ void kernel_main(void) {
                 char c = 0;
                 if (ev.kbd.key >= 0x04 && ev.kbd.key <= 0x1D) c = 'a' + (ev.kbd.key - 0x04);
                 else if (ev.kbd.key == 0x28) c = '\n';
+
+                // Ultimate Panic Test Trigger: 'p' key (0x13 in HID)
+                if (ev.kbd.key == 0x13) kpanic("Sovereign Ultimate Panic Test: Manual Trigger");
+
                 if (c) nk_input_char(&ctx, c);
             }
         }
