@@ -1,7 +1,5 @@
-#include "pro_os.h"
 #include <stdint.h>
 #include <stddef.h>
-#include <stdarg.h>
 #include "serial.h"
 
 struct panic_framebuffer { uint64_t address; uint64_t width; uint64_t height; uint64_t pitch; };
@@ -48,51 +46,29 @@ static void raw_char(struct panic_framebuffer* fb, char c, int x, int y, uint32_
 }
 
 static int cx=40, cy=40;
-static void panic_vprintf(struct panic_framebuffer* fb, const char* fmt, va_list ap) {
+static void panic_printf(struct panic_framebuffer* fb, const char* fmt, uint64_t a1, uint64_t a2) {
+    uint64_t args[2] = {a1, a2}; int arg_idx = 0;
     while (*fmt) {
         if (*fmt == '%' && *(fmt+1)) {
-            fmt++;
-            if (*fmt == 's') { const char* s = va_arg(ap, const char*); while(*s) { serial_putc(*s); if (cx+16>fb->width) {cx=40; cy+=24;} raw_char(fb, *s++, cx, cy, 0xFFFFFF); cx+=16; } }
-            else if (*fmt == 'x') {
-                uint64_t v = va_arg(ap, uint64_t);
-                const char* h = "0123456789ABCDEF";
-                for (int i=15; i>=0; i--) {
-                    char c = h[(v>>(i*4))&0xF];
-                    serial_putc(c);
-                    if(cx+16>fb->width) {cx=40; cy+=24;}
-                    raw_char(fb, c, cx, cy, 0xFFFFFF);
-                    cx+=16;
-                }
-            }
+            fmt++; uint64_t v = (arg_idx<2)?args[arg_idx++]:0;
+            if (*fmt == 's') { const char* s = (const char*)v; while(*s) { serial_putc(*s); if (cx+16>fb->width) {cx=40; cy+=24;} raw_char(fb, *s++, cx, cy, 0xFFFFFF); cx+=16; } }
+            else if (*fmt == 'x') { const char* h = "0123456789ABCDEF"; for (int i=15; i>=0; i--) { char c = h[(v>>(i*4))&0xF]; serial_putc(c); if(cx+16>fb->width) {cx=40; cy+=24;} raw_char(fb, c, cx, cy, 0xFFFFFF); cx+=16; } }
         } else if (*fmt == '\n') { serial_putc('\n'); cx=40; cy+=24; }
         else { serial_putc(*fmt); if(cx+16>fb->width) {cx=40; cy+=24;} raw_char(fb, *fmt, cx, cy, 0xFFFFFF); cx+=16; }
         fmt++;
     }
 }
 
-static void panic_printf_manual(struct panic_framebuffer* fb, const char* fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    panic_vprintf(fb, fmt, ap);
-    va_end(ap);
-}
-
 void core_panic_handler(void* rsp) {
     struct cpu_state* s = (struct cpu_state*)rsp;
     struct panic_framebuffer* fb = get_kernel_framebuffer();
     if (!fb || !fb->address) { serial_write("PANIC NO FB\n"); while(1) __asm__("hlt"); }
-    // Orange Screen of Death (#FF4500)
-    for (uint64_t i=0; i<fb->height; i++) {
-        for(uint64_t j=0; j<fb->width; j++) {
-            ((uint32_t*)fb->address)[i * (fb->pitch/4) + j] = 0xFF4500;
-        }
-    }
+    for (uint64_t i=0; i<fb->height*fb->width; i++) ((uint32_t*)fb->address)[i] = 0xAA4400;
     cx=40; cy=40;
-    panic_printf_manual(fb, "SOVEREIGN OS KERNEL PANIC\n");
-    panic_printf_manual(fb, "VECTOR: %x  RIP: %x\n", s->int_no, s->rip);
-    panic_printf_manual(fb, "CR2: %x  CR3: %x  CR4: %x\n", s->cr2, s->cr3, s->cr4);
-    panic_printf_manual(fb, "RAX: %x  RBX: %x  RCX: %x  RDX: %x\n", s->rax, s->rbx, s->rcx, s->rdx);
-    panic_printf_manual(fb, "RSI: %x  RDI: %x  RBP: %x  RSP: %x\n", s->rsi, s->rdi, s->rbp, s->rsp);
+    panic_printf(fb, "SOVEREIGN OS KERNEL PANIC\n", 0, 0);
+    panic_printf(fb, "VECTOR: %x  RIP: %x\n", s->int_no, s->rip);
+    panic_printf(fb, "CR2: %x  CR3: %x\n", s->cr2, s->cr3);
+    panic_printf(fb, "RAX: %x  RBX: %x\n", s->rax, s->rbx);
     while(1) __asm__("cli; hlt");
 }
 
@@ -103,6 +79,6 @@ __asm__(G(0)G(1)G(2)G(3)G(4)G(5)G(6)G(7)E(8)G(9)E(10)E(11)E(12)E(13)E(14)G(15)G(
 
 void kpanic(const char* m) {
     struct panic_framebuffer* fb = get_kernel_framebuffer();
-    if (fb) panic_printf_manual(fb, "PANIC: %s\n", m);
+    if (fb) panic_printf(fb, "PANIC: %s\n", (uintptr_t)m, 0);
     while(1) __asm__("cli; hlt");
 }

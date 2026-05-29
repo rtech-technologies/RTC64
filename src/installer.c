@@ -32,7 +32,7 @@ void installer_update(struct nk_context* ctx, void* s) {
         } else {
             for (int i = 0; i < drive_count; i++) {
                 storage_device_t* dev = hal_storage_get_device(i);
-                if (nk_selectable_label(ctx, dev->name, NK_TEXT_LEFT, (g_installer.selected_drive == i))) {
+                if (nk_select_label(ctx, dev->name, NK_TEXT_LEFT, (g_installer.selected_drive == i))) {
                     g_installer.selected_drive = i;
                     serial_printf("[Installer] Selected drive %d: %s\n", i, dev->name);
                 }
