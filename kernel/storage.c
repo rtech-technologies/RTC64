@@ -8,8 +8,11 @@
  * Genuine integration with CherryUSB Host MSC Stack
  */
 
+void pci_scan(void);
+
 void hal_storage_init(void) {
     /* Ready for hotplug events */
+    pci_scan();
 }
 
 void usbh_msc_run(struct usbh_msc *msc_class) {
