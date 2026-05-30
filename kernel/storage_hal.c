@@ -21,13 +21,11 @@ storage_device_t* hal_storage_get_device(int index) {
 }
 
 void hal_nvme_init(uint64_t mmio) {
-    /* External call from PCI scan */
-    extern void nvme_init(uint64_t);
+    /* Explicitly call the driver init with discovered MMIO */
     nvme_init(mmio);
 }
 
 void hal_sata_init(uint64_t mmio) {
-    /* External call from PCI scan */
-    extern void ahci_init(uint64_t);
+    /* Explicitly call the driver init with discovered MMIO */
     ahci_init(mmio);
 }

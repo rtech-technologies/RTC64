@@ -8,7 +8,9 @@
 #define NVME_REG_CSTS 0x1C
 
 void nvme_init(uint64_t mmio) {
-    if (mmio == 0) return;
+    if (mmio == 0) {
+        return;
+    }
     volatile uint32_t* regs = (volatile uint32_t*)(mmio + hhdm_offset);
 
     /* 1. Reset Controller: CC.EN = 0 */

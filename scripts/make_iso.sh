@@ -1,43 +1,9 @@
 #!/bin/bash
 set -e
-
-# Configuration
-KERNEL="kernel/kernel"
-LIMINE_DIR="external/limine"
-ISO_DIR="iso_root"
-ISO_FILE="os.iso"
-
-echo "=== Creating Bootable ISO ==="
-
-# Check requirements
-if [ ! -f "$KERNEL" ]; then
-    echo "Error: Kernel binary not found at target location: $KERNEL"
-    exit 1
-fi
-
-# Prepare ISO directory structure
-rm -rf "$ISO_DIR"
-mkdir -p "$ISO_DIR/boot"
-mkdir -p "$ISO_DIR/boot/limine"
-mkdir -p "$ISO_DIR/EFI/BOOT"
-
-# Copy kernel
-cp "$KERNEL" "$ISO_DIR/boot/kernel.elf"
-
-# Copy Limine config and binaries
-cp kernel/limine.conf "$ISO_DIR/boot/limine/"
-cp "$LIMINE_DIR/limine-bios.sys" "$ISO_DIR/boot/limine/"
-cp "$LIMINE_DIR/limine-bios-cd.bin" "$ISO_DIR/boot/limine/"
-# cp "$LIMINE_DIR/limine-uefi-cd.bin" "$ISO_DIR/boot/limine/"
-cp "$LIMINE_DIR/BOOTX64.EFI" "$ISO_DIR/EFI/BOOT/"
-cp "$LIMINE_DIR/BOOTIA32.EFI" "$ISO_DIR/EFI/BOOT/"
-
-# Create the ISO
-xorriso -as mkisofs -b boot/limine/limine-bios-cd.bin \
-    -no-emul-boot -boot-load-size 4 -boot-info-table \
-    -o "$ISO_FILE" "$ISO_DIR"
-
-# Install Limine deployment tool
-"$LIMINE_DIR/limine" bios-install "$ISO_FILE"
-
-echo "=== ISO Created: $ISO_FILE ==="
+mkdir -p iso_root/boot/limine
+cp kernel/kernel iso_root/boot/kernel.elf
+cp kernel/limine.cfg iso_root/boot/limine.cfg
+cp external/limine/limine-bios.sys iso_root/boot/limine/
+cp external/limine/limine-bios-cd.bin iso_root/boot/limine/
+xorriso -as mkisofs -b boot/limine/limine-bios-cd.bin -no-emul-boot -boot-load-size 4 -boot-info-table iso_root -o os.iso
+./external/limine/limine bios-install os.iso
