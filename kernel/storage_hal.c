@@ -1,4 +1,5 @@
 #include "hal.h"
+#include "pro_os.h"
 #include <string.h>
 
 static storage_device_t* g_storage_devices[8];
