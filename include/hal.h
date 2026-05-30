@@ -53,6 +53,9 @@ int hal_storage_register_device(storage_device_t *dev);
 int hal_storage_get_device_count(void);
 storage_device_t* hal_storage_get_device(int index);
 
+void hal_nvme_init(uint64_t mmio);
+void hal_sata_init(uint64_t mmio);
+
 /* --- USB System --- */
 void hal_usb_init(void);
 void hal_usb_poll(void);
