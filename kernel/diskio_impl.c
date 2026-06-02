@@ -1,26 +1,37 @@
 #include "ff.h"
 #include "diskio.h"
 #include "hal.h"
-#include <string.h>
-DSTATUS disk_initialize(BYTE p) { return hal_storage_get_device(p) ? 0 : STA_NOINIT; }
-DSTATUS disk_status(BYTE p) { return hal_storage_get_device(p) ? 0 : STA_NOINIT; }
-DRESULT disk_read(BYTE p, BYTE* b, LBA_t s, UINT c) {
-    storage_device_t* d = hal_storage_get_device(p);
-    if(!d) return RES_PARERR;
-    return hal_storage_read(d,s,b,c)==0 ? RES_OK : RES_ERROR;
+#include "pro_os.h"
+
+DSTATUS disk_status(BYTE pdrv) {
+    if (pdrv >= hal_storage_get_device_count()) return STA_NOINIT;
+    return 0;
 }
-DRESULT disk_write(BYTE p, const BYTE* b, LBA_t s, UINT c) {
-    storage_device_t* d = hal_storage_get_device(p);
-    if(!d) return RES_PARERR;
-    return hal_storage_write(d,s,b,c)==0 ? RES_OK : RES_ERROR;
+
+DSTATUS disk_initialize(BYTE pdrv) {
+    if (pdrv >= hal_storage_get_device_count()) return STA_NOINIT;
+    return 0;
 }
-DRESULT disk_ioctl(BYTE p, BYTE cmd, void* b) {
-    storage_device_t* d = hal_storage_get_device(p); if(!d) return RES_PARERR;
-    switch(cmd) {
+
+DRESULT disk_read(BYTE pdrv, BYTE* buff, LBA_t sector, UINT count) {
+    if (hal_storage_read(pdrv, sector, buff, count) == 0) return RES_OK;
+    return RES_ERROR;
+}
+
+DRESULT disk_write(BYTE pdrv, const BYTE* buff, LBA_t sector, UINT count) {
+    if (hal_storage_write(pdrv, sector, buff, count) == 0) return RES_OK;
+    return RES_ERROR;
+}
+
+DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void* buff) {
+    storage_device_t* dev = hal_storage_get_device(pdrv);
+    if (!dev) return RES_ERROR;
+
+    switch (cmd) {
         case CTRL_SYNC: return RES_OK;
-        case GET_SECTOR_COUNT: *(LBA_t*)b = d->total_blocks; return RES_OK;
-        case GET_SECTOR_SIZE: *(WORD*)b = (WORD)d->block_size; return RES_OK;
-        case GET_BLOCK_SIZE: *(DWORD*)b = 1; return RES_OK;
-        default: return RES_PARERR;
+        case GET_SECTOR_COUNT: *(LBA_t*)buff = dev->total_blocks; return RES_OK;
+        case GET_SECTOR_SIZE: *(WORD*)buff = dev->block_size; return RES_OK;
+        case GET_BLOCK_SIZE: *(DWORD*)buff = 1; return RES_OK;
     }
+    return RES_PARERR;
 }

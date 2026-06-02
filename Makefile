@@ -24,7 +24,7 @@ KERNEL_OBJS = kernel/kernel.o src/app_ui.o src/chell.o src/lab.o src/installer.o
               kernel/diskio_impl.o kernel/ffsystem_impl.o \
               kernel/ff_partitions.o kernel/fatfs/ff.o kernel/fatfs/ffunicode.o \
               kernel/drivers/pci.o kernel/drivers/xhci.o kernel/drivers/ehci.o \
-              kernel/drivers/nvme.o kernel/drivers/ahci.o \
+              kernel/drivers/nvme.o kernel/drivers/ahci.o kernel/drivers/ramdisk.o \
               kernel/cherryusb/core/usbd_core.o \
               kernel/cherryusb/core/usbh_core.o \
               kernel/cherryusb/class/msc/usbh_msc.o \

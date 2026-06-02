@@ -10,9 +10,9 @@ static mount_t mounts[16];
 void vfs_init(void) { memset(mounts, 0, sizeof(mounts)); }
 void vfs_refresh_mounts(void) {
     serial_write("[VFS] Syncing Physical -> Logical mounts...\n");
-    int dev_count = devmgr_get_count();
+    int dev_count = hal_storage_get_device_count();
     for (int i = 0; i < dev_count; i++) {
-        storage_device_t *dev = devmgr_get_device(i);
+        storage_device_t *dev = hal_storage_get_device(i);
         if (!dev) continue;
         bool already = false;
         for (int j=0; j<16; j++) if (mounts[j].device == dev) already = true;
@@ -20,19 +20,20 @@ void vfs_refresh_mounts(void) {
             for (int j=0; j<16; j++) if (!mounts[j].device) {
                 mounts[j].device = dev;
                 mounts[j].id = i;
-                const char* label = devmgr_get_label(i);
-                // Simplify label for mount point: "SATA(0) Disk 0" -> "/mnt/sata0"
-                char mnt[32]; int mptr = 0;
-                for(int k=0; label[k] && label[k]!=' '; k++) {
-                    if(label[k]>='A' && label[k]<='Z') mnt[mptr++] = label[k]+32;
-                    else if(label[k]>='0' && label[k]<='9') mnt[mptr++] = label[k];
-                }
-                mnt[mptr] = '\0';
-                snprintf(mounts[j].mount_point, 32, "/mnt/%s", mnt);
+
+                // Derive mount point: /mnt/disk0, /mnt/disk1...
+                snprintf(mounts[j].mount_point, 32, "/mnt/disk%d", i);
 
                 char drv[4]; snprintf(drv, 4, "%d:", i);
-                mounts[j].mounted = (f_mount(&mounts[j].fs, drv, 1) == FR_OK);
-                if (mounts[j].mounted) serial_printf("[VFS] Mounted %s to %s\n", dev->name, mounts[j].mount_point);
+                // Attempt mount
+                FRESULT res = f_mount(&mounts[j].fs, drv, 1);
+                mounts[j].mounted = (res == FR_OK);
+
+                if (mounts[j].mounted) {
+                    serial_printf("[VFS] Mounted %s to %s (FatFS OK)\n", dev->name, mounts[j].mount_point);
+                } else {
+                    serial_printf("[VFS] Failed to mount %s (Error %d) - keeping entry for raw access.\n", dev->name, (int)res);
+                }
                 break;
             }
         }
@@ -41,7 +42,7 @@ void vfs_refresh_mounts(void) {
 
 static const char* vfs_translate(const char* path, char* out_drv) {
     for (int i = 0; i < 16; i++) {
-        if (mounts[i].mounted && strncmp(path, mounts[i].mount_point, strlen(mounts[i].mount_point)) == 0) {
+        if (mounts[i].device && strncmp(path, mounts[i].mount_point, strlen(mounts[i].mount_point)) == 0) {
             snprintf(out_drv, 8, "%d:", mounts[i].id);
             const char* sub = path + strlen(mounts[i].mount_point);
             if (*sub == '\0') return "/";
@@ -101,7 +102,7 @@ int vfs_get_mounts(char* out, size_t sz) {
     int off = 0;
     for (int i = 0; i < 16; i++) {
         if (mounts[i].device) {
-            int len = snprintf(out + off, sz - off, "%s -> %s [%s]\n", mounts[i].mount_point, devmgr_get_label(mounts[i].id), mounts[i].mounted ? "OK" : "ERR");
+            int len = snprintf(out + off, sz - off, "%s -> %s [%s]\n", mounts[i].mount_point, mounts[i].device->name, mounts[i].mounted ? "OK" : "RAW");
             off += len; if (off >= (int)sz - 1) break;
         }
     }
