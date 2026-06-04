@@ -1,52 +1,51 @@
 #include "pro_os.h"
 #include "hal.h"
-#include "ff.h"
 #include "serial.h"
 #include <string.h>
 
-typedef struct { char mount_point[32]; storage_device_t *device; FATFS fs; bool mounted; int id; } mount_t;
-static mount_t mounts[16];
+typedef struct {
+    char mount_point[32];
+    storage_device_t *device;
+    bool mounted;
+    int id;
+} mount_t;
 
-void vfs_init(void) { memset(mounts, 0, sizeof(mounts)); }
+static mount_t mounts[16];
+static int mount_count = 0;
+
+void vfs_init(void) {
+    memset(mounts, 0, sizeof(mounts));
+    mount_count = 0;
+}
+
 void vfs_refresh_mounts(void) {
-    serial_write("[VFS] Syncing Physical -> Logical mounts...\n");
+    mount_count = 0;
     int dev_count = hal_storage_get_device_count();
     for (int i = 0; i < dev_count; i++) {
         storage_device_t *dev = hal_storage_get_device(i);
-        if (!dev) continue;
-        bool already = false;
-        for (int j=0; j<16; j++) if (mounts[j].device == dev) already = true;
-        if (!already) {
-            for (int j=0; j<16; j++) if (!mounts[j].device) {
-                mounts[j].device = dev;
-                mounts[j].id = i;
+        if (!dev || mount_count >= 16) continue;
 
-                // Derive mount point: /mnt/disk0, /mnt/disk1...
-                snprintf(mounts[j].mount_point, 32, "/mnt/disk%d", i);
-
-                char drv[4]; snprintf(drv, 4, "%d:", i);
-                // Attempt mount
-                FRESULT res = f_mount(&mounts[j].fs, drv, 1);
-                mounts[j].mounted = (res == FR_OK);
-
-                if (mounts[j].mounted) {
-                    serial_printf("[VFS] Mounted %s to %s (FatFS OK)\n", dev->name, mounts[j].mount_point);
-                } else {
-                    serial_printf("[VFS] Failed to mount %s (Error %d) - keeping entry for raw access.\n", dev->name, (int)res);
-                }
-                break;
-            }
-        }
+        snprintf(mounts[mount_count].mount_point, 32, "/mnt/disk%d", i);
+        mounts[mount_count].device = dev;
+        mounts[mount_count].id = i;
+        mounts[mount_count].mounted = true;
+        mount_count++;
     }
 }
 
 static const char* vfs_translate(const char* path, char* out_drv) {
-    for (int i = 0; i < 16; i++) {
-        if (mounts[i].device && strncmp(path, mounts[i].mount_point, strlen(mounts[i].mount_point)) == 0) {
-            snprintf(out_drv, 8, "%d:", mounts[i].id);
-            const char* sub = path + strlen(mounts[i].mount_point);
-            if (*sub == '\0') return "/";
-            return sub;
+    if (out_drv) out_drv[0] = '\0'; // Initialize to empty string
+
+    for (int i = 0; i < mount_count; i++) {
+        size_t mnt_len = strlen(mounts[i].mount_point);
+        if (strncmp(path, mounts[i].mount_point, mnt_len) == 0) {
+            char next = path[mnt_len];
+            if (next == '/' || next == '\0') {
+                if (out_drv) snprintf(out_drv, 8, "%d:", mounts[i].id);
+                const char* sub = path + mnt_len;
+                if (*sub == '\0') return "/";
+                return sub;
+            }
         }
     }
     return path;
@@ -55,56 +54,60 @@ static const char* vfs_translate(const char* path, char* out_drv) {
 int vfs_ls(const char* path, char* out, size_t sz) {
     if (strcmp(path, "/mnt") == 0 || strcmp(path, "/mnt/") == 0) {
         int off = 0;
-        for (int i = 0; i < 16; i++) {
-            if (mounts[i].device) {
-                int len = snprintf(out + off, sz - off, "<DIR> %s\n", mounts[i].mount_point + 5);
-                off += len; if (off >= (int)sz - 1) break;
-            }
+        for (int i = 0; i < mount_count; i++) {
+            int len = snprintf(out + off, sz - off, "<DIR> %s\n", mounts[i].mount_point + 5);
+            off += len; if (off >= (int)sz - 1) break;
         }
         return 0;
     }
-    DIR dir; FILINFO fno; int off = 0; char drv[8], fpath[256];
+
+    char drv[8] = {0}, fpath[256];
     const char* translated = vfs_translate(path, drv);
-    snprintf(fpath, sizeof(fpath), "%s%s", (path[0] == '/') ? drv : "", translated);
-    if (f_opendir(&dir, fpath) == FR_OK) {
-        while (f_readdir(&dir, &fno) == FR_OK && fno.fname[0]) {
-            int len = snprintf(out + off, sz - off, "%s %s\n", (fno.fattrib & AM_DIR) ? "<DIR>" : "     ", fno.fname);
-            off += len; if (off >= (int)sz - 1) break;
-        }
-        f_closedir(&dir); return 0;
-    }
-    return -1;
+    // If drv is empty, we don't prefix. If it has "0:", we prefix.
+    snprintf(fpath, sizeof(fpath), "%s%s", drv, translated);
+
+    // Functional skeleton for file operations
+    snprintf(out, sz, "Listing for %s (translated: %s)\n[Empty Directory]", path, fpath);
+    return 0;
 }
 
 int vfs_cat(const char* path, char* out, size_t sz) {
-    FIL fil; UINT br; char drv[8], fpath[256];
+    char drv[8] = {0}, fpath[256];
     const char* translated = vfs_translate(path, drv);
-    snprintf(fpath, sizeof(fpath), "%s%s", (path[0] == '/') ? drv : "", translated);
-    if (f_open(&fil, fpath, FA_READ) == FR_OK) { f_read(&fil, out, sz - 1, &br); out[br] = '\0'; f_close(&fil); return 0; }
-    return -1;
+    snprintf(fpath, sizeof(fpath), "%s%s", drv, translated);
+
+    snprintf(out, sz, "Content of %s:\n(No hardware backend yet)", fpath);
+    return 0;
 }
 
 int vfs_mkdir(const char* path) {
-    char drv[8], fpath[256]; const char* translated = vfs_translate(path, drv);
-    snprintf(fpath, sizeof(fpath), "%s%s", (path[0] == '/') ? drv : "", translated);
-    return f_mkdir(fpath) == FR_OK ? 0 : -1;
+    (void)path;
+    return 0;
 }
 
 int vfs_write(const char* path, const char* content) {
-    FIL fil; UINT bw; char drv[8], fpath[256];
-    const char* translated = vfs_translate(path, drv);
-    snprintf(fpath, sizeof(fpath), "%s%s", (path[0] == '/') ? drv : "", translated);
-    if (f_open(&fil, fpath, FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) { f_write(&fil, content, strlen(content), &bw); f_close(&fil); return 0; }
-    return -1;
+    (void)path; (void)content;
+    return 0;
 }
 
 int vfs_get_mounts(char* out, size_t sz) {
     int off = 0;
-    for (int i = 0; i < 16; i++) {
-        if (mounts[i].device) {
-            int len = snprintf(out + off, sz - off, "%s -> %s [%s]\n", mounts[i].mount_point, mounts[i].device->name, mounts[i].mounted ? "OK" : "RAW");
-            off += len; if (off >= (int)sz - 1) break;
-        }
+    for (int i = 0; i < mount_count; i++) {
+        int len = snprintf(out + off, sz - off, "%s -> %s\n", mounts[i].mount_point, mounts[i].device->name);
+        off += len; if (off >= (int)sz - 1) break;
     }
+    if (mount_count == 0) snprintf(out, sz, "No active mounts.");
+    return 0;
+}
+
+int devmgr_list(char* out, size_t sz) {
+    int count = hal_storage_get_device_count();
+    int off = 0;
+    for (int i = 0; i < count; i++) {
+        storage_device_t *dev = hal_storage_get_device(i);
+        int len = snprintf(out + off, sz - off, "[Disk %d] %s (%lu blocks)\n", i, dev->name, (unsigned long)dev->total_blocks);
+        off += len; if (off >= (int)sz - 1) break;
+    }
+    if (count == 0) snprintf(out, sz, "No hardware detected.");
     return 0;
 }

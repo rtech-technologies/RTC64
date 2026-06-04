@@ -41,11 +41,11 @@ void pci_scan(void) {
                 if (base_class == 0x0C && sub_class == 0x03 && prog_if == 0x30) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 0);
                     xhci_mmio_base = mmio;
-                    void xhci_init(uint64_t); xhci_init(mmio);
+                    xhci_init(mmio);
                 } else if (base_class == 0x0C && sub_class == 0x03 && prog_if == 0x20) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 0);
                     ehci_mmio_base = mmio;
-                    void ehci_init(uint64_t); ehci_init(mmio);
+                    ehci_init(mmio);
                 } else if (base_class == 0x01 && sub_class == 0x08 && prog_if == 0x02) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 0);
                     nvme_mmio_base = mmio;

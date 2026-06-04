@@ -2,8 +2,6 @@ build/
 build_sdl/
 external/
 kernel/kernel
+kernel/cherryusb
 *.o
-*.iso
-*.img
 nuklear_cherry_usb
-iso_root/
