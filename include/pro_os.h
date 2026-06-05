@@ -38,9 +38,12 @@ typedef struct {
 void scheduler_init(void);
 void scheduler_add_task(const char *name, void (*entry)(void));
 void scheduler_run(void);
+int scheduler_get_task_count(void);
+task_t* scheduler_get_task(int index);
 
 /* VFS */
 void vfs_init(void);
+void vfs_refresh_mounts(void);
 const char* vfs_resolve(const char *path);
 
 /* Security / UAC */

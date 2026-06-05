@@ -11,6 +11,7 @@ bool uac_check_permit(int app_id, const char *action) {
 }
 
 void uac_request_permit(int app_id, const char *action) {
+    (void)app_id; (void)action;
     // In a real OS, this would trigger the UAC popup
 }
 

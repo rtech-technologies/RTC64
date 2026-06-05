@@ -27,3 +27,12 @@ void scheduler_run(void) {
         tasks[current_task].entry();
     }
 }
+
+int scheduler_get_task_count(void) {
+    return task_count;
+}
+
+task_t* scheduler_get_task(int index) {
+    if (index >= 0 && index < task_count) return &tasks[index];
+    return NULL;
+}

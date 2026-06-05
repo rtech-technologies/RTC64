@@ -8,6 +8,14 @@ static int g_storage_device_count = 0;
 void hal_storage_init(void) {
     g_storage_device_count = 0;
     memset(g_storage_devices, 0, sizeof(g_storage_devices));
+
+    /* Bus Probing handled by Stage 2 pci_scan in kernel.c */
+}
+
+void hal_storage_finish_init(void) {
+    if (g_storage_device_count == 0) {
+        ramdisk_init();
+    }
 }
 
 int hal_storage_register_device(storage_device_t *dev) {

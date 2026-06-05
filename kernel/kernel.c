@@ -47,6 +47,9 @@ void kernel_main(void) {
     hal_input_init();
     scheduler_init();
     vfs_init();
+    pci_scan();
+    hal_storage_finish_init();
+    vfs_refresh_mounts();
 
     extern void system_shell_init(void);
     extern void system_shell_task(void);

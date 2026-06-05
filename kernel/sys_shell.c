@@ -32,8 +32,11 @@ void system_shell_task(void) {
                     serial_write("  help   - Show this help\n");
                 } else if (strcmp(shell_buffer, "tasks") == 0) {
                     serial_write("Active Tasks:\n");
-                    serial_write("  [0] USB Poller (Background)\n");
-                    serial_write("  [1] System Shell (Console)\n");
+                    int count = scheduler_get_task_count();
+                    for (int i = 0; i < count; i++) {
+                        task_t* t = scheduler_get_task(i);
+                        serial_printf("  [%d] %s (%s)\n", i, t->name, (t->state == TASK_RUNNING) ? "RUNNING" : "IDLE");
+                    }
                 } else if (strcmp(shell_buffer, "mem") == 0) {
                     serial_write("Memory Map: Sovereign 64-bit Higher Half\n");
                     serial_write("Kernel Heap: 16MB initialized.\n");

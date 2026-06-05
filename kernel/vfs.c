@@ -1,11 +1,13 @@
 #include "pro_os.h"
 #include "hal.h"
+#include "fatfs/ff.h"
 #include "serial.h"
 #include <string.h>
 
 typedef struct {
     char mount_point[32];
     storage_device_t *device;
+    FATFS fs;
     bool mounted;
     int id;
 } mount_t;
@@ -19,22 +21,40 @@ void vfs_init(void) {
 }
 
 void vfs_refresh_mounts(void) {
-    mount_count = 0;
     int dev_count = hal_storage_get_device_count();
     for (int i = 0; i < dev_count; i++) {
         storage_device_t *dev = hal_storage_get_device(i);
-        if (!dev || mount_count >= 16) continue;
+        if (!dev) continue;
 
-        snprintf(mounts[mount_count].mount_point, 32, "/mnt/disk%d", i);
-        mounts[mount_count].device = dev;
-        mounts[mount_count].id = i;
-        mounts[mount_count].mounted = true;
+        bool already = false;
+        for (int j = 0; j < mount_count; j++) {
+            if (mounts[j].device == dev) { already = true; break; }
+        }
+        if (already) continue;
+        if (mount_count >= 16) break;
+
+        mount_t *m = &mounts[mount_count];
+        m->device = dev;
+        m->id = i;
+        snprintf(m->mount_point, 32, "/mnt/disk%d", i);
+
+        char drv_path[4];
+        snprintf(drv_path, 4, "%d:", i);
+
+        FRESULT res = f_mount(&m->fs, drv_path, 1);
+        m->mounted = (res == FR_OK);
+
+        if (m->mounted) {
+            serial_printf("[VFS] Mounted disk %d (%s) at %s\n", i, dev->name, m->mount_point);
+        } else {
+            serial_printf("[VFS] Failed to mount disk %d (%s), error %d\n", i, dev->name, (int)res);
+        }
         mount_count++;
     }
 }
 
 static const char* vfs_translate(const char* path, char* out_drv) {
-    if (out_drv) out_drv[0] = '\0'; // Initialize to empty string
+    if (out_drv) out_drv[0] = '\0';
 
     for (int i = 0; i < mount_count; i++) {
         size_t mnt_len = strlen(mounts[i].mount_point);
@@ -61,39 +81,74 @@ int vfs_ls(const char* path, char* out, size_t sz) {
         return 0;
     }
 
+    DIR dir;
+    FILINFO fno;
+    FRESULT res;
     char drv[8] = {0}, fpath[256];
     const char* translated = vfs_translate(path, drv);
-    // If drv is empty, we don't prefix. If it has "0:", we prefix.
     snprintf(fpath, sizeof(fpath), "%s%s", drv, translated);
 
-    // Functional skeleton for file operations
-    snprintf(out, sz, "Listing for %s (translated: %s)\n[Empty Directory]", path, fpath);
-    return 0;
+    res = f_opendir(&dir, fpath);
+    if (res == FR_OK) {
+        int off = 0;
+        for (;;) {
+            res = f_readdir(&dir, &fno);
+            if (res != FR_OK || fno.fname[0] == 0) break;
+            int len = snprintf(out + off, sz - off, "%s %s\n", (fno.fattrib & AM_DIR) ? "<DIR>" : "     ", fno.fname);
+            off += len; if (off >= (int)sz - 1) break;
+        }
+        f_closedir(&dir);
+        return 0;
+    }
+    return (int)res;
 }
 
 int vfs_cat(const char* path, char* out, size_t sz) {
+    FIL fil;
+    FRESULT res;
+    UINT br;
     char drv[8] = {0}, fpath[256];
     const char* translated = vfs_translate(path, drv);
     snprintf(fpath, sizeof(fpath), "%s%s", drv, translated);
 
-    snprintf(out, sz, "Content of %s:\n(No hardware backend yet)", fpath);
-    return 0;
+    res = f_open(&fil, fpath, FA_READ);
+    if (res == FR_OK) {
+        f_read(&fil, out, sz - 1, &br);
+        out[br] = '\0';
+        f_close(&fil);
+        return 0;
+    }
+    return (int)res;
 }
 
 int vfs_mkdir(const char* path) {
-    (void)path;
-    return 0;
+    char drv[8] = {0}, fpath[256];
+    const char* translated = vfs_translate(path, drv);
+    snprintf(fpath, sizeof(fpath), "%s%s", drv, translated);
+    return (int)f_mkdir(fpath);
 }
 
 int vfs_write(const char* path, const char* content) {
-    (void)path; (void)content;
-    return 0;
+    FIL fil;
+    FRESULT res;
+    UINT bw;
+    char drv[8] = {0}, fpath[256];
+    const char* translated = vfs_translate(path, drv);
+    snprintf(fpath, sizeof(fpath), "%s%s", drv, translated);
+
+    res = f_open(&fil, fpath, FA_WRITE | FA_CREATE_ALWAYS);
+    if (res == FR_OK) {
+        f_write(&fil, content, strlen(content), &bw);
+        f_close(&fil);
+        return 0;
+    }
+    return (int)res;
 }
 
 int vfs_get_mounts(char* out, size_t sz) {
     int off = 0;
     for (int i = 0; i < mount_count; i++) {
-        int len = snprintf(out + off, sz - off, "%s -> %s\n", mounts[i].mount_point, mounts[i].device->name);
+        int len = snprintf(out + off, sz - off, "%s -> %s [%s]\n", mounts[i].mount_point, mounts[i].device->name, mounts[i].mounted ? "OK" : "ERR");
         off += len; if (off >= (int)sz - 1) break;
     }
     if (mount_count == 0) snprintf(out, sz, "No active mounts.");

@@ -4,6 +4,13 @@
 #include "syscall_nums.h"
 
 int syscall_dispatch(int num, const void* a1, void* a2, size_t a3) {
+    if (num >= SYS_VFS_LS && num <= SYS_VFS_WRITE) {
+        if (!a1) return -1;
+    }
+    if (num == SYS_VFS_LS || num == SYS_VFS_CAT || num == SYS_VFS_MOUNTS || num == SYS_DEVMGR_LIST) {
+        if (!a2) return -1;
+    }
+
     switch (num) {
         case SYS_VFS_LS:      return vfs_ls((const char*)a1, (char*)a2, a3);
         case SYS_VFS_CAT:     return vfs_cat((const char*)a1, (char*)a2, a3);
