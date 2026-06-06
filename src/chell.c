@@ -1,3 +1,4 @@
+/* Modified by Sovereign: Fixed type mismatch warning in nk_edit_string */
 #include "os_api.h"
 #include <string.h>
 #include "app_ui.h"
@@ -9,7 +10,7 @@ void chell_update(struct nk_context* ctx, void* s) {
     if (nk_begin(ctx, "Chell", nk_rect(50, 50, 600, 450), NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_TITLE|NK_WINDOW_CLOSABLE)) {
         static char output[4096];
         static char cmd[128];
-        static size_t cmd_len = 0;
+        static int cmd_len = 0;
 
         nk_layout_row_dynamic(ctx, 30, 1);
         nk_label(ctx, "Sovereign Application Shell v2.1", NK_TEXT_LEFT);
