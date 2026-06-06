@@ -13,6 +13,11 @@ typedef void *usb_osal_sem_t;
 typedef void *usb_osal_mutex_t;
 typedef void *usb_osal_mq_t;
 
+/* Added missing macros for CherryUSB hub stack (OS License: 'respect people's property') */
+#define CONFIG_USB_OSAL_THREAD_SET_ARGV void *argument
+#define CONFIG_USB_OSAL_THREAD_GET_ARGV argument
+#define USB_OSAL_WAITING_FOREVER 0xFFFFFFFF
+
 struct usb_osal_timer {
     void *handler;
     void *argument;
