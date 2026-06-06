@@ -166,3 +166,11 @@ int devmgr_list(char* out, size_t sz) {
     if (count == 0) snprintf(out, sz, "No hardware detected.");
     return 0;
 }
+
+const char* vfs_resolve(const char *path) {
+    static char resolved[256];
+    char drv[8] = {0};
+    const char *translated = vfs_translate(path, drv);
+    snprintf(resolved, sizeof(resolved), "%s%s", drv, translated);
+    return resolved;
+}

@@ -18,6 +18,7 @@ struct usb_osal_timer {
     void *argument;
     uint32_t timeout_ms;
     bool is_period;
+    void *timer;
 };
 
 /* OSAL Prototypes */

@@ -193,7 +193,7 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
             nk_layout_row_dynamic(ctx, 20, 1);
             nk_label(ctx, "Memory: 12MB / 64MB", NK_TEXT_LEFT);
             nk_label(ctx, "CPU: 5% (Scheduler OK)", NK_TEXT_LEFT);
-            nk_progress(ctx, (nk_size*)&app->cpu_usage, 100, NK_FIXED);
+            nk_progress(ctx, (nk_size*)&app->cpu_usage, 100, nk_false);
         }
         nk_end(ctx);
     }

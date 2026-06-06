@@ -98,7 +98,6 @@ int vfs_get_mounts(char* out, size_t sz);
 int devmgr_list(char* out, size_t sz);
 
 extern uint64_t hhdm_offset;
-extern uint64_t kernel_phys_offset;
 extern uint64_t xhci_mmio_base;
 extern uint64_t ehci_mmio_base;
 extern uint64_t nvme_mmio_base;

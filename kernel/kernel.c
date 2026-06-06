@@ -5,6 +5,7 @@
 #include "limine.h"
 #include "app_ui.h"
 #include "nk_software_renderer.h"
+#include "serial.h"
 
 // Tell the bootloader we want a graphical framebuffer
 volatile struct limine_framebuffer_request framebuffer_request = {
@@ -39,6 +40,9 @@ void kernel_main(void) {
     tgx_canvas_t canvas = { (uint32_t*)fb->address, fb->width, fb->height, fb->pitch };
 
     // 2. System Bootstrap
+    // Initialize serial for early diagnostics
+    serial_init();
+    
     // Allocate 16MB for the kernel heap
     static uint8_t kernel_heap[16 * 1024 * 1024];
     hal_malloc_init(kernel_heap, sizeof(kernel_heap));
