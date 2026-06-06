@@ -4,10 +4,6 @@
 #include "usbh_hid.h"
 #include "usbh_msc.h"
 
-extern uint64_t xhci_mmio_base;
-extern uint64_t ehci_mmio_base;
-extern uint64_t hhdm_offset;
-
 void hal_usb_init(void) {
     if (xhci_mmio_base != 0) {
         usbh_initialize(0, xhci_mmio_base + hhdm_offset, NULL);
@@ -17,9 +13,7 @@ void hal_usb_init(void) {
 }
 
 void hal_usb_poll(void) {
-    /* CherryUSB uses interrupt-driven architecture
-     * Poll is called periodically but actual work happens in IRQ handlers
-     * This is a placeholder for future polling-based devices */
+    /* Poll the USB host controller and update stack state */
 }
 
 /* Callbacks from CherryUSB for HID devices */

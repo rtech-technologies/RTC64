@@ -1,29 +1,21 @@
-/* Security Hardened Linker Script - RX/RW Separation */
-PHDRS
-{
-    text PT_LOAD FLAGS(5); /* R+E */
-    data PT_LOAD FLAGS(6); /* R+W */
-}
+OUTPUT_FORMAT("elf64-x86-64")
+OUTPUT_ARCH(i386:x86-64)
 
 ENTRY(kernel_main)
 
 SECTIONS
 {
-    /* Code and Constants grouped into RX segment */
+    /* Limine expects kernels to be loaded at this virtual address prefix */
     . = 0xffffffff80000000;
 
     .text : {
         *(.text .text.*)
-    } :text
+    }
 
     .rodata : {
         *(.rodata .rodata.*)
-    } :text
+    }
 
-    /* Align to page boundary to separate RX from RW */
-    . = ALIGN(0x1000);
-
-    /* Writable data grouped into RW segment */
     .data : {
         *(.data .data.*)
 
@@ -31,16 +23,10 @@ SECTIONS
         __usbh_class_info_start__ = .;
         KEEP(*(.usbh_class_info))
         __usbh_class_info_end__ = .;
-    } :data
+    }
 
     .bss : {
         *(.bss .bss.*)
         *(COMMON)
-    } :data
-
-    /DISCARD/ : {
-        *(.note .note.*)
-        *(.comment)
-        *(.eh_frame)
     }
 }
