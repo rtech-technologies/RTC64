@@ -31,4 +31,9 @@
 
 #define USB_NOCACHE_RAM_SECTION
 
+/* OSAL Configuration */
+#define CONFIG_USB_OSAL_THREAD_SET_ARGV void *argument
+#define CONFIG_USB_OSAL_THREAD_GET_ARGV ((uintptr_t)argument)
+#define USB_OSAL_WAITING_FOREVER (0xFFFFFFFFU)
+
 #endif

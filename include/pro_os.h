@@ -38,9 +38,12 @@ typedef struct {
 void scheduler_init(void);
 void scheduler_add_task(const char *name, void (*entry)(void));
 void scheduler_run(void);
+int scheduler_get_task_count(void);
+task_t* scheduler_get_task(int index);
 
 /* VFS */
 void vfs_init(void);
+void vfs_refresh_mounts(void);
 const char* vfs_resolve(const char *path);
 
 /* Security / UAC */
@@ -82,11 +85,19 @@ void hal_malloc_init(void* mem, size_t bytes);
 /* Hardware Driver Interfaces */
 void xhci_init(uint64_t mmio);
 void ehci_init(uint64_t mmio);
-void nvme_init(uint64_t mmio);
-void ahci_init(uint64_t mmio);
+int nvme_init(uint64_t mmio);
+int ahci_init(uint64_t mmio);
+void pci_scan(void);
+
+/* VFS Prototypes */
+int vfs_ls(const char* path, char* out, size_t sz);
+int vfs_cat(const char* path, char* out, size_t sz);
+int vfs_mkdir(const char* path);
+int vfs_write(const char* path, const char* content);
+int vfs_get_mounts(char* out, size_t sz);
+int devmgr_list(char* out, size_t sz);
 
 extern uint64_t hhdm_offset;
-extern uint64_t kernel_phys_offset;
 extern uint64_t xhci_mmio_base;
 extern uint64_t ehci_mmio_base;
 extern uint64_t nvme_mmio_base;
