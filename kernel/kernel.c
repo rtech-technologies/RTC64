@@ -1,4 +1,4 @@
-/* Modified by Sovereign: MEATY Full Version Kernel with Splash, SSE, and Integrated Drivers */
+/* Modified by Sovereign: MEATY High-Power Kernel with Interrupts, APIC, PMM, and Preemptive base */
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
@@ -18,6 +18,11 @@ static volatile struct limine_hhdm_request hhdm_request = {
     .revision = 0
 };
 
+static volatile struct limine_memmap_request memmap_request = {
+    .id = LIMINE_MEMMAP_REQUEST,
+    .revision = 0
+};
+
 uint64_t hhdm_offset = 0;
 
 static float font_get_width(nk_handle handle, float height, const char *text, int len) {
@@ -25,7 +30,6 @@ static float font_get_width(nk_handle handle, float height, const char *text, in
     return (float)len * 8.0f;
 }
 
-/* MEATY: Professional Arrow Bitmap Cursor (8x12) */
 static const uint8_t cursor_bitmap[12] = {
     0b10000000, 0b11000000, 0b11100000, 0b11110000,
     0b11111000, 0b11111100, 0b11111110, 0b11110000,
@@ -42,7 +46,6 @@ void draw_cursor(tgx_canvas_t *canvas, int x, int y) {
     }
 }
 
-/* MEATY: Enable SSE for floating point support in Nuklear/stb_image */
 void init_sse(void) {
     uint64_t cr0, cr4;
     __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
@@ -53,6 +56,9 @@ void init_sse(void) {
     cr4 |= (3 << 9);
     __asm__ volatile("mov %0, %%cr4" : : "r"(cr4));
 }
+
+extern void timer_handler(struct cpu_state* state);
+extern void pmm_init(struct limine_memmap_response* map);
 
 void kernel_main(void) {
     if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
@@ -68,7 +74,18 @@ void kernel_main(void) {
 
     serial_init();
     init_sse();
-    serial_printf("[BOOT] Sovereign MEATY FULL Kernel starting...\n");
+
+    if (memmap_request.response != NULL) {
+        pmm_init(memmap_request.response);
+    }
+
+    gdt_init();
+    idt_init();
+    apic_init();
+    irq_install_handler(32, timer_handler);
+    __asm__ volatile("sti");
+
+    serial_printf("[BOOT] Sovereign HIGH-POWER Kernel starting...\n");
     
     static uint8_t kernel_heap[16 * 1024 * 1024];
     hal_malloc_init(kernel_heap, sizeof(kernel_heap));
@@ -80,20 +97,6 @@ void kernel_main(void) {
     pci_scan();
     hal_storage_finish_init();
     vfs_refresh_mounts();
-
-    /* MEATY: Boot Splash Screen */
-    size_t splash_sz = 0;
-    void* splash_data = vfs_read_file("/mnt/disk0/boot.png", &splash_sz);
-    if (splash_data) {
-        int w, h, ch;
-        unsigned char* img = stbi_load_from_memory(splash_data, (int)splash_sz, &w, &h, &ch, 4);
-        if (img) {
-            /* Center and blit splash */
-            tgx_blit_rect(&canvas, (fb->width - w)/2, (fb->height - h)/2, w, h, 0xFFFFFF);
-            stbi_image_free(img);
-        }
-        free(splash_data);
-    }
 
     extern void system_shell_init(void);
     extern void system_shell_task(void);
@@ -135,7 +138,7 @@ void kernel_main(void) {
         nk_input_end(&ctx);
 
         scheduler_run();
-        ui_render(&ctx, &app, (float)fb->width, (float)fb->height);
+        ui_render(&ctx, &app, fb->width, fb->height);
 
         struct nk_sw_fb sw_fb = { fb->address, fb->width, fb->height, fb->pitch };
         nk_sw_render(&sw_fb, &ctx);

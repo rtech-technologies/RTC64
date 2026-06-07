@@ -1,18 +1,56 @@
-/* Modified by Sovereign: Robust libc-style implementations for freestanding environment */
+/* Modified by Sovereign: Robust libc-style implementations with SSE2 optimized memory operations and 64-bit printing */
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdarg.h>
 
 void* memset(void* s, int c, size_t n) {
-    unsigned char* p = s;
+    uint8_t* p = s;
+    if (n >= 64 && ((uintptr_t)p & 15) == 0) {
+        __asm__ volatile (
+            "movd %1, %%xmm0\n\t"
+            "punpcklbw %%xmm0, %%xmm0\n\t"
+            "punpcklwd %%xmm0, %%xmm0\n\t"
+            "pshufd $0, %%xmm0, %%xmm0\n\t"
+            "1:\n\t"
+            "movdqa %%xmm0, (%0)\n\t"
+            "movdqa %%xmm0, 16(%0)\n\t"
+            "movdqa %%xmm0, 32(%0)\n\t"
+            "movdqa %%xmm0, 48(%0)\n\t"
+            "add $64, %0\n\t"
+            "sub $64, %2\n\t"
+            "cmp $64, %2\n\t"
+            "jae 1b"
+            : "+r"(p) : "r"((int)c), "r"(n) : "memory", "xmm0"
+        );
+        n %= 64;
+    }
     while(n--) *p++ = (unsigned char)c;
     return s;
 }
 
 void* memcpy(void* dest, const void* src, size_t n) {
-    unsigned char* d = dest;
-    const unsigned char* s = src;
+    uint8_t* d = dest;
+    const uint8_t* s = src;
+    if (n >= 64 && ((uintptr_t)d & 15) == 0 && ((uintptr_t)s & 15) == 0) {
+        __asm__ volatile (
+            "1:\n\t"
+            "movdqa (%1), %%xmm0\n\t"
+            "movdqa 16(%1), %%xmm1\n\t"
+            "movdqa 32(%1), %%xmm2\n\t"
+            "movdqa 48(%1), %%xmm3\n\t"
+            "movdqa %%xmm0, (%0)\n\t"
+            "movdqa %%xmm1, 16(%0)\n\t"
+            "movdqa %%xmm2, 32(%0)\n\t"
+            "movdqa %%xmm3, 48(%0)\n\t"
+            "add $64, %0\n\t"
+            "add $64, %1\n\t"
+            "sub $64, %2\n\t"
+            "cmp $64, %2\n\t"
+            "jae 1b"
+            : "+r"(d), "+r"(s), "+r"(n) :: "memory", "xmm0", "xmm1", "xmm2", "xmm3"
+        );
+    }
     while(n--) *d++ = *s++;
     return dest;
 }
@@ -20,34 +58,24 @@ void* memcpy(void* dest, const void* src, size_t n) {
 void* memmove(void* dest, const void* src, size_t n) {
     unsigned char* d = dest;
     const unsigned char* s = src;
-    if (d < s) {
-        while (n--) *d++ = *s++;
-    } else {
-        d += n;
-        s += n;
-        while (n--) *--d = *--s;
-    }
+    if (d < s) { return memcpy(dest, src, n); }
+    else { d += n; s += n; while (n--) *--d = *--s; }
     return dest;
 }
 
 int memcmp(const void* s1, const void* s2, size_t n) {
     const unsigned char *p1 = s1, *p2 = s2;
-    while(n--) {
-        if (*p1 != *p2) return *p1 - *p2;
-        p1++; p2++;
-    }
+    while(n--) { if (*p1 != *p2) return *p1 - *p2; p1++; p2++; }
     return 0;
 }
 
 size_t strlen(const char* s) {
-    size_t len = 0;
-    while(*s++) len++;
+    size_t len = 0; while(*s++) len++;
     return len;
 }
 
 char* strcpy(char* dest, const char* src) {
-    char* d = dest;
-    while((*d++ = *src++));
+    char* d = dest; while((*d++ = *src++));
     return dest;
 }
 
@@ -57,71 +85,44 @@ int strcmp(const char* s1, const char* s2) {
 }
 
 int strncmp(const char* s1, const char* s2, size_t n) {
-    while(n--) {
-        if(*s1 != *s2) return *(unsigned char*)s1 - *(unsigned char*)s2;
-        if(*s1 == 0) break;
-        s1++; s2++;
-    }
+    while(n--) { if(*s1 != *s2) return *(unsigned char*)s1 - *(unsigned char*)s2; if(*s1 == 0) break; s1++; s2++; }
     return 0;
 }
 
 char* strchr(const char* s, int c) {
-    while(*s) {
-        if (*s == (char)c) return (char*)s;
-        s++;
-    }
+    while(*s) { if (*s == (char)c) return (char*)s; s++; }
     if (c == 0) return (char*)s;
     return NULL;
 }
 
 long strtol(const char* nptr, char** endptr, int base) {
-    const char *s = nptr;
-    unsigned long acc;
-    int c;
-    unsigned long cutoff;
-    int neg = 0, any, cutlim;
-
+    const char *s = nptr; unsigned long acc; int c; unsigned long cutoff; int neg = 0, any, cutlim;
     do { c = *s++; } while (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v');
     if (c == '-') { neg = 1; c = *s++; } else if (c == '+') c = *s++;
-    if ((base == 0 || base == 16) && c == '0' && (*s == 'x' || *s == 'X')) {
-        c = s[1]; s += 2; base = 16;
-    }
+    if ((base == 0 || base == 16) && c == '0' && (*s == 'x' || *s == 'X')) { c = s[1]; s += 2; base = 16; }
     if (base == 0) base = c == '0' ? 8 : 10;
-
     cutoff = neg ? -(unsigned long)0x8000000000000000 : 0x7FFFFFFFFFFFFFFF;
-    cutlim = cutoff % (unsigned long)base;
-    cutoff /= (unsigned long)base;
+    cutlim = (int)(cutoff % (unsigned long)base); cutoff /= (unsigned long)base;
     for (acc = 0, any = 0;; c = *s++) {
-        if (c >= '0' && c <= '9') c -= '0';
-        else if (c >= 'A' && c <= 'Z') c -= 'A' - 10;
-        else if (c >= 'a' && c <= 'z') c -= 'a' - 10;
-        else break;
+        if (c >= '0' && c <= '9') c -= '0'; else if (c >= 'A' && c <= 'Z') c -= 'A' - 10; else if (c >= 'a' && c <= 'z') c -= 'a' - 10; else break;
         if (c >= base) break;
         if (any < 0 || acc > cutoff || (acc == cutoff && c > cutlim)) any = -1;
-        else { any = 1; acc *= base; acc += c; }
+        else { any = 1; acc *= (unsigned long)base; acc += (unsigned long)c; }
     }
-    if (any < 0) acc = neg ? 0x8000000000000000 : 0x7FFFFFFFFFFFFFFF;
-    else if (neg) acc = -acc;
+    if (any < 0) acc = neg ? 0x8000000000000000 : 0x7FFFFFFFFFFFFFFF; else if (neg) acc = -acc;
     if (endptr != 0) *endptr = (char *)(any ? s - 1 : nptr);
-    return acc;
+    return (long)acc;
 }
 
 static void reverse(char* s) {
-    int i, j;
-    for (i = 0, j = strlen(s)-1; i<j; i++, j--) {
-        char c = s[i]; s[i] = s[j]; s[j] = c;
-    }
+    int i, j; for (i = 0, j = (int)strlen(s)-1; i<j; i++, j--) { char c = s[i]; s[i] = s[j]; s[j] = c; }
 }
 
-static void itoa_meaty(long n, char* s, int base) {
-    unsigned long num;
-    int i = 0, sign = 0;
-    if (base == 10 && n < 0) { sign = 1; num = (unsigned long)-n; } else { num = (unsigned long)n; }
-    const char *digits = "0123456789abcdef";
-    do { s[i++] = digits[num % base]; } while ((num /= base) > 0);
-    if (sign) s[i++] = '-';
-    s[i] = '\0';
-    reverse(s);
+static void itoa_meaty(unsigned long long n, char* s, int base, bool neg) {
+    int i = 0; const char *digits = "0123456789abcdef";
+    do { s[i++] = digits[n % (unsigned long long)base]; } while ((n /= (unsigned long long)base) > 0);
+    if (neg) s[i++] = '-';
+    s[i] = '\0'; reverse(s);
 }
 
 int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
@@ -129,35 +130,30 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
     while (*format && i < size - 1) {
         if (*format == '%') {
             format++;
-            bool long_mode = false;
-            if (*format == 'l') { long_mode = true; format++; }
+            int long_level = 0;
+            while (*format == 'l') { long_level++; format++; }
 
             if (*format == 's') {
                 const char* s = va_arg(ap, const char*);
                 if (!s) s = "(null)";
                 while (*s && i < size - 1) str[i++] = *s++;
             } else if (*format == 'd' || *format == 'i') {
-                long d = long_mode ? va_arg(ap, long) : va_arg(ap, int);
-                char buf[64]; itoa_meaty(d, buf, 10);
-                const char* s = buf;
-                while (*s && i < size - 1) str[i++] = *s++;
+                long long d = (long_level >= 2) ? va_arg(ap, long long) : (long_level == 1) ? va_arg(ap, long) : va_arg(ap, int);
+                char buf[64]; bool neg = d < 0;
+                itoa_meaty(neg ? (unsigned long long)-d : (unsigned long long)d, buf, 10, neg);
+                const char* s = buf; while (*s && i < size - 1) str[i++] = *s++;
             } else if (*format == 'u') {
-                unsigned long u = long_mode ? va_arg(ap, unsigned long) : va_arg(ap, unsigned int);
-                char buf[64]; itoa_meaty((long)u, buf, 10);
-                const char* s = buf;
-                while (*s && i < size - 1) str[i++] = *s++;
+                unsigned long long u = (long_level >= 2) ? va_arg(ap, unsigned long long) : (long_level == 1) ? va_arg(ap, unsigned long) : va_arg(ap, unsigned int);
+                char buf[64]; itoa_meaty(u, buf, 10, false);
+                const char* s = buf; while (*s && i < size - 1) str[i++] = *s++;
             } else if (*format == 'x' || *format == 'p') {
-                unsigned long x = long_mode ? va_arg(ap, unsigned long) : (unsigned long)va_arg(ap, unsigned int);
-                if (*format == 'p') x = (unsigned long)va_arg(ap, void*);
-                char buf[64]; itoa_meaty((long)x, buf, 16);
-                const char* s = buf;
-                while (*s && i < size - 1) str[i++] = *s++;
-            } else if (*format == '%') {
-                str[i++] = '%';
-            } else { str[i++] = *format; }
-        } else {
-            str[i++] = *format;
-        }
+                unsigned long long x = (long_level >= 2) ? va_arg(ap, unsigned long long) : (long_level == 1) ? va_arg(ap, unsigned long) : (unsigned long long)va_arg(ap, unsigned int);
+                if (*format == 'p') x = (uintptr_t)va_arg(ap, void*);
+                char buf[64]; itoa_meaty((unsigned long long)x, buf, 16, false);
+                const char* s = buf; while (*s && i < size - 1) str[i++] = *s++;
+            } else if (*format == '%') { str[i++] = '%'; }
+            else { str[i++] = *format; }
+        } else { str[i++] = *format; }
         format++;
     }
     str[i] = '\0';
@@ -165,11 +161,11 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
 }
 
 int snprintf(char* str, size_t size, const char* format, ...) {
-    va_list ap; va_start(ap, format);
-    int ret = vsnprintf(str, size, format, ap);
-    va_end(ap);
+    va_list ap; va_start(ap, format); int ret = vsnprintf(str, size, format, ap); va_end(ap);
     return ret;
 }
+
+int abs(int n) { return n < 0 ? -n : n; }
 
 #define NK_IMPLEMENTATION
 #include "pro_os.h"
