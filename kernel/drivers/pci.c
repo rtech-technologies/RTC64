@@ -11,10 +11,8 @@ uint64_t ahci_mmio_base = 0;
 static uint32_t pci_read_config(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset) {
     uint32_t address = (uint32_t)((uint32_t)bus << 16) | ((uint32_t)slot << 11) |
                        ((uint32_t)func << 8) | (offset & 0xFC) | ((uint32_t)0x80000000);
-    __asm__ volatile("outl %0, %1" : : "a"(address), "Nd"(0xCF8));
-    uint32_t val;
-    __asm__ volatile("inl %1, %0" : "=a"(val) : "Nd"(0xCFC));
-    return val;
+    outl(0xCF8, address);
+    return inl(0xCFC);
 }
 
 uint64_t pci_get_bar(uint8_t bus, uint8_t slot, uint8_t func, uint8_t bar_index) {
@@ -49,11 +47,11 @@ void pci_scan(void) {
                 } else if (base_class == 0x01 && sub_class == 0x08 && prog_if == 0x02) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 0);
                     nvme_mmio_base = mmio;
-                    hal_nvme_init(mmio);
+                    nvme_init(mmio);
                 } else if (base_class == 0x01 && sub_class == 0x06 && prog_if == 0x01) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 5);
                     ahci_mmio_base = mmio;
-                    hal_sata_init(mmio);
+                    ahci_init(mmio);
                 }
 
                 if (func == 0) {
