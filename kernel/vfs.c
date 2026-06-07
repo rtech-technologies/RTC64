@@ -1,3 +1,4 @@
+/* Modified by Sovereign: Meaty VFS with deep path translation and binary file support */
 #include "pro_os.h"
 #include "hal.h"
 #include "fatfs/ff.h"
@@ -55,6 +56,7 @@ void vfs_refresh_mounts(void) {
 
 static const char* vfs_translate(const char* path, char* out_drv) {
     if (out_drv) out_drv[0] = '\0';
+    if (!path) return "/";
 
     for (int i = 0; i < mount_count; i++) {
         size_t mnt_len = strlen(mounts[i].mount_point);
@@ -72,6 +74,7 @@ static const char* vfs_translate(const char* path, char* out_drv) {
 }
 
 int vfs_ls(const char* path, char* out, size_t sz) {
+    if (!path || !out) return -1;
     if (strcmp(path, "/mnt") == 0 || strcmp(path, "/mnt/") == 0) {
         int off = 0;
         for (int i = 0; i < mount_count; i++) {
@@ -104,6 +107,7 @@ int vfs_ls(const char* path, char* out, size_t sz) {
 }
 
 int vfs_cat(const char* path, char* out, size_t sz) {
+    if (!path || !out) return -1;
     FIL fil;
     FRESULT res;
     UINT br;
@@ -121,7 +125,31 @@ int vfs_cat(const char* path, char* out, size_t sz) {
     return (int)res;
 }
 
+void* vfs_read_file(const char* path, size_t* out_sz) {
+    if (!path) return NULL;
+    FIL fil;
+    FRESULT res;
+    UINT br;
+    char drv[8] = {0}, fpath[256];
+    const char* translated = vfs_translate(path, drv);
+    snprintf(fpath, sizeof(fpath), "%s%s", drv, translated);
+
+    res = f_open(&fil, fpath, FA_READ);
+    if (res == FR_OK) {
+        FSIZE_t sz = f_size(&fil);
+        void* buf = malloc((size_t)sz);
+        if (buf) {
+            f_read(&fil, buf, (UINT)sz, &br);
+            if (out_sz) *out_sz = (size_t)br;
+        }
+        f_close(&fil);
+        return buf;
+    }
+    return NULL;
+}
+
 int vfs_mkdir(const char* path) {
+    if (!path) return -1;
     char drv[8] = {0}, fpath[256];
     const char* translated = vfs_translate(path, drv);
     snprintf(fpath, sizeof(fpath), "%s%s", drv, translated);
@@ -129,6 +157,7 @@ int vfs_mkdir(const char* path) {
 }
 
 int vfs_write(const char* path, const char* content) {
+    if (!path || !content) return -1;
     FIL fil;
     FRESULT res;
     UINT bw;
@@ -138,7 +167,7 @@ int vfs_write(const char* path, const char* content) {
 
     res = f_open(&fil, fpath, FA_WRITE | FA_CREATE_ALWAYS);
     if (res == FR_OK) {
-        f_write(&fil, content, strlen(content), &bw);
+        f_write(&fil, content, (UINT)strlen(content), &bw);
         f_close(&fil);
         return 0;
     }
@@ -146,6 +175,7 @@ int vfs_write(const char* path, const char* content) {
 }
 
 int vfs_get_mounts(char* out, size_t sz) {
+    if (!out) return -1;
     int off = 0;
     for (int i = 0; i < mount_count; i++) {
         int len = snprintf(out + off, sz - off, "%s -> %s [%s]\n", mounts[i].mount_point, mounts[i].device->name, mounts[i].mounted ? "OK" : "ERR");
@@ -156,11 +186,12 @@ int vfs_get_mounts(char* out, size_t sz) {
 }
 
 int devmgr_list(char* out, size_t sz) {
+    if (!out) return -1;
     int count = hal_storage_get_device_count();
     int off = 0;
     for (int i = 0; i < count; i++) {
         storage_device_t *dev = hal_storage_get_device(i);
-        int len = snprintf(out + off, sz - off, "[Disk %d] %s (%lu blocks)\n", i, dev->name, (unsigned long)dev->total_blocks);
+        int len = snprintf(out + off, sz - off, "[Disk %d] %s (%llu blocks)\n", i, dev->name, (unsigned long long)dev->total_blocks);
         off += len; if (off >= (int)sz - 1) break;
     }
     if (count == 0) snprintf(out, sz, "No hardware detected.");
@@ -168,6 +199,7 @@ int devmgr_list(char* out, size_t sz) {
 }
 
 const char* vfs_resolve(const char *path) {
+    if (!path) return "/";
     static char resolved[256];
     char drv[8] = {0};
     const char *translated = vfs_translate(path, drv);

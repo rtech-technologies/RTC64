@@ -23,6 +23,7 @@ int strcmp(const char* s1, const char* s2);
 int strncmp(const char* s1, const char* s2, size_t n);
 char* strchr(const char* s, int c);
 int snprintf(char* str, size_t size, const char* format, ...);
+int vsnprintf(char* str, size_t size, const char* format, va_list ap);
 
 /* Scheduler / Task Manager */
 #define MAX_TASKS 5
@@ -45,6 +46,7 @@ task_t* scheduler_get_task(int index);
 void vfs_init(void);
 void vfs_refresh_mounts(void);
 const char* vfs_resolve(const char *path);
+void* vfs_read_file(const char* path, size_t* out_sz);
 
 /* Security / UAC */
 typedef struct {

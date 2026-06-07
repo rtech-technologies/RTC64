@@ -1,15 +1,9 @@
+/* Modified by Sovereign: Robust libc-style implementations for freestanding environment */
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdarg.h>
 
-/* Math functions are implemented in math.c */
-extern double pow(double x, double y);
-extern double sqrt(double x);
-extern double sin(double x);
-extern double cos(double x);
-extern double fabs(double x);
-
-/* Core memory implementations for Nuklear and CherryUSB */
 void* memset(void* s, int c, size_t n) {
     unsigned char* p = s;
     while(n--) *p++ = (unsigned char)c;
@@ -34,15 +28,6 @@ void* memmove(void* dest, const void* src, size_t n) {
         while (n--) *--d = *--s;
     }
     return dest;
-}
-
-void* memchr(const void* s, int c, size_t n) {
-    const unsigned char* p = s;
-    while (n--) {
-        if (*p == (unsigned char)c) return (void*)p;
-        p++;
-    }
-    return NULL;
 }
 
 int memcmp(const void* s1, const void* s2, size_t n) {
@@ -90,29 +75,51 @@ char* strchr(const char* s, int c) {
 }
 
 long strtol(const char* nptr, char** endptr, int base) {
-    (void)nptr; (void)endptr; (void)base;
-    return 0;
-}
+    const char *s = nptr;
+    unsigned long acc;
+    int c;
+    unsigned long cutoff;
+    int neg = 0, any, cutlim;
 
-#include <stdarg.h>
+    do { c = *s++; } while (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v');
+    if (c == '-') { neg = 1; c = *s++; } else if (c == '+') c = *s++;
+    if ((base == 0 || base == 16) && c == '0' && (*s == 'x' || *s == 'X')) {
+        c = s[1]; s += 2; base = 16;
+    }
+    if (base == 0) base = c == '0' ? 8 : 10;
+
+    cutoff = neg ? -(unsigned long)0x8000000000000000 : 0x7FFFFFFFFFFFFFFF;
+    cutlim = cutoff % (unsigned long)base;
+    cutoff /= (unsigned long)base;
+    for (acc = 0, any = 0;; c = *s++) {
+        if (c >= '0' && c <= '9') c -= '0';
+        else if (c >= 'A' && c <= 'Z') c -= 'A' - 10;
+        else if (c >= 'a' && c <= 'z') c -= 'a' - 10;
+        else break;
+        if (c >= base) break;
+        if (any < 0 || acc > cutoff || (acc == cutoff && c > cutlim)) any = -1;
+        else { any = 1; acc *= base; acc += c; }
+    }
+    if (any < 0) acc = neg ? 0x8000000000000000 : 0x7FFFFFFFFFFFFFFF;
+    else if (neg) acc = -acc;
+    if (endptr != 0) *endptr = (char *)(any ? s - 1 : nptr);
+    return acc;
+}
 
 static void reverse(char* s) {
     int i, j;
     for (i = 0, j = strlen(s)-1; i<j; i++, j--) {
-        char c = s[i];
-        s[i] = s[j];
-        s[j] = c;
+        char c = s[i]; s[i] = s[j]; s[j] = c;
     }
 }
 
-static void itoa(int n, char* s) {
-    int i, sign;
-    if ((sign = n) < 0) n = -n;
-    i = 0;
-    do {
-        s[i++] = n % 10 + '0';
-    } while ((n /= 10) > 0);
-    if (sign < 0) s[i++] = '-';
+static void itoa_meaty(long n, char* s, int base) {
+    unsigned long num;
+    int i = 0, sign = 0;
+    if (base == 10 && n < 0) { sign = 1; num = (unsigned long)-n; } else { num = (unsigned long)n; }
+    const char *digits = "0123456789abcdef";
+    do { s[i++] = digits[num % base]; } while ((num /= base) > 0);
+    if (sign) s[i++] = '-';
     s[i] = '\0';
     reverse(s);
 }
@@ -122,32 +129,43 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
     while (*format && i < size - 1) {
         if (*format == '%') {
             format++;
-            if (*format == '%') {
-                str[i++] = '%';
-            } else if (*format == 's') {
+            bool long_mode = false;
+            if (*format == 'l') { long_mode = true; format++; }
+
+            if (*format == 's') {
                 const char* s = va_arg(ap, const char*);
+                if (!s) s = "(null)";
                 while (*s && i < size - 1) str[i++] = *s++;
-            } else if (*format == 'd') {
-                int d = va_arg(ap, int);
-                char buf[16];
-                itoa(d, buf);
+            } else if (*format == 'd' || *format == 'i') {
+                long d = long_mode ? va_arg(ap, long) : va_arg(ap, int);
+                char buf[64]; itoa_meaty(d, buf, 10);
                 const char* s = buf;
                 while (*s && i < size - 1) str[i++] = *s++;
-            } else {
-                str[i++] = *format;
-            }
+            } else if (*format == 'u') {
+                unsigned long u = long_mode ? va_arg(ap, unsigned long) : va_arg(ap, unsigned int);
+                char buf[64]; itoa_meaty((long)u, buf, 10);
+                const char* s = buf;
+                while (*s && i < size - 1) str[i++] = *s++;
+            } else if (*format == 'x' || *format == 'p') {
+                unsigned long x = long_mode ? va_arg(ap, unsigned long) : (unsigned long)va_arg(ap, unsigned int);
+                if (*format == 'p') x = (unsigned long)va_arg(ap, void*);
+                char buf[64]; itoa_meaty((long)x, buf, 16);
+                const char* s = buf;
+                while (*s && i < size - 1) str[i++] = *s++;
+            } else if (*format == '%') {
+                str[i++] = '%';
+            } else { str[i++] = *format; }
         } else {
             str[i++] = *format;
         }
         format++;
     }
     str[i] = '\0';
-    return i;
+    return (int)i;
 }
 
 int snprintf(char* str, size_t size, const char* format, ...) {
-    va_list ap;
-    va_start(ap, format);
+    va_list ap; va_start(ap, format);
     int ret = vsnprintf(str, size, format, ap);
     va_end(ap);
     return ret;
@@ -156,4 +174,7 @@ int snprintf(char* str, size_t size, const char* format, ...) {
 #define NK_IMPLEMENTATION
 #include "pro_os.h"
 
-void __assert_fail(const char * assertion, const char * file, unsigned int line, const char * function) { (void)assertion; (void)file; (void)line; (void)function; }
+void __assert_fail(const char * assertion, const char * file, unsigned int line, const char * function) {
+    (void)assertion; (void)file; (void)line; (void)function;
+    while(1) { __asm__("hlt"); }
+}
