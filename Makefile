@@ -59,6 +59,7 @@ kernel/kernel: $(KERNEL_OBJS)
 iso: kernel/kernel
 	mkdir -p iso_root/boot/sys
 	cp kernel/kernel iso_root/boot/sys/kernel.elf
+	cp kernel/limine.conf iso_root/
 	cp kernel/limine.conf iso_root/boot/
 	cp external/limine/limine-bios.sys iso_root/boot/
 	cp external/limine/limine-bios-cd.bin iso_root/boot/
@@ -70,8 +71,8 @@ iso: kernel/kernel
 QEMU = qemu-system-x86_64
 QEMU_FLAGS = -m 512M -cdrom os.iso -boot d -device qemu-xhci -device usb-kbd -device usb-mouse -serial stdio
 
-run: iso
+run: all
 	$(QEMU) $(QEMU_FLAGS) $(EXTRA_QEMU_FLAGS)
 
 clean:
-	rm -rf $(KERNEL_OBJS) kernel/kernel os.iso iso_root/boot/sys/kernel.elf iso_root/boot/limine.conf iso_root/boot/limine-bios.sys iso_root/boot/limine-bios-cd.bin
+	rm -rf $(KERNEL_OBJS) kernel/kernel os.iso iso_root/limine.conf iso_root/boot/sys/kernel.elf iso_root/boot/limine.conf iso_root/boot/limine-bios.sys iso_root/boot/limine-bios-cd.bin
