@@ -1,4 +1,4 @@
-/* Modified by Sovereign: MEATY High-Power Kernel with Interrupts, APIC, PMM, and Preemptive base */
+/* Modified by Sovereign: HIGH-POWER Kernel with 8-Phase Windows-Style Boot Order */
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
@@ -8,22 +8,18 @@
 #include "nk_software_renderer.h"
 #include "serial.h"
 
-volatile struct limine_framebuffer_request framebuffer_request = {
-    .id = LIMINE_FRAMEBUFFER_REQUEST,
-    .revision = 0
-};
-
-static volatile struct limine_hhdm_request hhdm_request = {
-    .id = LIMINE_HHDM_REQUEST,
-    .revision = 0
-};
-
-static volatile struct limine_memmap_request memmap_request = {
-    .id = LIMINE_MEMMAP_REQUEST,
-    .revision = 0
-};
+/* Limine Requests */
+volatile struct limine_framebuffer_request framebuffer_request = { .id = LIMINE_FRAMEBUFFER_REQUEST, .revision = 0 };
+static volatile struct limine_hhdm_request hhdm_request = { .id = LIMINE_HHDM_REQUEST, .revision = 0 };
+static volatile struct limine_memmap_request memmap_request = { .id = LIMINE_MEMMAP_REQUEST, .revision = 0 };
 
 uint64_t hhdm_offset = 0;
+extern void timer_handler(struct cpu_state* state);
+
+/* Environment Manager Data */
+struct nk_context nk_ctx;
+struct app_state os_app;
+struct limine_framebuffer *primary_fb;
 
 static float font_get_width(nk_handle handle, float height, const char *text, int len) {
     (void)handle; (void)height; (void)text;
@@ -57,93 +53,98 @@ void init_sse(void) {
     __asm__ volatile("mov %0, %%cr4" : : "r"(cr4));
 }
 
-extern void timer_handler(struct cpu_state* state);
-extern void pmm_init(struct limine_memmap_response* map);
-
-void kernel_main(void) {
-    if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
-        while (1) { __asm__("hlt"); }
-    }
-
-    if (hhdm_request.response != NULL) {
-        hhdm_offset = hhdm_request.response->offset;
-    }
-
-    struct limine_framebuffer *fb = framebuffer_request.response->framebuffers[0];
-    tgx_canvas_t canvas = { (uint32_t*)fb->address, fb->width, fb->height, fb->pitch };
-
-    serial_init();
-    init_sse();
-
-    if (memmap_request.response != NULL) {
-        pmm_init(memmap_request.response);
-    }
-
-    gdt_init();
-    idt_init();
-    apic_init();
-    irq_install_handler(32, timer_handler);
-    __asm__ volatile("sti");
-
-    serial_printf("[BOOT] Sovereign HIGH-POWER Kernel starting...\n");
-    
-    static uint8_t kernel_heap[16 * 1024 * 1024];
-    hal_malloc_init(kernel_heap, sizeof(kernel_heap));
-
-    hal_storage_init();
-    hal_input_init();
-    scheduler_init();
-    vfs_init();
-    pci_scan();
-    hal_storage_finish_init();
-    vfs_refresh_mounts();
-
-    extern void system_shell_init(void);
-    extern void system_shell_task(void);
-    system_shell_init();
-    scheduler_add_task("System Shell", system_shell_task);
-
-    hal_usb_init();
-
-    struct nk_context ctx;
-    struct nk_user_font font;
-    font.userdata = nk_handle_ptr(0);
-    font.height = 8.0f;
-    font.width = font_get_width;
-
-    nk_init_default(&ctx, &font);
-    ui_init_style(&ctx);
-
-    struct app_state app;
-    memset(&app, 0, sizeof(app));
-    app.current_state = STATE_LOGIN;
-
-    int cursor_x = fb->width / 2;
-    int cursor_y = fb->height / 2;
+/* STEP 8: The Graphics Subsystem and Input Loop Launch (Environment Manager) */
+void environment_manager_entry(void) {
+    tgx_canvas_t canvas = { (uint32_t*)primary_fb->address, primary_fb->width, primary_fb->height, primary_fb->pitch };
+    int cursor_x = primary_fb->width / 2;
+    int cursor_y = primary_fb->height / 2;
 
     while (1) {
         tgx_clear(&canvas, 0x001010);
         hal_usb_poll();
 
         input_event_t ev;
-        nk_input_begin(&ctx);
+        nk_input_begin(&nk_ctx);
         while (hal_input_pop_event(&ev)) {
             if (ev.type == INPUT_TYPE_MOUSE) {
                 cursor_x = ev.mouse.x;
                 cursor_y = ev.mouse.y;
-                nk_input_motion(&ctx, cursor_x, cursor_y);
-                nk_input_button(&ctx, NK_BUTTON_LEFT, cursor_x, cursor_y, (ev.mouse.buttons & 1));
+                nk_input_motion(&nk_ctx, cursor_x, cursor_y);
+                nk_input_button(&nk_ctx, NK_BUTTON_LEFT, cursor_x, cursor_y, (ev.mouse.buttons & 1));
             }
         }
-        nk_input_end(&ctx);
+        nk_input_end(&nk_ctx);
 
-        scheduler_run();
-        ui_render(&ctx, &app, fb->width, fb->height);
-
-        struct nk_sw_fb sw_fb = { fb->address, fb->width, fb->height, fb->pitch };
-        nk_sw_render(&sw_fb, &ctx);
+        ui_render(&nk_ctx, &os_app, primary_fb->width, primary_fb->height);
+        struct nk_sw_fb sw_fb = { primary_fb->address, primary_fb->width, primary_fb->height, primary_fb->pitch };
+        nk_sw_render(&sw_fb, &nk_ctx);
 
         draw_cursor(&canvas, cursor_x, cursor_y);
         __asm__("pause");
+    }
+}
+
+void kernel_main(void) {
+    /* PHASE 0: The Bare-Metal Isolation Layer */
+    __asm__ volatile("cli");
+
+    /* STEP 1: The Bootloader Handoff and Registry Mapping */
+    if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
+        while (1) { __asm__("hlt"); }
+    }
+    if (hhdm_request.response != NULL) {
+        hhdm_offset = hhdm_request.response->offset;
+    }
+    primary_fb = framebuffer_request.response->framebuffers[0];
+    serial_init();
+    init_sse();
+
+    /* STEP 2: The Core Memory Matrix Allocation */
+    if (memmap_request.response != NULL) {
+        pmm_init(memmap_request.response);
+    }
+
+    /* STEP 3: The Critical Kernel Heap Genesis */
+    static uint8_t kernel_heap[16 * 1024 * 1024];
+    hal_malloc_init(kernel_heap, sizeof(kernel_heap));
+
+    /* STEP 4: The Hardware Architecture Frame Setup */
+    gdt_init();
+    idt_init();
+
+    /* PHASE 1: The Executive Subsystem Onboarding */
+    /* STEP 5: The Entropy and Security Activation */
+    apic_init();
+    irq_install_handler(32, timer_handler);
+    __asm__ volatile("sti");
+
+    serial_printf("[BOOT] Sovereign EXECUTIVE SUBSTSTEM ACTIVE\n");
+
+    /* STEP 6: The Hardware Peripheral I/O Probe */
+    hal_input_init();
+    scheduler_init();
+    vfs_init();
+    pci_scan();
+    hal_storage_init();
+    hal_storage_finish_init();
+    vfs_refresh_mounts();
+    hal_usb_init();
+
+    /* USER SPACE: The Environment Management Hand-off */
+    /* STEP 7: The Session Manager Pivot (smss.exe Equivalent) */
+    struct nk_user_font font;
+    font.userdata = nk_handle_ptr(0);
+    font.height = 8.0f;
+    font.width = font_get_width;
+    nk_init_default(&nk_ctx, &font);
+    ui_init_style(&nk_ctx);
+    memset(&os_app, 0, sizeof(os_app));
+    os_app.current_state = STATE_LOGIN;
+
+    scheduler_add_task("Environment Manager", environment_manager_entry);
+
+    /* Hand off to preemptive scheduler loop */
+    while (1) {
+        scheduler_run();
     }
 }

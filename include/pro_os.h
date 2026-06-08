@@ -77,6 +77,7 @@ void kpanic(const char* message);
 void hal_malloc_init(void* mem, size_t bytes);
 size_t hal_malloc_get_used(void);
 size_t hal_malloc_get_total(void);
+void pmm_init(struct limine_memmap_response* map);
 void gdt_init(void);
 void idt_init(void);
 void apic_init(void);
