@@ -84,6 +84,19 @@ void* pmm_alloc(void) {
     return NULL;
 }
 
+void* pmm_alloc_low(void) {
+    uint64_t max_page = 0x100000000ULL / PAGE_SIZE;
+    if (max_page > pmm_total_pages) max_page = pmm_total_pages;
+
+    for (uint64_t i = 0; i < max_page; i++) {
+        if (!pmm_is_used(i)) {
+            pmm_mark_used(i);
+            return (void*)(i * PAGE_SIZE);
+        }
+    }
+    return NULL;
+}
+
 void* pmm_alloc_blocks(size_t count) {
     if (count == 0) return NULL;
     if (count == 1) return pmm_alloc();
@@ -94,6 +107,28 @@ void* pmm_alloc_blocks(size_t count) {
             if (pmm_is_used(i + j)) {
                 found = false;
                 i += j; /* Optimization: skip ahead */
+                break;
+            }
+        }
+        if (found) {
+            for (size_t j = 0; j < count; j++) pmm_mark_used(i + j);
+            return (void*)(i * PAGE_SIZE);
+        }
+    }
+    return NULL;
+}
+
+void* pmm_alloc_blocks_low(size_t count) {
+    if (count == 0) return NULL;
+    uint64_t max_page = 0x100000000ULL / PAGE_SIZE;
+    if (max_page > pmm_total_pages) max_page = pmm_total_pages;
+
+    for (uint64_t i = 0; i < max_page - count; i++) {
+        bool found = true;
+        for (size_t j = 0; j < count; j++) {
+            if (pmm_is_used(i + j)) {
+                found = false;
+                i += j;
                 break;
             }
         }

@@ -1,4 +1,4 @@
-/* Modified by Sovereign: Robust libc-style implementations with SSE2 optimized memory operations and 64-bit printing */
+/* Modified by Sovereign: Professional libc-style implementations with SSE2 optimized memory operations and robust vsnprintf */
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -158,12 +158,19 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
                 const char* s = buf; while (*s && i < size - 1) str[i++] = *s++;
             } else if (*format == 'x' || *format == 'p' || *format == 'X') {
                 unsigned long long x;
-                if (*format == 'p') { x = (uintptr_t)va_arg(ap, void*); if (width == 0) width = 16; if (pad == ' ') pad = '0'; }
-                else { x = (long_level >= 2) ? va_arg(ap, unsigned long long) : (long_level == 1) ? va_arg(ap, unsigned long) : (unsigned long long)va_arg(ap, unsigned int); }
+                char spec = *format;
+                if (spec == 'p') {
+                    x = (uintptr_t)va_arg(ap, void*);
+                    if (width == 0) width = 16;
+                    if (pad == ' ') pad = '0';
+                    // Optional: add 0x prefix if desired, but we'll stick to the requested log style
+                } else {
+                    x = (long_level >= 2) ? va_arg(ap, unsigned long long) : (long_level == 1) ? va_arg(ap, unsigned long) : (unsigned long long)va_arg(ap, unsigned int);
+                }
                 char buf[64]; itoa_meaty(x, buf, 16, false, width, pad);
                 const char* s = buf; while (*s && i < size - 1) {
                     char c = *s++;
-                    if (*format == 'X' && c >= 'a' && c <= 'z') c -= 32;
+                    if (spec == 'X' && c >= 'a' && c <= 'z') c -= 32;
                     str[i++] = c;
                 }
             } else if (*format == '%') { str[i++] = '%'; }

@@ -1,4 +1,4 @@
-/* Modified by Sovereign: Meaty NVMe implementation with Read and Write support and Logging */
+/* Modified by Sovereign: Meaty NVMe implementation with Read/Write and Excessive Logging */
 #include "pro_os.h"
 #include <stdint.h>
 #include <string.h>
@@ -13,7 +13,7 @@
 #define NVME_REG_SQ0TDBL 0x1000
 
 extern uint64_t hhdm_offset;
-extern void* pmm_alloc(void);
+extern void* pmm_alloc_low(void);
 
 typedef struct {
     uint32_t cdw0, nsid, rsvd2, rsvd3, mptr_l, mptr_h, dptr[2], cdw10, cdw11, cdw12, cdw13, cdw14, cdw15;
@@ -24,34 +24,41 @@ static uint64_t nvme_base = 0;
 int nvme_init(uint64_t mmio) {
     if (mmio == 0) return -1;
     nvme_base = mmio + hhdm_offset;
-    serial_printf("[NVME] Initializing controller at %p\n", nvme_base);
+    serial_printf("[NVME] Initializing Controller BAR: %p -> Virtual: %p\n", mmio, nvme_base);
 
     volatile uint32_t* regs = (volatile uint32_t*)nvme_base;
 
-    /* 1. Disable Controller */
+    /* 1. Disable Controller for reset */
+    serial_printf("[NVME] Resetting controller...\n");
     regs[NVME_REG_CC/4] &= ~1;
     int timeout = 0;
     while ((regs[NVME_REG_CSTS/4] & 1) && timeout++ < 1000000) __asm__("pause");
-    if (timeout >= 1000000) { serial_printf("[NVME] Timeout waiting for controller disable\n"); return -1; }
+    if (timeout >= 1000000) { serial_printf("[NVME] FATAL: Timeout waiting for CSTS.RDY == 0\n"); return -1; }
 
-    /* 2. Setup Admin Queues */
-    void* asq = pmm_alloc();
-    void* acq = pmm_alloc();
-    if (asq) memset(asq, 0, 4096);
-    if (acq) memset(acq, 0, 4096);
-    serial_printf("[NVME] Admin Queues: ASQ=%p, ACQ=%p\n", asq, acq);
+    /* 2. Setup Admin Queues (Must be in low 4GB for compatibility, though NVMe supports 64-bit) */
+    void* asq_phys = pmm_alloc_low();
+    void* acq_phys = pmm_alloc_low();
+    if (!asq_phys || !acq_phys) { serial_printf("[NVME] FATAL: Failed to allocate Admin Queues\n"); return -1; }
+
+    void* asq_virt = (void*)((uint64_t)asq_phys + hhdm_offset);
+    void* acq_virt = (void*)((uint64_t)acq_phys + hhdm_offset);
+    memset(asq_virt, 0, 4096);
+    memset(acq_virt, 0, 4096);
+
+    serial_printf("[NVME] Admin Queues allocated: ASQ Phys=%p Virt=%p, ACQ Phys=%p Virt=%p\n", asq_phys, asq_virt, acq_phys, acq_virt);
 
     regs[NVME_REG_AQA/4] = (63 << 16) | 63; /* 64 entries each */
-    *(volatile uint64_t*)&regs[NVME_REG_ASQ/4] = (uint64_t)asq;
-    *(volatile uint64_t*)&regs[NVME_REG_ACQ/4] = (uint64_t)acq;
+    *(volatile uint64_t*)(nvme_base + NVME_REG_ASQ) = (uint64_t)asq_phys;
+    *(volatile uint64_t*)(nvme_base + NVME_REG_ACQ) = (uint64_t)acq_phys;
 
     /* 3. Enable Controller */
+    serial_printf("[NVME] Enabling controller with 4KB page size...\n");
     regs[NVME_REG_CC/4] = (0 << 16) | (0 << 14) | (4 << 11) | (0 << 7) | 1;
     timeout = 0;
     while (!(regs[NVME_REG_CSTS/4] & 1) && timeout++ < 1000000) __asm__("pause");
-    if (timeout >= 1000000) { serial_printf("[NVME] Timeout waiting for controller enable\n"); return -1; }
+    if (timeout >= 1000000) { serial_printf("[NVME] FATAL: Timeout waiting for CSTS.RDY == 1\n"); return -1; }
 
-    serial_printf("[NVME] Controller enabled and ready.\n");
+    serial_printf("[NVME] Executive initialization complete. Ready for I/O.\n");
     return 0;
 }
 
