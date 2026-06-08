@@ -62,13 +62,14 @@ void uac_request_permit(int app_id, const char *action);
 const char* i18n_translate(const char *key);
 
 struct cpu_state {
+    uint8_t fxsave_region[512]; /* 512-byte area for FPU/SSE state */
     uint64_t ds, es, fs, gs;
     uint64_t cr4, cr3, cr2;
     uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
     uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
     uint64_t interrupt_number, error_code;
     uint64_t rip, cs, rflags, rsp, ss;
-};
+} __attribute__((aligned(16)));
 
 void kpanic(const char* message);
 

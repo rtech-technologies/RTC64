@@ -1,4 +1,4 @@
-/* Modified by Sovereign: High-performance ISR stubs with Preemptive Return support */
+/* Modified by Sovereign: High-performance ISR stubs with Preemptive Return and SSE/FPU State support */
 .extern exception_handler
 .extern scheduler_switch
 
@@ -109,8 +109,14 @@ isr_common:
     movw %ds, %ax
     pushq %rax
 
+    subq $512, %rsp
+    fxsave (%rsp)
+
     movq %rsp, %rdi
     call exception_handler
+
+    fxrstor (%rsp)
+    addq $512, %rsp
 
     popq %rax
     movw %ax, %ds
@@ -180,6 +186,9 @@ irq_common:
     movw %ds, %ax
     pushq %rax
 
+    subq $512, %rsp
+    fxsave (%rsp)
+
     movq %rsp, %rdi
     call exception_handler
 
@@ -187,6 +196,9 @@ irq_common:
     movq %rsp, %rdi
     call scheduler_switch
     movq %rax, %rsp
+
+    fxrstor (%rsp)
+    addq $512, %rsp
 
     popq %rax
     movw %ax, %ds

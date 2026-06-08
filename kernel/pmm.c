@@ -1,4 +1,4 @@
-/* Modified by Sovereign: Meaty Physical Memory Manager with Bitmap-based Page Allocation */
+/* Modified by Sovereign: Meaty Physical Memory Manager with Bitmap-based Page Allocation and Multi-block support */
 #include "pro_os.h"
 #include <string.h>
 
@@ -6,6 +6,7 @@
 static uint64_t* pmm_bitmap = NULL;
 static uint64_t  pmm_total_pages = 0;
 static uint64_t  pmm_bitmap_size = 0;
+static uint64_t  pmm_last_alloc = 0;
 
 void pmm_init(struct limine_memmap_response* map) {
     uint64_t top_address = 0;
@@ -43,16 +44,72 @@ void pmm_init(struct limine_memmap_response* map) {
     }
 }
 
+static void pmm_mark_used(uint64_t page) {
+    pmm_bitmap[page / 64] |= (1ULL << (page % 64));
+}
+
+static void pmm_mark_free(uint64_t page) {
+    pmm_bitmap[page / 64] &= ~(1ULL << (page % 64));
+}
+
+static bool pmm_is_used(uint64_t page) {
+    return (pmm_bitmap[page / 64] & (1ULL << (page % 64))) != 0;
+}
+
 void* pmm_alloc(void) {
-    for (uint64_t i = 0; i < pmm_bitmap_size; i++) {
-        if (pmm_bitmap[i] != 0xFFFFFFFFFFFFFFFFULL) {
-            for (int j = 0; j < 64; j++) {
-                if (!(pmm_bitmap[i] & (1ULL << j))) {
-                    pmm_bitmap[i] |= (1ULL << j);
-                    return (void*)((i * 64 + j) * PAGE_SIZE);
-                }
-            }
+    for (uint64_t i = pmm_last_alloc; i < pmm_total_pages; i++) {
+        if (!pmm_is_used(i)) {
+            pmm_mark_used(i);
+            pmm_last_alloc = i;
+            return (void*)(i * PAGE_SIZE);
+        }
+    }
+    /* Wrap around */
+    for (uint64_t i = 0; i < pmm_last_alloc; i++) {
+        if (!pmm_is_used(i)) {
+            pmm_mark_used(i);
+            pmm_last_alloc = i;
+            return (void*)(i * PAGE_SIZE);
         }
     }
     return NULL;
+}
+
+void* pmm_alloc_blocks(size_t count) {
+    if (count == 0) return NULL;
+    if (count == 1) return pmm_alloc();
+
+    for (uint64_t i = 0; i < pmm_total_pages - count; i++) {
+        bool found = true;
+        for (size_t j = 0; j < count; j++) {
+            if (pmm_is_used(i + j)) {
+                found = false;
+                i += j; /* Optimization: skip ahead */
+                break;
+            }
+        }
+        if (found) {
+            for (size_t j = 0; j < count; j++) pmm_mark_used(i + j);
+            return (void*)(i * PAGE_SIZE);
+        }
+    }
+    return NULL;
+}
+
+void pmm_free(void* addr) {
+    if (!addr) return;
+    uint64_t page = (uint64_t)addr / PAGE_SIZE;
+    if (page < pmm_total_pages) {
+        pmm_mark_free(page);
+    }
+}
+
+void pmm_free_blocks(void* addr, size_t count) {
+    if (!addr) return;
+    uint64_t start_page = (uint64_t)addr / PAGE_SIZE;
+    for (size_t i = 0; i < count; i++) {
+        if (start_page + i < pmm_total_pages) {
+            pmm_mark_free(start_page + i);
+        }
+    }
 }

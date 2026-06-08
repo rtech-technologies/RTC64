@@ -185,16 +185,35 @@ int vfs_get_mounts(char* out, size_t sz) {
     return 0;
 }
 
+extern int pci_get_device_count(void);
+extern int pci_get_device_info(int index, char* buf, size_t sz);
+
 int devmgr_list(char* out, size_t sz) {
     if (!out) return -1;
-    int count = hal_storage_get_device_count();
     int off = 0;
+
+    /* Storage Devices */
+    int count = hal_storage_get_device_count();
+    off += snprintf(out + off, sz - off, "--- Storage Devices ---\n");
     for (int i = 0; i < count; i++) {
         storage_device_t *dev = hal_storage_get_device(i);
         int len = snprintf(out + off, sz - off, "[Disk %d] %s (%llu blocks)\n", i, dev->name, (unsigned long long)dev->total_blocks);
         off += len; if (off >= (int)sz - 1) break;
     }
-    if (count == 0) snprintf(out, sz, "No hardware detected.");
+
+    /* PCI Devices */
+    if (off < (int)sz - 32) {
+        int pci_count = pci_get_device_count();
+        off += snprintf(out + off, sz - off, "\n--- PCI Hardware ---\n");
+        for (int i = 0; i < pci_count; i++) {
+            char pci_info[64];
+            pci_get_device_info(i, pci_info, sizeof(pci_info));
+            int len = snprintf(out + off, sz - off, "[PCI %d] %s\n", i, pci_info);
+            off += len; if (off >= (int)sz - 1) break;
+        }
+    }
+
+    if (off == 0) snprintf(out, sz, "No hardware detected.");
     return 0;
 }
 
