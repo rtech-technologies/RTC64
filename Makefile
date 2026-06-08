@@ -60,10 +60,10 @@ iso: kernel/kernel
 	mkdir -p iso_root/boot/sys
 	cp kernel/kernel iso_root/boot/sys/kernel.elf
 	# Modern and Legacy config support at root and /boot/
-	cp kernel/limine.conf iso_root/limine.conf
-	cp kernel/limine.conf iso_root/limine.cfg
-	cp kernel/limine.conf iso_root/boot/limine.conf
-	cp kernel/limine.conf iso_root/boot/limine.cfg
+	cp kernel/limine.cfg iso_root/limine.conf
+	cp kernel/limine.cfg iso_root/limine.cfg
+	cp kernel/limine.cfg iso_root/boot/limine.conf
+	cp kernel/limine.cfg iso_root/boot/limine.cfg
 	cp external/limine/limine-bios.sys iso_root/boot/
 	cp external/limine/limine-bios-cd.bin iso_root/boot/
 	xorriso -as mkisofs -b boot/limine-bios-cd.bin \

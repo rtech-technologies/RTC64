@@ -55,10 +55,10 @@ ld -nostdlib -static -m elf_x86_64 -z max-page-size=0x1000 -T kernel/linker.ld k
 mkdir -p iso_root/boot/sys
 cp kernel/kernel iso_root/boot/sys/kernel.elf
 # Modern and Legacy config support at root and /boot/
-cp kernel/limine.conf iso_root/limine.conf
-cp kernel/limine.conf iso_root/limine.cfg
-cp kernel/limine.conf iso_root/boot/limine.conf
-cp kernel/limine.conf iso_root/boot/limine.cfg
+cp kernel/limine.cfg iso_root/limine.conf
+cp kernel/limine.cfg iso_root/limine.cfg
+cp kernel/limine.cfg iso_root/boot/limine.conf
+cp kernel/limine.cfg iso_root/boot/limine.cfg
 cp external/limine/limine-bios.sys iso_root/boot/
 cp external/limine/limine-bios-cd.bin iso_root/boot/
 xorriso -as mkisofs -b boot/limine-bios-cd.bin \
@@ -69,7 +69,7 @@ xorriso 1.5.6 : RockRidge filesystem manipulator, libburnia project.
 Drive current: -outdev 'stdio:os.iso'
 Media current: stdio file, overwriteable
 Media status : is blank
-Media summary: 0 sessions, 0 data blocks, 0 data, 92.7g free
+Media summary: 0 sessions, 0 data blocks, 0 data, 92.6g free
 Added to ISO image: directory '/'='/app/iso_root'
 xorriso : UPDATE :       9 files added in 1 seconds
 xorriso : UPDATE :       9 files added in 1 seconds
