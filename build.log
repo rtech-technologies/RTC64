@@ -54,8 +54,11 @@ gcc -Wall -Wextra -std=c11 -ffreestanding -fno-stack-protector -fno-stack-check 
 ld -nostdlib -static -m elf_x86_64 -z max-page-size=0x1000 -T kernel/linker.ld kernel/kernel.o src/app_ui.o src/chell.o src/lab.o src/installer.o kernel/nuklear_kernel_impl.o kernel/stb_image_impl.o src/nk_software_renderer.o kernel/syscall.o kernel/sys_shell.o kernel/usb_osal.o kernel/usb_hal_ports.o kernel/storage.o kernel/input.o kernel/usb_hal.o kernel/vfs.o kernel/scheduler.o kernel/serial.o kernel/i18n.o kernel/uac_policy.o kernel/tgx_impl.o kernel/tlsf_impl.o kernel/math.o kernel/panic.o kernel/gdt.o kernel/interrupts.o kernel/isr_stubs.o kernel/apic.o kernel/pmm.o kernel/malloc_glue.o kernel/storage_hal.o kernel/panic_hal.o kernel/diskio_impl.o kernel/ffsystem_impl.o kernel/fatfs/ff.o kernel/fatfs/ffunicode.o kernel/drivers/pci.o kernel/drivers/xhci.o kernel/drivers/ehci.o kernel/drivers/nvme.o kernel/drivers/ahci.o kernel/drivers/ramdisk.o kernel/drivers/rtc.o external/CherryUSB/core/usbd_core.o external/CherryUSB/core/usbh_core.o external/CherryUSB/class/msc/usbh_msc.o external/CherryUSB/class/hid/usbh_hid.o external/CherryUSB/class/hub/usbh_hub.o external/CherryUSB/port/ehci/usb_hc_ehci.o -o kernel/kernel
 mkdir -p iso_root/boot/sys
 cp kernel/kernel iso_root/boot/sys/kernel.elf
-cp kernel/limine.conf iso_root/
-cp kernel/limine.conf iso_root/boot/
+# Modern and Legacy config support at root and /boot/
+cp kernel/limine.conf iso_root/limine.conf
+cp kernel/limine.conf iso_root/limine.cfg
+cp kernel/limine.conf iso_root/boot/limine.conf
+cp kernel/limine.conf iso_root/boot/limine.cfg
 cp external/limine/limine-bios.sys iso_root/boot/
 cp external/limine/limine-bios-cd.bin iso_root/boot/
 xorriso -as mkisofs -b boot/limine-bios-cd.bin \
@@ -68,10 +71,10 @@ Media current: stdio file, overwriteable
 Media status : is blank
 Media summary: 0 sessions, 0 data blocks, 0 data, 92.7g free
 Added to ISO image: directory '/'='/app/iso_root'
-xorriso : UPDATE :       7 files added in 1 seconds
-xorriso : UPDATE :       7 files added in 1 seconds
-ISO image produced: 528 sectors
-Written to medium : 528 sectors at LBA 0
+xorriso : UPDATE :       9 files added in 1 seconds
+xorriso : UPDATE :       9 files added in 1 seconds
+ISO image produced: 530 sectors
+Written to medium : 530 sectors at LBA 0
 Writing to 'stdio:os.iso' completed successfully.
 
 ./external/limine/limine bios-install os.iso
