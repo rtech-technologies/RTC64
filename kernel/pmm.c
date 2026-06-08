@@ -1,6 +1,7 @@
 /* Modified by Sovereign: Meaty Physical Memory Manager with Bitmap-based Page Allocation and Multi-block support */
 #include "pro_os.h"
 #include <string.h>
+#include "serial.h"
 
 #define PAGE_SIZE 4096
 static uint64_t* pmm_bitmap = NULL;
@@ -10,15 +11,21 @@ static uint64_t  pmm_last_alloc = 0;
 
 void pmm_init(struct limine_memmap_response* map) {
     uint64_t top_address = 0;
+    uint64_t usable_memory = 0;
+
     for (uint64_t i = 0; i < map->entry_count; i++) {
         struct limine_memmap_entry* en = map->entries[i];
         if (en->type == LIMINE_MEMMAP_USABLE) {
             if (en->base + en->length > top_address) top_address = en->base + en->length;
+            usable_memory += en->length;
         }
     }
 
     pmm_total_pages = top_address / PAGE_SIZE;
     pmm_bitmap_size = (pmm_total_pages / 64) + 1;
+
+    serial_printf("[PMM] Total detected memory top: %p\n", top_address);
+    serial_printf("[PMM] Usable memory: %d MB\n", (int)(usable_memory / (1024 * 1024)));
 
     /* Find a spot for the bitmap */
     for (uint64_t i = 0; i < map->entry_count; i++) {
@@ -28,6 +35,7 @@ void pmm_init(struct limine_memmap_response* map) {
             memset(pmm_bitmap, 0xFF, pmm_bitmap_size * 8); /* Mark all as used initially */
             en->base += pmm_bitmap_size * 8;
             en->length -= pmm_bitmap_size * 8;
+            serial_printf("[PMM] Bitmap placed at %p (Size: %d bytes)\n", pmm_bitmap, (int)(pmm_bitmap_size * 8));
             break;
         }
     }
@@ -42,6 +50,7 @@ void pmm_init(struct limine_memmap_response* map) {
             }
         }
     }
+    serial_printf("[PMM] Physical memory management active.\n");
 }
 
 static void pmm_mark_used(uint64_t page) {

@@ -1,6 +1,7 @@
  #include <stdint.h>
 #include <stddef.h>
 #include "pro_os.h"
+#include "serial.h"
 
 /* ========================================================================= */
 /* 1. ARCHITECTURAL ASSEMBLY STUBS (NATIVE HOOKS)                            */
@@ -60,13 +61,13 @@ __asm__(
 
     "    /* Capture Segment Registers */\n"
     "    xorq %rax, %rax\n"
-    "    movw %ds, %ax\n"
-    "    pushq %rax\n"
-    "    movw %es, %ax\n"
+    "    movw %gs, %ax\n"
     "    pushq %rax\n"
     "    movw %fs, %ax\n"
     "    pushq %rax\n"
-    "    movw %gs, %ax\n"
+    "    movw %es, %ax\n"
+    "    pushq %rax\n"
+    "    movw %ds, %ax\n"
     "    pushq %rax\n"
 
     "    /* First parameter for C function (RDI) is current stack pointer */\n"
@@ -255,8 +256,22 @@ static void raw_dec(uint64_t val, char* out) {
 /* ========================================================================= */
 
 void display_panic_screen(const char* message, struct cpu_state* state) {
+    serial_printf("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    serial_printf("!!! KERNEL PANIC: %s\n", message);
+    serial_printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+
+    if (state) {
+        serial_printf("RIP: %p  ERR: %p  VEC: %d\n", state->rip, state->error_code, (int)state->interrupt_number);
+        serial_printf("RAX: %p  RBX: %p  RCX: %p\n", state->rax, state->rbx, state->rcx);
+        serial_printf("RDX: %p  RSI: %p  RDI: %p\n", state->rdx, state->rsi, state->rdi);
+        serial_printf("RBP: %p  RSP: %p  FLG: %p\n", state->rbp, state->rsp, state->rflags);
+        serial_printf("CR2: %p  CR3: %p  CR4: %p\n", state->cr2, state->cr3, state->cr4);
+        serial_printf("CS : %p  DS : %p  SS : %p\n", state->cs, state->ds, state->ss);
+    }
+
     struct panic_framebuffer* fb = get_kernel_framebuffer();
     if (!fb || !fb->address) {
+        serial_printf("[PANIC] Framebuffer unavailable for OSoD. System halted.\n");
         while(1) { __asm__ volatile("cli; hlt"); }
     }
 
@@ -296,6 +311,7 @@ void display_panic_screen(const char* message, struct cpu_state* state) {
 
     if (state == NULL) {
         raw_print(fb, 60, y, "No CPU architecture registers dumped (Software kpanic).", white);
+        serial_printf("ESTATE SECURED. EXECUTION HALTED SAFELY.\n");
         while(1) { __asm__ volatile("cli; hlt"); }
     }
 
@@ -336,6 +352,7 @@ void display_panic_screen(const char* message, struct cpu_state* state) {
     raw_print(fb, 460, y, s_buf, white); y += 60;
 
     raw_print(fb, 40, y, "ESTATE SECURED. EXECUTION HALTED SAFELY.", white);
+    serial_printf("ESTATE SECURED. EXECUTION HALTED SAFELY.\n");
 }
 
 // Master authoritative entry-point routed from your assembly stubs

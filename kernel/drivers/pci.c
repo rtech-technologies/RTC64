@@ -3,6 +3,7 @@
 #include <string.h>
 #include "pro_os.h"
 #include "hal.h"
+#include "serial.h"
 
 uint64_t xhci_mmio_base = 0;
 uint64_t ehci_mmio_base = 0;
@@ -38,6 +39,7 @@ uint64_t pci_get_bar(uint8_t bus, uint8_t slot, uint8_t func, uint8_t bar_index)
 }
 
 void pci_scan(void) {
+    serial_printf("[PCI] Starting system hardware scan...\n");
     g_pci_count = 0;
     memset(g_pci_devices, 0, sizeof(g_pci_devices));
 
@@ -55,6 +57,9 @@ void pci_scan(void) {
                 uint8_t sub_class = (class_rev >> 16) & 0xFF;
                 uint8_t prog_if = (class_rev >> 8) & 0xFF;
 
+                serial_printf("[PCI] Found: %02x:%02x:%d Vendor:%04x Device:%04x Class:%02x\n",
+                             bus, slot, func, vendor, device, base_class);
+
                 if (g_pci_count < MAX_PCI_DEVICES) {
                     g_pci_devices[g_pci_count].vendor = vendor;
                     g_pci_devices[g_pci_count].device = device;
@@ -67,18 +72,22 @@ void pci_scan(void) {
                 if (base_class == 0x0C && sub_class == 0x03 && prog_if == 0x30) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 0);
                     xhci_mmio_base = mmio;
+                    serial_printf("[PCI] xHCI Controller at BAR0: %p\n", mmio);
                     xhci_init(mmio);
                 } else if (base_class == 0x0C && sub_class == 0x03 && prog_if == 0x20) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 0);
                     ehci_mmio_base = mmio;
+                    serial_printf("[PCI] EHCI Controller at BAR0: %p\n", mmio);
                     ehci_init(mmio);
                 } else if (base_class == 0x01 && sub_class == 0x08 && prog_if == 0x02) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 0);
                     nvme_mmio_base = mmio;
+                    serial_printf("[PCI] NVMe Controller at BAR0: %p\n", mmio);
                     nvme_init(mmio);
                 } else if (base_class == 0x01 && sub_class == 0x06 && prog_if == 0x01) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 5);
                     ahci_mmio_base = mmio;
+                    serial_printf("[PCI] AHCI Controller at BAR5: %p\n", mmio);
                     ahci_init(mmio);
                 }
 
@@ -89,6 +98,7 @@ void pci_scan(void) {
             }
         }
     }
+    serial_printf("[PCI] Scan complete. Total devices: %d\n", g_pci_count);
 }
 
 int pci_get_device_count(void) {

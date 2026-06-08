@@ -1,4 +1,4 @@
-/* Modified by Sovereign: HIGH-POWER Kernel with 8-Phase Windows-Style Boot Order */
+/* Modified by Sovereign: HIGH-POWER Kernel with 8-Phase Windows-Style Boot Order and EXCESSIVE LOGGING */
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
@@ -43,6 +43,7 @@ void draw_cursor(tgx_canvas_t *canvas, int x, int y) {
 }
 
 void init_sse(void) {
+    serial_printf("[SSE] Enabling SSE hardware support...\n");
     uint64_t cr0, cr4;
     __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
     cr0 &= ~(1 << 2);
@@ -51,14 +52,17 @@ void init_sse(void) {
     __asm__ volatile("mov %%cr4, %0" : "=r"(cr4));
     cr4 |= (3 << 9);
     __asm__ volatile("mov %0, %%cr4" : : "r"(cr4));
+    serial_printf("[SSE] SSE instructions (XMM) are now active.\n");
 }
 
 /* STEP 8: The Graphics Subsystem and Input Loop Launch (Environment Manager) */
 void environment_manager_entry(void) {
+    serial_printf("[USER] Environment Manager process started.\n");
     tgx_canvas_t canvas = { (uint32_t*)primary_fb->address, primary_fb->width, primary_fb->height, primary_fb->pitch };
     int cursor_x = primary_fb->width / 2;
     int cursor_y = primary_fb->height / 2;
 
+    serial_printf("[USER] Entering GUI loop.\n");
     while (1) {
         tgx_clear(&canvas, 0x001010);
         hal_usb_poll();
@@ -87,40 +91,56 @@ void environment_manager_entry(void) {
 void kernel_main(void) {
     /* PHASE 0: The Bare-Metal Isolation Layer */
     __asm__ volatile("cli");
+    serial_init();
+    serial_printf("\n--- Sovereign RTC64 Boot Sequence ---\n");
+    serial_printf("[PHASE 0] Entering Bare-Metal Isolation Layer.\n");
 
     /* STEP 1: The Bootloader Handoff and Registry Mapping */
+    serial_printf("[STEP 1] Parsing Limine handoff data...\n");
     if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
+        serial_printf("[FATAL] No framebuffer detected. Halting.\n");
         while (1) { __asm__("hlt"); }
     }
     if (hhdm_request.response != NULL) {
         hhdm_offset = hhdm_request.response->offset;
+        serial_printf("[STEP 1] HHDM Offset: %p\n", hhdm_offset);
     }
     primary_fb = framebuffer_request.response->framebuffers[0];
-    serial_init();
+    serial_printf("[STEP 1] Framebuffer: %dx%d, Address: %p\n", primary_fb->width, primary_fb->height, primary_fb->address);
     init_sse();
 
     /* STEP 2: The Core Memory Matrix Allocation */
+    serial_printf("[STEP 2] Initializing Physical Memory Manager...\n");
     if (memmap_request.response != NULL) {
         pmm_init(memmap_request.response);
+    } else {
+        serial_printf("[FATAL] Limine memory map missing.\n");
+        while(1) { __asm__("hlt"); }
     }
 
     /* STEP 3: The Critical Kernel Heap Genesis */
+    serial_printf("[STEP 3] Establishing Kernel Heap (Genesis)...\n");
     static uint8_t kernel_heap[16 * 1024 * 1024];
     hal_malloc_init(kernel_heap, sizeof(kernel_heap));
+    serial_printf("[STEP 3] 16MB Heap allocated at %p\n", kernel_heap);
 
     /* STEP 4: The Hardware Architecture Frame Setup */
+    serial_printf("[STEP 4] Constructing GDT and IDT architecture frames...\n");
     gdt_init();
     idt_init();
+    serial_printf("[STEP 4] Exception handlers mapped.\n");
 
     /* PHASE 1: The Executive Subsystem Onboarding */
+    serial_printf("[PHASE 1] Entering Executive Subsystem Onboarding.\n");
     /* STEP 5: The Entropy and Security Activation */
+    serial_printf("[STEP 5] Activating system timer and unmasking interrupts...\n");
     apic_init();
     irq_install_handler(32, timer_handler);
     __asm__ volatile("sti");
-
-    serial_printf("[BOOT] Sovereign EXECUTIVE SUBSTSTEM ACTIVE\n");
+    serial_printf("[STEP 5] Interrupts enabled. Local APIC timer active.\n");
 
     /* STEP 6: The Hardware Peripheral I/O Probe */
+    serial_printf("[STEP 6] Probing hardware peripheral I/O...\n");
     hal_input_init();
     scheduler_init();
     vfs_init();
@@ -129,9 +149,12 @@ void kernel_main(void) {
     hal_storage_finish_init();
     vfs_refresh_mounts();
     hal_usb_init();
+    serial_printf("[STEP 6] Peripheral stack initialization complete.\n");
 
     /* USER SPACE: The Environment Management Hand-off */
+    serial_printf("[USER] Performing Session Manager Pivot...\n");
     /* STEP 7: The Session Manager Pivot (smss.exe Equivalent) */
+    serial_printf("[STEP 7] Spawning Environment Manager task...\n");
     struct nk_user_font font;
     font.userdata = nk_handle_ptr(0);
     font.height = 8.0f;
@@ -143,6 +166,7 @@ void kernel_main(void) {
 
     scheduler_add_task("Environment Manager", environment_manager_entry);
 
+    serial_printf("[USER] Handoff complete. Switching to scheduler.\n");
     /* Hand off to preemptive scheduler loop */
     while (1) {
         scheduler_run();
