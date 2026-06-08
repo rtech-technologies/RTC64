@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdarg.h>
+#include "serial.h"
 
 void* memset(void* s, int c, size_t n) {
     uint8_t* p = s;
@@ -118,10 +119,11 @@ static void reverse(char* s) {
     int i, j; for (i = 0, j = (int)strlen(s)-1; i<j; i++, j--) { char c = s[i]; s[i] = s[j]; s[j] = c; }
 }
 
-static void itoa_meaty(unsigned long long n, char* s, int base, bool neg) {
+static void itoa_meaty(unsigned long long n, char* s, int base, bool neg, int width, char pad) {
     int i = 0; const char *digits = "0123456789abcdef";
     do { s[i++] = digits[n % (unsigned long long)base]; } while ((n /= (unsigned long long)base) > 0);
     if (neg) s[i++] = '-';
+    while (i < width) s[i++] = pad;
     s[i] = '\0'; reverse(s);
 }
 
@@ -130,6 +132,14 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
     while (*format && i < size - 1) {
         if (*format == '%') {
             format++;
+            char pad = ' ';
+            int width = 0;
+            if (*format == '0') { pad = '0'; format++; }
+            while (*format >= '0' && *format <= '9') {
+                width = width * 10 + (*format - '0');
+                format++;
+            }
+
             int long_level = 0;
             while (*format == 'l') { long_level++; format++; }
 
@@ -140,17 +150,22 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
             } else if (*format == 'd' || *format == 'i') {
                 long long d = (long_level >= 2) ? va_arg(ap, long long) : (long_level == 1) ? va_arg(ap, long) : va_arg(ap, int);
                 char buf[64]; bool neg = d < 0;
-                itoa_meaty(neg ? (unsigned long long)-d : (unsigned long long)d, buf, 10, neg);
+                itoa_meaty(neg ? (unsigned long long)-d : (unsigned long long)d, buf, 10, neg, width, pad);
                 const char* s = buf; while (*s && i < size - 1) str[i++] = *s++;
             } else if (*format == 'u') {
                 unsigned long long u = (long_level >= 2) ? va_arg(ap, unsigned long long) : (long_level == 1) ? va_arg(ap, unsigned long) : va_arg(ap, unsigned int);
-                char buf[64]; itoa_meaty(u, buf, 10, false);
+                char buf[64]; itoa_meaty(u, buf, 10, false, width, pad);
                 const char* s = buf; while (*s && i < size - 1) str[i++] = *s++;
-            } else if (*format == 'x' || *format == 'p') {
-                unsigned long long x = (long_level >= 2) ? va_arg(ap, unsigned long long) : (long_level == 1) ? va_arg(ap, unsigned long) : (unsigned long long)va_arg(ap, unsigned int);
-                if (*format == 'p') x = (uintptr_t)va_arg(ap, void*);
-                char buf[64]; itoa_meaty((unsigned long long)x, buf, 16, false);
-                const char* s = buf; while (*s && i < size - 1) str[i++] = *s++;
+            } else if (*format == 'x' || *format == 'p' || *format == 'X') {
+                unsigned long long x;
+                if (*format == 'p') { x = (uintptr_t)va_arg(ap, void*); if (width == 0) width = 16; if (pad == ' ') pad = '0'; }
+                else { x = (long_level >= 2) ? va_arg(ap, unsigned long long) : (long_level == 1) ? va_arg(ap, unsigned long) : (unsigned long long)va_arg(ap, unsigned int); }
+                char buf[64]; itoa_meaty(x, buf, 16, false, width, pad);
+                const char* s = buf; while (*s && i < size - 1) {
+                    char c = *s++;
+                    if (*format == 'X' && c >= 'a' && c <= 'z') c -= 32;
+                    str[i++] = c;
+                }
             } else if (*format == '%') { str[i++] = '%'; }
             else { str[i++] = *format; }
         } else { str[i++] = *format; }
@@ -172,5 +187,6 @@ int abs(int n) { return n < 0 ? -n : n; }
 
 void __assert_fail(const char * assertion, const char * file, unsigned int line, const char * function) {
     (void)assertion; (void)file; (void)line; (void)function;
-    while(1) { __asm__("hlt"); }
+    serial_printf("ASSERTION FAILED: %s at %s:%d\n", assertion, file, line);
+    kpanic("ASSERTION FAILURE");
 }

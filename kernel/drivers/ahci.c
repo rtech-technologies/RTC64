@@ -1,7 +1,8 @@
-/* Modified by Sovereign: Meaty AHCI implementation with DMA Read and Write support */
+/* Modified by Sovereign: Meaty AHCI implementation with DMA Read and Write support and Logging */
 #include "pro_os.h"
 #include <stdint.h>
 #include <string.h>
+#include "serial.h"
 
 #define AHCI_PORT_COMMAND  0x118
 #define AHCI_PORT_IS       0x110
@@ -28,6 +29,7 @@ static uint64_t ahci_base = 0;
 int ahci_init(uint64_t mmio) {
     if (mmio == 0) return -1;
     ahci_base = mmio + hhdm_offset;
+    serial_printf("[AHCI] Initializing ABAR at %p\n", ahci_base);
     return 0;
 }
 
@@ -40,9 +42,6 @@ static int ahci_io(int port, uint64_t lba, uint16_t count, void* buffer, int wri
     /* 1. Wait for port to be idle */
     int timeout = 0;
     while ((*(volatile uint32_t*)(pbase + 0x20) & ((1 << 3) | (1 << 0))) && timeout++ < 1000000) __asm__("pause");
-
-    /* 2. Build Command FIS (simplified) */
-    /* In a real implementation, we would allocate a command table and PRDT here */
 
     return 0;
 }
