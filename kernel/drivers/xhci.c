@@ -45,7 +45,7 @@ void xhci_init(uint64_t mmio) {
         xhci_context_t *ctx = (xhci_context_t *)((uint64_t)phys_ctx + hhdm_offset);
         memset(ctx, 0, 4096);
 
-        uint64_t phys_dcbaa = (uint64_t)phys_ctx; // The DCBAAP is at the start of our allocated page
+        uint64_t phys_dcbaa = (uint64_t)phys_ctx; // Use the physical address directly
         ops64[XHCI_OPS_DCBAAP/8] = phys_dcbaa;
         
         /* 3. Configure Max Slots */
