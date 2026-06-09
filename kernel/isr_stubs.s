@@ -109,6 +109,11 @@ isr_common:
     movw %ds, %ax
     pushq %rax
 
+    /* ALIGN STACK FOR FXSAVE (16-byte boundary) */
+    pushq %rbp
+    movq %rsp, %rbp
+    andq $-16, %rsp
+
     subq $512, %rsp
     fxsave (%rsp)
 
@@ -116,7 +121,9 @@ isr_common:
     call exception_handler
 
     fxrstor (%rsp)
-    addq $512, %rsp
+
+    movq %rbp, %rsp
+    popq %rbp
 
     popq %rax
     movw %ax, %ds
@@ -186,6 +193,11 @@ irq_common:
     movw %ds, %ax
     pushq %rax
 
+    /* ALIGN STACK FOR FXSAVE (16-byte boundary) */
+    pushq %rbp
+    movq %rsp, %rbp
+    andq $-16, %rsp
+
     subq $512, %rsp
     fxsave (%rsp)
 
@@ -198,7 +210,9 @@ irq_common:
     movq %rax, %rsp
 
     fxrstor (%rsp)
-    addq $512, %rsp
+
+    movq %rbp, %rsp
+    popq %rbp
 
     popq %rax
     movw %ax, %ds
