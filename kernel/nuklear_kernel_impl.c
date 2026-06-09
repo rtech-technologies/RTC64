@@ -163,7 +163,6 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
                     x = (uintptr_t)va_arg(ap, void*);
                     if (width == 0) width = 16;
                     if (pad == ' ') pad = '0';
-                    // Optional: add 0x prefix if desired, but we'll stick to the requested log style
                 } else {
                     x = (long_level >= 2) ? va_arg(ap, unsigned long long) : (long_level == 1) ? va_arg(ap, unsigned long) : (unsigned long long)va_arg(ap, unsigned int);
                 }
@@ -174,9 +173,13 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
                     str[i++] = c;
                 }
             } else if (*format == '%') { str[i++] = '%'; }
-            else { str[i++] = *format; }
-        } else { str[i++] = *format; }
-        format++;
+            else {
+                // Skip unrecognized
+            }
+            format++;
+        } else {
+            str[i++] = *format++;
+        }
     }
     str[i] = '\0';
     return (int)i;

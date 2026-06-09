@@ -25,7 +25,7 @@ typedef struct {
 void xhci_init(uint64_t mmio) {
     if (mmio == 0) return;
     uint64_t base = mmio + hhdm_offset;
-    serial_printf("[XHCI] Initializing controller at %p\n", base);
+    serial_printf("[XHCI] Initializing Controller BAR: %p -> Virtual: %p\n", mmio, base);
     
     volatile uint8_t* caps = (volatile uint8_t*)base;
     uint8_t cap_length = caps[XHCI_CAPS_CAPLENGTH];
@@ -42,12 +42,13 @@ void xhci_init(uint64_t mmio) {
     xhci_context_t *ctx = (xhci_context_t *)tlsf_malloc(tlsf_get_global(), sizeof(xhci_context_t));
     if (ctx) {
         memset(ctx, 0, sizeof(xhci_context_t));
-        ops64[XHCI_OPS_DCBAAP/8] = (uint64_t)ctx->dcbaa - hhdm_offset;
+        uint64_t phys_dcbaa = (uint64_t)ctx->dcbaa - hhdm_offset;
+        ops64[XHCI_OPS_DCBAAP/8] = phys_dcbaa;
         
         /* 3. Configure Max Slots */
         uint32_t max_slots = (ops[XHCI_OPS_CONFIG/4] >> 0) & 0xFF;
         ops[XHCI_OPS_CONFIG/4] = (max_slots & 0xFF);
-        serial_printf("[XHCI] Configured %d slots. DCBAAP set to %p\n", max_slots, ops64[XHCI_OPS_DCBAAP/8]);
+        serial_printf("[XHCI] Configured %d slots. DCBAAP set to Phys: %p\n", max_slots, phys_dcbaa);
         
         /* 4. Run Controller */
         ops[XHCI_OPS_USBCMD/4] |= 1; /* RS=1 */

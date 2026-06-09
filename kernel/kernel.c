@@ -88,6 +88,8 @@ void environment_manager_entry(void) {
     }
 }
 
+extern void* pmm_alloc_blocks(size_t count);
+
 void kernel_main(void) {
     /* PHASE 0: The Bare-Metal Isolation Layer */
     __asm__ volatile("cli");
@@ -105,10 +107,10 @@ void kernel_main(void) {
     }
     if (hhdm_request.response != NULL) {
         hhdm_offset = hhdm_request.response->offset;
-        serial_printf("[STEP 1] HHDM Mapping established at: %016p\n", hhdm_offset);
+        serial_printf("[STEP 1] HHDM Mapping established at: %p\n", (void*)hhdm_offset);
     }
     primary_fb = framebuffer_request.response->framebuffers[0];
-    serial_printf("[STEP 1] Framebuffer registered: %dx%d @ %016p\n", primary_fb->width, primary_fb->height, primary_fb->address);
+    serial_printf("[STEP 1] Framebuffer registered: %dx%d @ %p\n", primary_fb->width, primary_fb->height, primary_fb->address);
     init_sse();
 
     /* STEP 2: The Core Memory Matrix Allocation */
@@ -122,9 +124,16 @@ void kernel_main(void) {
 
     /* STEP 3: The Critical Kernel Heap Genesis */
     serial_printf("[STEP 3] Establishing Kernel Heap Genesis (Executive Pool)...\n");
-    static uint8_t kernel_heap[16 * 1024 * 1024];
-    hal_malloc_init(kernel_heap, sizeof(kernel_heap));
-    serial_printf("[STEP 3] Executive Heap (16MB) allocated at: %016p\n", kernel_heap);
+    // Allocate 16MB for the kernel heap from PMM to ensure it's in the Direct Map range
+    size_t heap_pages = (16 * 1024 * 1024) / 4096;
+    void* heap_phys = pmm_alloc_blocks(heap_pages);
+    if (!heap_phys) {
+        serial_printf("[FATAL] Failed to allocate 16MB for Executive Heap.\n");
+        while(1) { __asm__("hlt"); }
+    }
+    void* kernel_heap = (void*)((uint64_t)heap_phys + hhdm_offset);
+    hal_malloc_init(kernel_heap, heap_pages * 4096);
+    serial_printf("[STEP 3] Executive Heap (16MB) allocated at: Phys %p -> Virt %p\n", heap_phys, kernel_heap);
 
     /* STEP 4: The Hardware Architecture Frame Setup */
     serial_printf("[STEP 4] Constructing Global Descriptor and Interrupt Tables...\n");
