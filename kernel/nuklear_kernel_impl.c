@@ -176,10 +176,10 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
             else {
                 // Skip unrecognized
             }
-            format++;
         } else {
-            str[i++] = *format++;
+            str[i++] = *format;
         }
+        format++;
     }
     str[i] = '\0';
     return (int)i;

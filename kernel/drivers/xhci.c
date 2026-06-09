@@ -16,6 +16,7 @@
 
 extern void* tlsf_get_global(void);
 extern uint64_t hhdm_offset;
+extern void* pmm_alloc_low(void);
 
 typedef struct {
     uint64_t dcbaa[XHCI_MAX_SLOTS + 1];
@@ -25,7 +26,7 @@ typedef struct {
 void xhci_init(uint64_t mmio) {
     if (mmio == 0) return;
     uint64_t base = mmio + hhdm_offset;
-    serial_printf("[XHCI] Initializing Controller BAR: %p -> Virtual: %p\n", mmio, base);
+    serial_printf("[XHCI] Initializing Controller BAR: %p -> Virtual: %p\n", (void*)mmio, (void*)base);
     
     volatile uint8_t* caps = (volatile uint8_t*)base;
     uint8_t cap_length = caps[XHCI_CAPS_CAPLENGTH];
@@ -38,17 +39,19 @@ void xhci_init(uint64_t mmio) {
     while ((ops[XHCI_OPS_USBCMD/4] & (1 << 1)) && timeout++ < 1000000) __asm__("pause");
     if (timeout >= 1000000) { serial_printf("[XHCI] Timeout waiting for reset\n"); return; }
 
-    /* 2. Setup Device Context Base Address Array */
-    xhci_context_t *ctx = (xhci_context_t *)tlsf_malloc(tlsf_get_global(), sizeof(xhci_context_t));
-    if (ctx) {
-        memset(ctx, 0, sizeof(xhci_context_t));
+    /* 2. Setup Device Context Base Address Array (Force <4GB for DMA compatibility) */
+    void* phys_ctx = pmm_alloc_low();
+    if (phys_ctx) {
+        xhci_context_t *ctx = (xhci_context_t *)((uint64_t)phys_ctx + hhdm_offset);
+        memset(ctx, 0, 4096); // Assuming PMM hands back 4KB page
+
         uint64_t phys_dcbaa = (uint64_t)ctx->dcbaa - hhdm_offset;
         ops64[XHCI_OPS_DCBAAP/8] = phys_dcbaa;
         
         /* 3. Configure Max Slots */
         uint32_t max_slots = (ops[XHCI_OPS_CONFIG/4] >> 0) & 0xFF;
         ops[XHCI_OPS_CONFIG/4] = (max_slots & 0xFF);
-        serial_printf("[XHCI] Configured %d slots. DCBAAP set to Phys: %p\n", max_slots, phys_dcbaa);
+        serial_printf("[XHCI] Configured %d slots. DCBAAP set to Phys: %p\n", (int)max_slots, (void*)phys_dcbaa);
         
         /* 4. Run Controller */
         ops[XHCI_OPS_USBCMD/4] |= 1; /* RS=1 */
@@ -56,5 +59,7 @@ void xhci_init(uint64_t mmio) {
         timeout = 0;
         while ((ops[XHCI_OPS_USBSTS/4] & 1) && timeout++ < 1000000) __asm__("pause");
         serial_printf("[XHCI] Controller running.\n");
+    } else {
+        serial_printf("[XHCI] FATAL: Failed to allocate low-memory context.\n");
     }
 }
