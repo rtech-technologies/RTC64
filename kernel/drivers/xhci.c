@@ -43,9 +43,9 @@ void xhci_init(uint64_t mmio) {
     void* phys_ctx = pmm_alloc_low();
     if (phys_ctx) {
         xhci_context_t *ctx = (xhci_context_t *)((uint64_t)phys_ctx + hhdm_offset);
-        memset(ctx, 0, 4096); // Assuming PMM hands back 4KB page
+        memset(ctx, 0, 4096);
 
-        uint64_t phys_dcbaa = (uint64_t)ctx->dcbaa - hhdm_offset;
+        uint64_t phys_dcbaa = (uint64_t)phys_ctx; // The DCBAAP is at the start of our allocated page
         ops64[XHCI_OPS_DCBAAP/8] = phys_dcbaa;
         
         /* 3. Configure Max Slots */

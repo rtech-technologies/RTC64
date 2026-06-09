@@ -174,7 +174,7 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
                 }
             } else if (*format == '%') { str[i++] = '%'; }
             else {
-                // Skip unrecognized
+                // skip unrecognized
             }
         } else {
             str[i++] = *format;
