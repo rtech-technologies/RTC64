@@ -4,6 +4,8 @@
 #include "syscall_nums.h"
 #include <stddef.h>
 
+extern int snprintf(char* str, size_t size, const char* format, ...);
+
 /* --- System Dispatch Prototypes --- */
 int syscall_dispatch(int num, const void* a1, void* a2, size_t a3);
 void* syscall_dispatch_ptr(int num, const void* a1, void* a2, size_t a3);

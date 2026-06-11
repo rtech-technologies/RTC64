@@ -25,7 +25,7 @@ void scheduler_add_task(const char *name, void (*entry)(void)) {
 
         /* POWER: Setup initial context on the stack */
         uint64_t stack_top = (uint64_t)&task_stacks[task_count][STACK_SIZE];
-        stack_top &= ~15; /* Ensure 16-byte alignment for fxsave */
+        stack_top &= ~15; /* Ensure 16-byte alignment */
         uint64_t *stack = (uint64_t *)stack_top;
 
         uint64_t current_cr3, current_cr4;
@@ -52,16 +52,19 @@ void scheduler_add_task(const char *name, void (*entry)(void)) {
         *(--stack) = current_cr4;
 
         /* Segments: gs, fs, es, ds */
-        *(--stack) = 0x10; /* gs */
-        *(--stack) = 0x10; /* fs */
-        *(--stack) = 0x10; /* es */
         *(--stack) = 0x10; /* ds */
+        *(--stack) = 0x10; /* es */
+        *(--stack) = 0x10; /* fs */
+        *(--stack) = 0x10; /* gs */
+
+        /* Padding for 16-byte alignment of FXSAVE */
+        *(--stack) = 0;
 
         /* FXSAVE region (512 bytes = 64 uint64_t) */
         for(int i=0; i<64; i++) *(--stack) = 0;
-        /* Initialize MXCSR to default if needed, or just zero it */
+        /* Initialize MXCSR to default */
         uint32_t *mxcsr = (uint32_t *)((uint8_t *)stack + 24);
-        *mxcsr = 0x1F80; /* Default MXCSR value */
+        *mxcsr = 0x1F80;
 
         task_rsps[task_count] = (uint64_t)stack;
         task_count++;

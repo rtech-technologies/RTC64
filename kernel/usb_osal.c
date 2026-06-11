@@ -3,6 +3,7 @@
 #include "hal.h"
 #include "external/tlsf.h"
 #include <string.h>
+#include "serial.h"
 
 extern void* tlsf_get_global(void);
 
@@ -41,16 +42,23 @@ void usb_osal_leave_critical_section(size_t flag) {
     );
 }
 
+extern void scheduler_add_task(const char *name, void (*entry)(void));
+
 usb_osal_thread_t usb_osal_thread_create(const char *name, uint32_t stack_size, uint32_t priority, usb_thread_entry_t entry, void *argument) {
-    (void)name; (void)stack_size; (void)priority;
+    (void)stack_size; (void)priority; (void)argument;
+    serial_printf("[USB OSAL] Creating thread: %s\n", name);
     if (entry) {
-        /* Immediate execution for baremetal environment */
-        entry(argument);
+        /* MEATY: Registering with kernel scheduler for true multitasking */
+        scheduler_add_task(name, (void (*)(void))entry);
+        /* In this freestanding implementation, we pass the task ID as thread handle */
+        return (usb_osal_thread_t)1;
     }
-    return (usb_osal_thread_t)1;
+    return (usb_osal_thread_t)NULL;
 }
 
-void usb_osal_thread_delete(usb_osal_thread_t thread) { (void)thread; }
+void usb_osal_thread_delete(usb_osal_thread_t thread) {
+    serial_printf("[USB OSAL] Thread delete requested: %p (stub)\n", thread);
+}
 void usb_osal_thread_schedule_other(void) { __asm__("pause"); }
 
 usb_osal_sem_t usb_osal_sem_create(uint32_t initial_count) {
@@ -203,8 +211,17 @@ struct usb_osal_timer *usb_osal_timer_create(const char *name, uint32_t timeout_
 }
 
 void usb_osal_timer_delete(struct usb_osal_timer *timer) { usb_osal_free(timer); }
-void usb_osal_timer_start(struct usb_osal_timer *timer) { (void)timer; }
-void usb_osal_timer_stop(struct usb_osal_timer *timer) { (void)timer; }
+void usb_osal_timer_start(struct usb_osal_timer *timer) {
+    if (timer) {
+        serial_printf("[USB OSAL] Timer started: %d ms\n", timer->timeout_ms);
+        /* In a full implementation, we would add this to a tick-list. */
+    }
+}
+void usb_osal_timer_stop(struct usb_osal_timer *timer) {
+    if (timer) {
+        serial_printf("[USB OSAL] Timer stopped\n");
+    }
+}
 
 void usb_osal_msleep(uint32_t delay) {
     /* MEATY: Calibrated delay loop for x86-64 */

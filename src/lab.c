@@ -2,10 +2,14 @@
 #include <string.h>
 #include "app_ui.h"
 
-void lab_init(void* s) { (void)s; }
+void lab_init(void* s) {
+    struct app_state* app = (struct app_state*)s;
+    if (app) app->show_explorer = 1;
+}
 
 void lab_update(struct nk_context* ctx, void* s) {
-    (void)s;
+    struct app_state* app = (struct app_state*)s;
+    (void)app;
     if (nk_begin(ctx, "Sovereign Lab", nk_rect(150, 150, 400, 300), NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_TITLE|NK_WINDOW_CLOSABLE)) {
         nk_layout_row_dynamic(ctx, 30, 1);
         nk_label(ctx, "System Diagnostics", NK_TEXT_LEFT);

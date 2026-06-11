@@ -45,22 +45,34 @@ int usbd_ep_clear_stall(uint8_t busid, uint8_t ep) { (void)busid; (void)ep; retu
 int usbd_ep_set_stall(uint8_t busid, uint8_t ep) { (void)busid; (void)ep; return 0; }
 
 int usbd_ep_start_read(uint8_t busid, uint8_t ep, uint8_t *buffer, uint32_t len) {
-    (void)busid; (void)ep; (void)buffer; (void)len;
+    serial_printf("[USB] EP Read: Bus %d, EP %02x, Len %d\n", busid, ep, len);
+    (void)buffer;
     return 0;
 }
 
 void usbd_ep_start_read_without_zlp(uint8_t busid, uint8_t ep, uint8_t *buffer, uint32_t len) {
-    (void)busid; (void)ep; (void)buffer; (void)len;
+    serial_printf("[USB] EP Read (no ZLP): Bus %d, EP %02x, Len %d\n", busid, ep, len);
+    (void)buffer;
 }
 
 int usbd_ep_start_write(uint8_t busid, uint8_t ep, const uint8_t *buffer, uint32_t len) {
-    (void)busid; (void)ep; (void)buffer; (void)len;
+    serial_printf("[USB] EP Write: Bus %d, EP %02x, Len %d\n", busid, ep, len);
+    (void)buffer;
     return 0;
 }
 
-int usbd_set_remote_wakeup(uint8_t busid) { (void)busid; return 0; }
-int usb_dc_init(uint8_t busid) { (void)busid; return 0; }
-int usb_dc_deinit(uint8_t busid) { (void)busid; return 0; }
+int usbd_set_remote_wakeup(uint8_t busid) {
+    serial_printf("[USB] Remote Wakeup: Bus %d\n", busid);
+    return 0;
+}
+int usb_dc_init(uint8_t busid) {
+    serial_printf("[USB] DC Init: Bus %d\n", busid);
+    return 0;
+}
+int usb_dc_deinit(uint8_t busid) {
+    serial_printf("[USB] DC Deinit: Bus %d\n", busid);
+    return 0;
+}
 
 /* Core system logging - Hooked to native Sovereign serial logger */
 int printf(const char *format, ...) {

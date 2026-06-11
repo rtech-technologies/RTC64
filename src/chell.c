@@ -3,10 +3,14 @@
 #include <string.h>
 #include "app_ui.h"
 
-void chell_init(void* s) { (void)s; }
+void chell_init(void* s) {
+    struct app_state* app = (struct app_state*)s;
+    if (app) app->show_terminal = 1;
+}
 
 void chell_update(struct nk_context* ctx, void* s) {
-    (void)s;
+    struct app_state* app = (struct app_state*)s;
+    (void)app;
     if (nk_begin(ctx, "Chell", nk_rect(50, 50, 600, 450), NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_TITLE|NK_WINDOW_CLOSABLE)) {
         static char output[4096];
         static char cmd[128];
@@ -24,7 +28,7 @@ void chell_update(struct nk_context* ctx, void* s) {
         nk_layout_row_template_end(ctx);
 
         nk_edit_string(ctx, NK_EDIT_FIELD, cmd, &cmd_len, 128, nk_filter_default);
-        if (nk_button_label(ctx, "Run")) {
+        if (nk_button_label(ctx, "Run") || (nk_input_is_key_pressed(&ctx->input, NK_KEY_ENTER))) {
             cmd[cmd_len] = '\0';
             if (strncmp(cmd, "ls ", 3) == 0) {
                 os_vfs_ls(cmd + 3, output, sizeof(output));

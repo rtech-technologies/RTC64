@@ -1,6 +1,7 @@
 /* Modified by Sovereign: Robust 64-bit GDT implementation for High-Power Mode */
 #include <stdint.h>
 #include "pro_os.h"
+#include <string.h>
 
 typedef struct {
     uint16_t limit_low;

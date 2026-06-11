@@ -59,8 +59,8 @@ void idt_init(void) {
 typedef void (*irq_handler_t)(struct cpu_state*);
 static irq_handler_t irq_handlers[256];
 
-void irq_install_handler(int irq, irq_handler_t handler) {
-    irq_handlers[irq] = handler;
+void irq_install_handler(int i, irq_handler_t handler) {
+    irq_handlers[i] = handler;
 }
 
 void exception_handler(struct cpu_state *state) {
@@ -71,6 +71,6 @@ void exception_handler(struct cpu_state *state) {
         return;
     }
     serial_printf("[INTERRUPT] Exception %d, Error: %p, RIP: %p\n",
-                  (int)state->interrupt_number, state->error_code, state->rip);
+                  (int)state->interrupt_number, (void*)state->error_code, (void*)state->rip);
     kpanic("CPU EXCEPTION TRAP");
 }

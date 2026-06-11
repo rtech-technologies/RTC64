@@ -1,6 +1,7 @@
 /* Modified by Sovereign: Meaty APIC and Timer implementation with Uptime tracking */
 #include "pro_os.h"
 #include <stdint.h>
+#include "serial.h"
 
 #define APIC_BASE 0xFEE00000
 #define APIC_EOI   0xB0
@@ -43,8 +44,9 @@ void timer_handler(struct cpu_state* state) {
     apic_eoi();
     g_ticks++;
 
-    uint64_t current_rsp = (uint64_t)state;
-    uint64_t new_rsp = scheduler_switch(current_rsp);
-
-    (void)new_rsp;
+    /* Preemptive context switch is handled by isr_stubs.s common IRQ path
+       The scheduler_switch returns the new stack pointer to isr_stubs.s */
+    if (state->rip == 0) {
+        serial_printf("[APIC] Unexpected architectural state in timer.\n");
+    }
 }

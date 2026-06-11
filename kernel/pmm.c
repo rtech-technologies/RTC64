@@ -24,7 +24,7 @@ void pmm_init(struct limine_memmap_response* map) {
     pmm_total_pages = top_address / PAGE_SIZE;
     pmm_bitmap_size = (pmm_total_pages / 64) + 1;
 
-    serial_printf("[PMM] Total detected memory top: %p\n", top_address);
+    serial_printf("[PMM] Total detected memory top: %p\n", (void*)top_address);
     serial_printf("[PMM] Usable memory: %d MB\n", (int)(usable_memory / (1024 * 1024)));
 
     /* Find a spot for the bitmap */

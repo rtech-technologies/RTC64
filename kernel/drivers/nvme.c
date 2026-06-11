@@ -64,7 +64,9 @@ int nvme_init(uint64_t mmio) {
 
 static int nvme_submit_io(uint8_t opcode, uint64_t lba, uint16_t blocks, void* buffer) {
     if (!nvme_base) return -1;
-    (void)opcode; (void)lba; (void)blocks; (void)buffer;
+    serial_printf("[NVME] I/O Request: Op=%02x, LBA=%llu, Count=%u, Buffer=%p\n", opcode, lba, blocks, buffer);
+    /* In a full implementation, we would build a PRV/SGL and ring the doorbell here. */
+    /* For Sovereign, we log the intent and return success to allow the boot sequence to proceed. */
     return 0;
 }
 

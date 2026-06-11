@@ -35,7 +35,7 @@ int ahci_init(uint64_t mmio) {
 
 static int ahci_io(int port, uint64_t lba, uint16_t count, void* buffer, int write) {
     if (!ahci_base) return -1;
-    (void)lba; (void)count; (void)buffer; (void)write;
+    serial_printf("[AHCI] Port %d I/O: %s LBA=%llu, Count=%u, Buffer=%p\n", port, write ? "WRITE" : "READ", lba, count, buffer);
     /* Meaty DMA implementation */
     volatile uint8_t* pbase = (volatile uint8_t*)(ahci_base + 0x100 + (port * 0x80));
 
