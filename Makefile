@@ -50,6 +50,8 @@ environment:
 kernel/kernel: $(KERNEL_OBJS)
 	$(LD) $(LDFLAGS) $(KERNEL_OBJS) -o kernel/kernel
 
+$(KERNEL_OBJS): environment
+
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
