@@ -53,9 +53,11 @@ kernel/kernel: $(KERNEL_OBJS)
 $(KERNEL_OBJS): environment
 
 %.o: %.c
+	mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 %.o: %.s
+	mkdir -p $(@D)
 	$(CC) $(CFLAGS) -x assembler-with-cpp -c $< -o $@
 
 iso: kernel/kernel
