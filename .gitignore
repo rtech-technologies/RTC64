@@ -12,6 +12,7 @@ external/
 
 # EXCEPTION: Allow tracked fix for 64-bit address truncation in CherryUSB
 !external/CherryUSB/port/ehci/usb_ehci_reg.h
+!external/CherryUSB/port/ehci/usb_hc_ehci.c
 
 # Misc
 nuklear_cherry_usb
