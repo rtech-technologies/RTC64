@@ -66,6 +66,36 @@ char* strcpy(char* dest, const char* src) {
     return dest;
 }
 
+char* strncpy(char* dest, const char* src, size_t n) {
+    size_t i;
+    for (i = 0; i < n && src[i] != '\0'; i++)
+        dest[i] = src[i];
+    for (; i < n; i++)
+        dest[i] = '\0';
+    return dest;
+}
+
+unsigned long strtoul(const char *nptr, char **endptr, int base) {
+    unsigned long res = 0;
+    if (base == 16) {
+        if (nptr[0] == '0' && (nptr[1] == 'x' || nptr[1] == 'X')) nptr += 2;
+        while (*nptr) {
+            char c = *nptr++;
+            res <<= 4;
+            if (c >= '0' && c <= '9') res += (c - '0');
+            else if (c >= 'a' && c <= 'f') res += (c - 'a' + 10);
+            else if (c >= 'A' && c <= 'F') res += (c - 'A' + 10);
+            else break;
+        }
+    } else if (base == 10) {
+        while (*nptr >= '0' && *nptr <= '9') {
+            res = res * 10 + (*nptr++ - '0');
+        }
+    }
+    if (endptr) *endptr = (char *)nptr;
+    return res;
+}
+
 int strcmp(const char* s1, const char* s2) {
     while(*s1 && (*s1 == *s2)) { s1++; s2++; }
     return *(unsigned char*)s1 - *(unsigned char*)s2;
