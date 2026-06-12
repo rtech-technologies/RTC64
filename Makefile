@@ -12,8 +12,6 @@ CFLAGS = -Wall -Wextra -std=c11 -ffreestanding -fno-stack-protector \
          -I./external/CherryUSB/class/hid \
          -I./external/CherryUSB/class/hub \
          -I./external/CherryUSB/class/cdc \
-         -I./external/CherryUSB/class/audio \
-         -I./external/CherryUSB/class/video \
          -include kernel/usb_config.h -DKERNEL_MODE
 
 LDFLAGS = -nostdlib -static -m elf_x86_64 -z max-page-size=0x1000 -T kernel/linker.ld
@@ -35,8 +33,6 @@ KERNEL_OBJS = kernel/kernel.o src/app_ui.o kernel/nuklear_kernel_impl.o \
               external/CherryUSB/class/hub/usbh_hub.o \
               external/CherryUSB/class/cdc/usbh_cdc_ecm.o \
               external/CherryUSB/class/cdc/usbh_cdc_ncm.o \
-              external/CherryUSB/class/audio/usbh_audio.o \
-              external/CherryUSB/class/video/usbh_video.o \
               external/CherryUSB/port/ehci/usb_hc_ehci.o
 
 .PHONY: all clean environment iso run
