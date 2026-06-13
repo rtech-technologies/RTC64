@@ -1,3 +1,4 @@
+/* Modified by Sovereign: Fixed 64-bit pointer truncation */
 /*
  * Copyright (c) 2022, sakumisu
  *
