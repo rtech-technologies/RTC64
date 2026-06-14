@@ -7,20 +7,9 @@ build_sdl/
 *.elf
 kernel/kernel
 
-# External Dependencies (Global ignore)
-external/
-
-# EXCEPTION: Allow tracked CherryUSB core and specific files
+# External Dependencies
+external/*
 !external/CherryUSB/
-!external/CherryUSB/common/
-!external/CherryUSB/common/**
-!external/CherryUSB/core/
-!external/CherryUSB/core/**
-!external/CherryUSB/class/
-!external/CherryUSB/class/**
-!external/CherryUSB/port/
-!external/CherryUSB/port/ehci/
-!external/CherryUSB/port/ehci/**
 
 # Misc
 nuklear_cherry_usb
