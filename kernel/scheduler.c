@@ -130,3 +130,13 @@ task_t* scheduler_get_task(int index) {
     return NULL;
 }
 int scheduler_get_current_task_idx(void) { return current_task_idx; }
+
+uint32_t scheduler_get_current_uaid(void) {
+    if (current_task_idx != -1 && current_task_idx < task_count) return tasks[current_task_idx].uaid;
+    return 0;
+}
+
+uint32_t scheduler_get_current_upid(void) {
+    if (current_task_idx != -1 && current_task_idx < task_count) return tasks[current_task_idx].upid;
+    return 0;
+}

@@ -75,5 +75,9 @@ void exception_handler(struct cpu_state *state) {
     }
     serial_printf("[INTERRUPT] Exception %d, Error: %p, RIP: %p\n",
                   (int)state->interrupt_number, (void*)state->error_code, (void*)state->rip);
-    kpanic("CPU EXCEPTION TRAP");
+
+    /* Sovereign: Connect generic exceptions to the master graphical crash renderer (NEONT SECTION 4) */
+    char exc_msg[64];
+    snprintf(exc_msg, 64, "UNHANDLED_EXCEPTION (Vector %d)", (int)state->interrupt_number);
+    render_bsod_screen(exc_msg, state);
 }

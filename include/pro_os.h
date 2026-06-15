@@ -46,6 +46,8 @@ void scheduler_run(void);
 int scheduler_get_task_count(void);
 task_t* scheduler_get_task(int index);
 int scheduler_get_current_task_idx(void);
+uint32_t scheduler_get_current_uaid(void);
+uint32_t scheduler_get_current_upid(void);
 
 /* System Shell */
 void system_shell_init(void);
