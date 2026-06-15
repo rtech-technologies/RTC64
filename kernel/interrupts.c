@@ -45,9 +45,16 @@ void idt_init(void) {
         idt_set_gate(i, (uint64_t)isr_stub_table[i], 0x08, 0x8E);
     }
 
+    // Map remaining vectors to a safe default (Point 24, 25)
+    extern void isr_stub_39(void); // Using IRQ 7 stub as a safe-ish default for unmapped
+    for (int i = 48; i < 256; i++) {
+        idt_set_gate(i, (uint64_t)isr_stub_39, 0x08, 0x8E);
+    }
+
     // Override critical hardware exceptions with panic gateways
     idt_set_gate(0,  (uint64_t)handler_divide_by_zero, 0x08, 0x8E);
     idt_set_gate(8,  (uint64_t)handler_double_fault,   0x08, 0x8E);
+    idt[8].ist = 1; /* Use IST1 for double fault */
     idt_set_gate(13, (uint64_t)handler_general_protection_fault, 0x08, 0x8E);
     idt_set_gate(14, (uint64_t)handler_page_fault,    0x08, 0x8E);
 
@@ -67,6 +74,9 @@ void exception_handler(struct cpu_state *state) {
     if (state->interrupt_number >= 32) {
         if (irq_handlers[state->interrupt_number]) {
             irq_handlers[state->interrupt_number](state);
+        } else if (state->interrupt_number != 255) {
+            /* Unhandled non-spurious IRQ: Send EOI to prevent interrupt storm (Error 34) */
+            apic_eoi();
         }
         return;
     }

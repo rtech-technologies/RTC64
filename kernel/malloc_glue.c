@@ -16,10 +16,12 @@ void* tlsf_get_global(void) {
 
 /* Redefine malloc etc to use global pool */
 void* malloc(size_t size) {
+    if (!global_tlsf_control) return NULL;
     return tlsf_malloc(global_tlsf_control, size);
 }
 
 void free(void* ptr) {
+    if (!global_tlsf_control || !ptr) return;
     tlsf_free(global_tlsf_control, ptr);
 }
 
@@ -28,6 +30,10 @@ void* realloc(void* ptr, size_t size) {
 }
 
 void* calloc(size_t nmemb, size_t size) {
+    if (nmemb == 0 || size == 0) return NULL;
+    /* Hardening: Check for integer overflow before allocation (Error 94) */
+    if (nmemb > (size_t)-1 / size) return NULL;
+
     void* ptr = malloc(nmemb * size);
     if (ptr) memset(ptr, 0, nmemb * size);
     return ptr;

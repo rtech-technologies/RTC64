@@ -110,6 +110,8 @@ static const uint8_t bsod_font[128][16] = {
 /* =========================================================================
  * 3. BARE-METAL GRAPHICS TEXT RENDER ENGINE
  * ========================================================================= */
+static int panic_nest_level = 0;
+
 static void blit_char(char c, uint32_t x, uint32_t y, struct panic_framebuffer* fb) {
     if ((uint8_t)c >= 128) return;
     uint32_t* base = (uint32_t*)fb->address;
@@ -155,6 +157,12 @@ static void u64_to_hex(uint64_t val, char* out_buf) {
  * 4. THE MASTER GRAPHICAL CRASH RENDERER
  * ========================================================================= */
 void render_bsod_screen(const char* error_title, void* rsp_pointer) {
+    panic_nest_level++;
+    if (panic_nest_level > 1) {
+        serial_printf("\n[DOUBLE PANIC] System halted to prevent triple fault loop.\n");
+        while(1) { __asm__ volatile("cli; hlt"); }
+    }
+
     struct cpu_state_frame* frame = (struct cpu_state_frame*)rsp_pointer;
     struct panic_framebuffer* fb = get_kernel_framebuffer();
 

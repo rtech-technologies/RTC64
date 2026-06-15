@@ -29,7 +29,15 @@ void apic_eoi(void) {
     apic_write(APIC_EOI, 0);
 }
 
+static void apic_spurious_handler(struct cpu_state* state) {
+    (void)state;
+    /* Spurious interrupts do not require EOI */
+}
+
 void apic_init(void) {
+    /* Install spurious handler on vector 255 */
+    irq_install_handler(255, apic_spurious_handler);
+
     apic_write(APIC_SVR, apic_read(APIC_SVR) | 0x1FF);
     apic_write(APIC_TDCR, 0x03);
     apic_write(APIC_TMR, 32 | 0x20000);

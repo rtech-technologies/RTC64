@@ -19,6 +19,10 @@ void hal_storage_finish_init(void) {
 }
 
 int hal_storage_register_device(storage_device_t *dev) {
+    /* Hardening: Validate device structure and required callbacks (Point 96) */
+    if (!dev || !dev->name || !dev->read) {
+        return -1;
+    }
     if (g_storage_device_count >= 16) return -1;
     g_storage_devices[g_storage_device_count++] = dev;
     return 0;

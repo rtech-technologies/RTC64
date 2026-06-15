@@ -13,24 +13,80 @@ typedef struct {
 } __attribute__((packed)) gdt_entry_t;
 
 typedef struct {
+    uint16_t limit_low;
+    uint16_t base_low;
+    uint8_t  base_middle;
+    uint8_t  access;
+    uint8_t  granularity;
+    uint8_t  base_high;
+    uint32_t base_upper;
+    uint32_t reserved;
+} __attribute__((packed)) gdt_tss_entry_t;
+
+typedef struct {
+    uint32_t reserved0;
+    uint64_t rsp0;
+    uint64_t rsp1;
+    uint64_t rsp2;
+    uint64_t reserved1;
+    uint64_t ist1;
+    uint64_t ist2;
+    uint64_t ist3;
+    uint64_t ist4;
+    uint64_t ist5;
+    uint64_t ist6;
+    uint64_t ist7;
+    uint64_t reserved2;
+    uint16_t reserved3;
+    uint16_t iopb_offset;
+} __attribute__((packed)) tss_t;
+
+typedef struct {
     uint16_t limit;
     uint64_t base;
 } __attribute__((packed)) gdt_ptr_t;
 
-static gdt_entry_t gdt[5];
+static struct {
+    gdt_entry_t null;
+    gdt_entry_t kernel_code;
+    gdt_entry_t kernel_data;
+    gdt_entry_t user_code;
+    gdt_entry_t user_data;
+    gdt_tss_entry_t tss;
+} __attribute__((packed)) gdt;
+
 static gdt_ptr_t gdt_ptr;
+static tss_t tss;
+
+static uint8_t double_fault_stack[16384];
 
 void gdt_init(void) {
-    /* Null descriptor */
-    memset(&gdt[0], 0, sizeof(gdt_entry_t));
+    memset(&gdt, 0, sizeof(gdt));
+
     /* Kernel Code 64: Access 0x9A, Granularity 0xAF */
-    gdt[1] = (gdt_entry_t){0, 0, 0, 0x9A, 0xAF, 0};
+    gdt.kernel_code = (gdt_entry_t){0, 0, 0, 0x9A, 0xAF, 0};
     /* Kernel Data 64: Access 0x92, Granularity 0xCF */
-    gdt[2] = (gdt_entry_t){0, 0, 0, 0x92, 0xCF, 0};
+    gdt.kernel_data = (gdt_entry_t){0, 0, 0, 0x92, 0xCF, 0};
     /* User Code 64: Access 0xFA, Granularity 0xAF */
-    gdt[3] = (gdt_entry_t){0, 0, 0, 0xFA, 0xAF, 0};
+    gdt.user_code = (gdt_entry_t){0, 0, 0, 0xFA, 0xAF, 0};
     /* User Data 64: Access 0xF2, Granularity 0xCF */
-    gdt[4] = (gdt_entry_t){0, 0, 0, 0xF2, 0xCF, 0};
+    gdt.user_data = (gdt_entry_t){0, 0, 0, 0xF2, 0xCF, 0};
+
+    /* Setup TSS */
+    memset(&tss, 0, sizeof(tss));
+    uint64_t tss_base = (uint64_t)&tss;
+    uint32_t tss_limit = sizeof(tss) - 1;
+
+    gdt.tss.limit_low = tss_limit & 0xFFFF;
+    gdt.tss.base_low = tss_base & 0xFFFF;
+    gdt.tss.base_middle = (tss_base >> 16) & 0xFF;
+    gdt.tss.access = 0x89; /* Present, TSS type */
+    gdt.tss.granularity = (tss_limit >> 16) & 0x0F;
+    gdt.tss.base_high = (tss_base >> 24) & 0xFF;
+    gdt.tss.base_upper = (tss_base >> 32) & 0xFFFFFFFF;
+
+    /* Setup IST1 for Double Fault (Vector 8) */
+    tss.ist1 = (uint64_t)&double_fault_stack[sizeof(double_fault_stack)];
 
     gdt_ptr.limit = sizeof(gdt) - 1;
     gdt_ptr.base = (uint64_t)&gdt;
@@ -48,6 +104,8 @@ void gdt_init(void) {
         "mov %%ax, %%fs\n\t"
         "mov %%ax, %%gs\n\t"
         "mov %%ax, %%ss\n\t"
+        "mov $0x28, %%ax\n\t"
+        "ltr %%ax\n\t"
         : : "m"(gdt_ptr) : "rax", "memory"
     );
 }

@@ -9,9 +9,23 @@
 #include "serial.h"
 
 /* Limine Requests */
+__attribute__((used, section(".limine_requests")))
+static volatile LIMINE_BASE_REVISION(3);
+
+__attribute__((used, section(".limine_requests")))
 volatile struct limine_framebuffer_request framebuffer_request = { .id = LIMINE_FRAMEBUFFER_REQUEST, .revision = 0 };
+
+__attribute__((used, section(".limine_requests")))
 static volatile struct limine_hhdm_request hhdm_request = { .id = LIMINE_HHDM_REQUEST, .revision = 0 };
+
+__attribute__((used, section(".limine_requests")))
 static volatile struct limine_memmap_request memmap_request = { .id = LIMINE_MEMMAP_REQUEST, .revision = 0 };
+
+__attribute__((used, section(".limine_requests_start")))
+static volatile LIMINE_REQUESTS_START_MARKER
+
+__attribute__((used, section(".limine_requests_end")))
+static volatile LIMINE_REQUESTS_END_MARKER
 
 uint64_t hhdm_offset = 0;
 extern void timer_handler(struct cpu_state* state);
@@ -101,26 +115,31 @@ void kernel_main(void) {
 
     /* STEP 1: The Bootloader Handoff and Registry Mapping */
     serial_printf("[STEP 1] Executing Winload-style handoff from Limine...\n");
+
+    /* Robustness: Ensure essential Limine responses are present (Errors 2, 4) */
     if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
-        serial_printf("[FATAL] Video output device not found. Halting.\n");
+        serial_printf("[FATAL] Video output device not found. Check Limine configuration.\n");
         while (1) { __asm__("hlt"); }
     }
-    if (hhdm_request.response != NULL) {
-        hhdm_offset = hhdm_request.response->offset;
-        serial_printf("[STEP 1] HHDM Mapping established at: %p\n", (void*)hhdm_offset);
+    if (hhdm_request.response == NULL) {
+        serial_printf("[FATAL] HHDM response missing. Architectural memory mapping impossible.\n");
+        while(1) { __asm__("hlt"); }
     }
+    if (memmap_request.response == NULL) {
+        serial_printf("[FATAL] Memory map response missing. PMM initialization aborted.\n");
+        while(1) { __asm__("hlt"); }
+    }
+
+    hhdm_offset = hhdm_request.response->offset;
+    serial_printf("[STEP 1] HHDM Mapping established at: %p\n", (void*)hhdm_offset);
+
     primary_fb = framebuffer_request.response->framebuffers[0];
     serial_printf("[STEP 1] Framebuffer registered: %dx%d @ %p\n", primary_fb->width, primary_fb->height, primary_fb->address);
     init_sse();
 
     /* STEP 2: The Core Memory Matrix Allocation */
     serial_printf("[STEP 2] Building Physical Memory Matrix...\n");
-    if (memmap_request.response != NULL) {
-        pmm_init(memmap_request.response);
-    } else {
-        serial_printf("[FATAL] Architectural memory map unavailable.\n");
-        while(1) { __asm__("hlt"); }
-    }
+    pmm_init(memmap_request.response);
 
     /* STEP 3: The Critical Kernel Heap Genesis */
     serial_printf("[STEP 3] Establishing Kernel Heap Genesis (Executive Pool)...\n");
