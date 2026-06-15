@@ -12,9 +12,6 @@
 #define NVME_REG_ACQ     0x30
 #define NVME_REG_SQ0TDBL 0x1000
 
-extern uint64_t hhdm_offset;
-extern void* pmm_alloc_low(void);
-
 typedef struct {
     uint32_t cdw0, nsid, rsvd2, rsvd3, mptr_l, mptr_h, dptr[2], cdw10, cdw11, cdw12, cdw13, cdw14, cdw15;
 } nvme_cmd_t;

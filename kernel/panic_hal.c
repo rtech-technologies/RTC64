@@ -1,12 +1,5 @@
 #include "pro_os.h"
 
-struct panic_framebuffer {
-    uint64_t address;
-    uint64_t width;
-    uint64_t height;
-    uint64_t pitch;
-};
-
 /* External from kernel.c */
 extern struct limine_framebuffer_request framebuffer_request;
 

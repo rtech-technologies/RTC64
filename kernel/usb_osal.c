@@ -6,8 +6,6 @@
 #include <string.h>
 #include "serial.h"
 
-extern void* tlsf_get_global(void);
-
 typedef struct {
     uint32_t count;
     uint32_t max_count;
@@ -43,14 +41,13 @@ void usb_osal_leave_critical_section(size_t flag) {
     );
 }
 
-extern void scheduler_add_task(const char *name, void (*entry)(void));
-
 usb_osal_thread_t usb_osal_thread_create(const char *name, uint32_t stack_size, uint32_t priority, usb_thread_entry_t entry, void *argument) {
     (void)stack_size; (void)priority; (void)argument;
     serial_printf("[USB OSAL] Creating thread: %s\n", name);
     if (entry) {
         /* MEATY: Registering with kernel scheduler for true multitasking */
-        scheduler_add_task(name, (void (*)(void))entry);
+        /* Sovereign: System tasks for USB are assigned UAID 0, UPID 0 */
+        scheduler_add_task(name, (void (*)(void))entry, 0, 0);
         /* In this freestanding implementation, we pass the task ID as thread handle */
         return (usb_osal_thread_t)1;
     }

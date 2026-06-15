@@ -20,10 +20,10 @@ void scheduler_init(void) {
     task_count = 0;
     current_task_idx = -1;
     /* Add kernel idle task as the absolute fallback */
-    scheduler_add_task("Idle Task", kernel_idle_task);
+    scheduler_add_task("Idle Task", kernel_idle_task, 0, 0);
 }
 
-void scheduler_add_task(const char *name, void (*entry)(void)) {
+void scheduler_add_task(const char *name, void (*entry)(void), uint32_t uaid, uint32_t upid) {
     int slot = -1;
     for (int i = 0; i < MAX_TASKS; i++) {
         if (i < task_count && tasks[i].state == TASK_DEAD) {
@@ -37,6 +37,8 @@ void scheduler_add_task(const char *name, void (*entry)(void)) {
 
     if (slot != -1) {
         tasks[slot].id = slot;
+        tasks[slot].uaid = uaid;
+        tasks[slot].upid = upid;
         tasks[slot].name = name;
         tasks[slot].state = TASK_RUNNING;
         tasks[slot].entry = entry;
@@ -127,3 +129,4 @@ task_t* scheduler_get_task(int index) {
     if (index >= 0 && index < task_count) return &tasks[index];
     return NULL;
 }
+int scheduler_get_current_task_idx(void) { return current_task_idx; }

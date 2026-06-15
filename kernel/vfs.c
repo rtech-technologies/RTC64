@@ -185,9 +185,6 @@ int vfs_get_mounts(char* out, size_t sz) {
     return 0;
 }
 
-extern int pci_get_device_count(void);
-extern int pci_get_device_info(int index, char* buf, size_t sz);
-
 int devmgr_list(char* out, size_t sz) {
     if (!out) return -1;
     int off = 0;

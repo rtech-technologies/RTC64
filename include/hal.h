@@ -85,6 +85,7 @@ int hal_storage_write(storage_device_t* dev, uint64_t sector, const void* buffer
 int hal_nvme_init(uint64_t mmio);
 int hal_sata_init(uint64_t mmio);
 int ramdisk_init(void);
+void* pmm_alloc_low(void);
 
 int nvme_init(uint64_t mmio);
 int ahci_init(uint64_t mmio);
@@ -92,6 +93,7 @@ int ahci_init(uint64_t mmio);
 /* --- USB System --- */
 void hal_usb_init(void);
 void hal_usb_poll(void);
+void USBH_IRQHandler(uint8_t busid);
 
 /* --- RTC System --- */
 void rtc_get_time(int *h, int *m, int *s);

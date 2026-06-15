@@ -28,8 +28,6 @@ typedef struct {
     size_t used_size;
 } tlsf_control_t;
 
-extern void* tlsf_get_global(void);
-
 static void mapping_insert(size_t size, int* fl, int* sl) {
     if (size < MIN_BLOCK_SIZE) {
         *fl = 0;

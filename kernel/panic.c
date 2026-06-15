@@ -15,16 +15,7 @@ struct cpu_state_frame {
     uint64_t rip, cs, rflags, rsp, ss;
 };
 
-struct panic_framebuffer {
-    uint64_t address;
-    uint64_t width;
-    uint64_t height;
-    uint64_t pitch;
-};
-
-extern struct panic_framebuffer* get_kernel_framebuffer(void);
-
-#define BSOD_COLOR_BG       0x002084
+#define BSOD_COLOR_BG       0xFF4500
 #define BSOD_COLOR_TEXT     0xFFFFFF
 
 static uint32_t c_x = 50;
@@ -175,6 +166,14 @@ void render_bsod_screen(const char* error_title, void* rsp_pointer) {
         serial_printf("RAX: %p  RBX: %p  RCX: %p\n", (void*)frame->rax, (void*)frame->rbx, (void*)frame->rcx);
         serial_printf("RDX: %p  RSI: %p  RDI: %p\n", (void*)frame->rdx, (void*)frame->rsi, (void*)frame->rdi);
         serial_printf("RBP: %p  RSP: %p  FLG: %p\n", (void*)frame->rbp, (void*)frame->rsp, (void*)frame->rflags);
+
+        int tid = scheduler_get_current_task_idx();
+        if (tid != -1) {
+            task_t* t = scheduler_get_task(tid);
+            if (t) {
+                serial_printf("UAID: %08X  UPID: %08X  TASK: %s\n", t->uaid, t->upid, t->name);
+            }
+        }
     }
 
     if (!fb || !fb->address) {
@@ -211,6 +210,17 @@ void render_bsod_screen(const char* error_title, void* rsp_pointer) {
         bsod_print("RIP: ", fb); bsod_print(hex_str, fb);
         u64_to_hex(frame->rsp, hex_str);
         bsod_print("  RSP: ", fb); bsod_print(hex_str, fb); bsod_print("\n", fb);
+
+        int tid = scheduler_get_current_task_idx();
+        if (tid != -1) {
+            task_t* t = scheduler_get_task(tid);
+            if (t) {
+                char id_buf[32];
+                bsod_print("UAID: ", fb); u64_to_hex(t->uaid, id_buf); bsod_print(id_buf, fb);
+                bsod_print("  UPID: ", fb); u64_to_hex(t->upid, id_buf); bsod_print(id_buf, fb);
+                bsod_print("\nTASK: ", fb); bsod_print(t->name, fb); bsod_print("\n", fb);
+            }
+        }
     }
 
     bsod_print("\nESTATE SECURED. EXECUTION HALTED SAFELY.", fb);

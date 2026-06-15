@@ -28,7 +28,6 @@ __attribute__((used, section(".limine_requests_end")))
 static volatile LIMINE_REQUESTS_END_MARKER
 
 uint64_t hhdm_offset = 0;
-extern void timer_handler(struct cpu_state* state);
 
 /* Environment Manager Data */
 struct nk_context nk_ctx;
@@ -102,14 +101,12 @@ void environment_manager_entry(void) {
     }
 }
 
-extern void* pmm_alloc_blocks(size_t count);
-
 void kernel_main(void) {
     /* PHASE 0: The Bare-Metal Isolation Layer */
     __asm__ volatile("cli");
     serial_init();
     serial_printf("\n\n#################################################################\n");
-    serial_printf("# Sovereign RTC64 HIGH-POWER Executive Initialization Sequence #\n");
+    serial_printf("# Sovereign RTC64 HIGH-POWER NEONT Executive Initialization #\n");
     serial_printf("#################################################################\n\n");
     serial_printf("[PHASE 0] Entering Bare-Metal Isolation Layer. Interrupts disabled.\n");
 
@@ -182,7 +179,9 @@ void kernel_main(void) {
     serial_printf("[STEP 6] I/O Manager initialized. Hardware start-drivers loaded.\n");
 
     /* USER SPACE: The Environment Management Hand-off */
-    serial_printf("[USER] Performing Session Manager Pivot (smss.exe equivalent)...\n");
+    serial_printf("[PHASE 7] User Land Pivot & Subsystem Startup.\n");
+    serial_printf("[PHASE 7] Activating UAC Security Boundaries (lsass.exe equivalent)...\n");
+
     /* STEP 7: The Session Manager Pivot (smss.exe Equivalent) */
     serial_printf("[STEP 7] Spawning PID 1 (Environment Manager Task)...\n");
     struct nk_user_font font;
@@ -194,13 +193,15 @@ void kernel_main(void) {
     memset(&os_app, 0, sizeof(os_app));
     os_app.current_state = STATE_LOGIN;
 
-    /* Modified by Sovereign: Launch persistent System Shell and Environment Manager */
+    /* Modified by Sovereign: Launch persistent System Shell and Environment Manager with NEONT IDs */
     system_shell_init();
-    scheduler_add_task("System Shell", system_shell_task);
+    /* UAID: 0x00, UPID: 0x01 for System Shell */
+    scheduler_add_task("System Shell", system_shell_task, 0x00, 0x01);
 
-    scheduler_add_task("Environment Manager", environment_manager_entry);
+    /* UAID: 0x01, UPID: 0x01 for Environment Manager (Privileged User Land) */
+    scheduler_add_task("Environment Manager", environment_manager_entry, 0x01, 0x01);
 
-    serial_printf("[USER] Hand-off complete. Relinquishing core control to scheduler.\n");
+    serial_printf("[PHASE 7] Hand-off complete. Relinquishing core control to scheduler.\n");
     /* Hand off to preemptive scheduler loop */
     while (1) {
         scheduler_run();

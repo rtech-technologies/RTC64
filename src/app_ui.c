@@ -12,8 +12,6 @@
 #include "app_ui.h"
 #include "pro_os.h"
 
-extern size_t hal_malloc_get_used(void);
-extern size_t hal_malloc_get_total(void);
 
 void ui_init_style(struct nk_context *ctx)
 {
@@ -112,7 +110,6 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
         nk_end(ctx);
 
         if (app->show_terminal) {
-            extern void chell_update(struct nk_context* ctx, void* s);
             chell_update(ctx, app);
         }
 

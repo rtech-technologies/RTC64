@@ -14,10 +14,6 @@
 #define XHCI_MAX_SLOTS 255
 #define XHCI_MAX_EVENTS 256
 
-extern void* tlsf_get_global(void);
-extern uint64_t hhdm_offset;
-extern void* pmm_alloc_low(void);
-
 typedef struct {
     uint64_t dcbaa[XHCI_MAX_SLOTS + 1];
     uint64_t event_ring[XHCI_MAX_EVENTS];

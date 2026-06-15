@@ -31,23 +31,27 @@ typedef enum { TASK_DEAD, TASK_RUNNING, TASK_SQUEEZED } task_state_t;
 
 typedef struct {
     int id;
+    uint32_t uaid;
+    uint32_t upid;
     const char *name;
     task_state_t state;
     void (*entry)(void);
 } task_t;
 
 void scheduler_init(void);
-void scheduler_add_task(const char *name, void (*entry)(void));
+void scheduler_add_task(const char *name, void (*entry)(void), uint32_t uaid, uint32_t upid);
 void scheduler_remove_task(int task_id);
 uint64_t scheduler_switch(uint64_t current_rsp);
 void scheduler_run(void);
 int scheduler_get_task_count(void);
 task_t* scheduler_get_task(int index);
+int scheduler_get_current_task_idx(void);
 
 /* System Shell */
 void system_shell_init(void);
 void system_shell_task(void);
 void usb_osal_tick_handler(void);
+void* tlsf_get_global(void);
 
 /* VFS */
 void vfs_init(void);
@@ -69,6 +73,15 @@ void uac_set_permit(int app_id, bool net, bool storage);
 /* I18n */
 const char* i18n_translate(const char *key);
 
+struct panic_framebuffer {
+    uint64_t address;
+    uint64_t width;
+    uint64_t height;
+    uint64_t pitch;
+};
+
+struct panic_framebuffer* get_kernel_framebuffer(void);
+
 struct cpu_state {
     uint8_t fxsave_region[512]; /* 512-byte area for FPU/SSE state */
     uint64_t padding; /* 8-byte padding for 16-byte alignment */
@@ -87,6 +100,9 @@ void render_bsod_screen(const char* error_title, void* rsp_pointer);
 void hal_malloc_init(void* mem, size_t bytes);
 size_t hal_malloc_get_used(void);
 size_t hal_malloc_get_total(void);
+size_t hal_malloc_get_used(void);
+void* malloc(size_t size);
+void free(void* ptr);
 void pmm_init(struct limine_memmap_response* map);
 void* pmm_alloc_blocks(size_t count);
 void gdt_init(void);
@@ -118,6 +134,8 @@ int vfs_mkdir(const char* path);
 int vfs_write(const char* path, const char* content);
 int vfs_get_mounts(char* out, size_t sz);
 int devmgr_list(char* out, size_t sz);
+int pci_get_device_count(void);
+int pci_get_device_info(int index, char* buf, size_t sz);
 
 extern uint64_t hhdm_offset;
 extern uint64_t xhci_mmio_base;
