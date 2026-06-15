@@ -106,6 +106,7 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
             nk_layout_row_static(ctx, 60, 60, 4);
             if (nk_button_label(ctx, "Term")) app->show_terminal = 1;
             if (nk_button_label(ctx, "Files")) app->show_explorer = 1;
+            if (nk_button_label(ctx, "Lab")) app->show_explorer = 1;
             if (nk_button_label(ctx, "Setup")) app->show_settings = 1;
         }
         nk_end(ctx);
@@ -116,6 +117,9 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
         }
 
         if (app->show_explorer) {
+            extern void lab_update(struct nk_context* ctx, void* s);
+            lab_update(ctx, app);
+
             if (nk_begin(ctx, "Explorer", nk_rect(150, 150, 500, 350),
                 NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE))
             {
@@ -124,8 +128,10 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
                 int count = hal_storage_get_device_count();
                 for (int i = 0; i < count; i++) {
                     storage_device_t *dev = hal_storage_get_device(i);
-                    nk_layout_row_dynamic(ctx, 30, 1);
-                    nk_label(ctx, dev->name, NK_TEXT_LEFT);
+                    if (dev) {
+                        nk_layout_row_dynamic(ctx, 30, 1);
+                        nk_label(ctx, dev->name, NK_TEXT_LEFT);
+                    }
                 }
             }
             if (nk_window_is_closed(ctx, "Explorer")) app->show_explorer = 0;
