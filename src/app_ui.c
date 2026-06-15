@@ -75,31 +75,9 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
     float wh = (float)window_height;
 
     if (app->current_state == STATE_LOGIN) {
-        if (nk_begin(ctx, "Login", nk_rect(ww/2 - 175, wh/2 - 180, 350, 360),
-            NK_WINDOW_BORDER|NK_WINDOW_NO_SCROLLBAR))
-        {
-            nk_layout_row_dynamic(ctx, 80, 1);
-            nk_label(ctx, "[ AVATAR ]", NK_TEXT_CENTERED);
-
-            nk_layout_row_dynamic(ctx, 30, 1);
-            nk_label(ctx, "Sovereign User", NK_TEXT_CENTERED);
-
-            nk_layout_row_dynamic(ctx, 30, 1);
-            nk_spacer(ctx);
-
-            nk_layout_row_dynamic(ctx, 30, 1);
-            nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, app->password, sizeof(app->password), nk_filter_default);
-
-            nk_layout_row_dynamic(ctx, 40, 1);
-            if (nk_button_label(ctx, i18n_translate("login"))) app->current_state = STATE_INSTALLER;
-
-            nk_layout_row_dynamic(ctx, 30, 1);
-            nk_spacer(ctx);
-
-            nk_layout_row_static(ctx, 30, 80, 1);
-            if (nk_button_label(ctx, "Power")) { }
-        }
-        nk_end(ctx);
+        /* Modified by Sovereign: Boot directly into a simplified WinPE-style Recovery Environment */
+        app->current_state = STATE_DESKTOP;
+        app->show_terminal = 1;
     } else if (app->current_state == STATE_INSTALLER) {
         if (nk_begin(ctx, "Installer", nk_rect(ww/2 - 250, wh/2 - 200, 500, 400),
             NK_WINDOW_BORDER|NK_WINDOW_NO_SCROLLBAR|NK_WINDOW_TITLE))

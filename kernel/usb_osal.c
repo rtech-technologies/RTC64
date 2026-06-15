@@ -1,4 +1,5 @@
 /* Modified by Sovereign: Robust OSAL implementation for CherryUSB with interrupt-safe critical sections */
+#include "pro_os.h"
 #include "usb_osal.h"
 #include "hal.h"
 #include "external/tlsf.h"
@@ -57,7 +58,10 @@ usb_osal_thread_t usb_osal_thread_create(const char *name, uint32_t stack_size, 
 }
 
 void usb_osal_thread_delete(usb_osal_thread_t thread) {
-    serial_printf("[USB OSAL] Thread delete requested: %p (stub)\n", thread);
+    serial_printf("[USB OSAL] Thread delete requested: %p\n", thread);
+    if (thread) {
+        scheduler_remove_task((int)(uintptr_t)thread);
+    }
 }
 void usb_osal_thread_schedule_other(void) { __asm__("pause"); }
 
@@ -197,6 +201,11 @@ int usb_osal_mq_recv(usb_osal_mq_t mq, uintptr_t *addr, uint32_t timeout) {
     return 0;
 }
 
+#define MAX_USB_TIMERS 16
+static struct usb_osal_timer *timer_list[MAX_USB_TIMERS];
+static uint32_t timer_ticks[MAX_USB_TIMERS];
+static bool timer_active[MAX_USB_TIMERS];
+
 struct usb_osal_timer *usb_osal_timer_create(const char *name, uint32_t timeout_ms, usb_timer_handler_t handler, void *argument, bool is_period) {
     (void)name;
     struct usb_osal_timer *timer = (struct usb_osal_timer *)usb_osal_malloc(sizeof(struct usb_osal_timer));
@@ -210,16 +219,63 @@ struct usb_osal_timer *usb_osal_timer_create(const char *name, uint32_t timeout_
     return timer;
 }
 
-void usb_osal_timer_delete(struct usb_osal_timer *timer) { usb_osal_free(timer); }
-void usb_osal_timer_start(struct usb_osal_timer *timer) {
-    if (timer) {
-        serial_printf("[USB OSAL] Timer started: %d ms\n", timer->timeout_ms);
-        /* In a full implementation, we would add this to a tick-list. */
-    }
+void usb_osal_timer_delete(struct usb_osal_timer *timer) {
+    usb_osal_timer_stop(timer);
+    usb_osal_free(timer);
 }
+
+void usb_osal_timer_start(struct usb_osal_timer *timer) {
+    if (!timer) return;
+    size_t flags = usb_osal_enter_critical_section();
+    for (int i = 0; i < MAX_USB_TIMERS; i++) {
+        if (timer_list[i] == timer) {
+            timer_ticks[i] = 0;
+            timer_active[i] = true;
+            usb_osal_leave_critical_section(flags);
+            return;
+        }
+    }
+    for (int i = 0; i < MAX_USB_TIMERS; i++) {
+        if (timer_list[i] == NULL) {
+            timer_list[i] = timer;
+            timer_ticks[i] = 0;
+            timer_active[i] = true;
+            usb_osal_leave_critical_section(flags);
+            return;
+        }
+    }
+    usb_osal_leave_critical_section(flags);
+}
+
 void usb_osal_timer_stop(struct usb_osal_timer *timer) {
-    if (timer) {
-        serial_printf("[USB OSAL] Timer stopped\n");
+    if (!timer) return;
+    size_t flags = usb_osal_enter_critical_section();
+    for (int i = 0; i < MAX_USB_TIMERS; i++) {
+        if (timer_list[i] == timer) {
+            timer_active[i] = false;
+            timer_list[i] = NULL;
+            break;
+        }
+    }
+    usb_osal_leave_critical_section(flags);
+}
+
+/* Modified by Sovereign: Hook for system tick to drive USB OSAL timers */
+void usb_osal_tick_handler(void) {
+    for (int i = 0; i < MAX_USB_TIMERS; i++) {
+        if (timer_list[i] && timer_active[i]) {
+            timer_ticks[i] += 10; // Assuming 100Hz tick (10ms)
+            if (timer_ticks[i] >= timer_list[i]->timeout_ms) {
+                if (timer_list[i]->handler) {
+                    timer_list[i]->handler(timer_list[i]->argument);
+                }
+                if (timer_list[i]->is_period) {
+                    timer_ticks[i] = 0;
+                } else {
+                    timer_active[i] = false;
+                }
+            }
+        }
     }
 }
 

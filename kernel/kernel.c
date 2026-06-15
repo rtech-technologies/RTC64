@@ -175,6 +175,12 @@ void kernel_main(void) {
     memset(&os_app, 0, sizeof(os_app));
     os_app.current_state = STATE_LOGIN;
 
+    /* Modified by Sovereign: Launch persistent System Shell and Environment Manager */
+    extern void system_shell_init(void);
+    extern void system_shell_task(void);
+    system_shell_init();
+    scheduler_add_task("System Shell", system_shell_task);
+
     scheduler_add_task("Environment Manager", environment_manager_entry);
 
     serial_printf("[USER] Hand-off complete. Relinquishing core control to scheduler.\n");

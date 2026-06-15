@@ -14,7 +14,7 @@ typedef void *usb_osal_mutex_t;
 typedef void *usb_osal_mq_t;
 
 struct usb_osal_timer {
-    void *handler;
+    usb_timer_handler_t handler;
     void *argument;
     uint32_t timeout_ms;
     bool is_period;

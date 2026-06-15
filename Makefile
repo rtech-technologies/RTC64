@@ -70,10 +70,14 @@ iso: kernel/kernel
 	cp kernel/limine.cfg iso_root/boot/limine.cfg
 	cp external/limine/limine-bios.sys iso_root/boot/
 	cp external/limine/limine-bios-cd.bin iso_root/boot/
-	xorriso -as mkisofs -b boot/limine-bios-cd.bin \
-		-no-emul-boot -boot-load-size 4 -boot-info-table \
-		iso_root -o os.iso
-	./external/limine/limine bios-install os.iso
+	@if command -v xorriso >/dev/null 2>&1; then \
+		xorriso -as mkisofs -b boot/limine-bios-cd.bin \
+			-no-emul-boot -boot-load-size 4 -boot-info-table \
+			iso_root -o os.iso; \
+		./external/limine/limine bios-install os.iso; \
+	else \
+		echo "Warning: xorriso not found, skipping ISO creation."; \
+	fi
 
 QEMU = qemu-system-x86_64
 QEMU_FLAGS = -m 512M -cdrom os.iso -boot d -device qemu-xhci -device usb-kbd -device usb-mouse -serial stdio

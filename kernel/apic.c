@@ -40,9 +40,15 @@ uint64_t hal_get_uptime_ms(void) {
     return g_ticks * 10; /* Assuming 100Hz timer */
 }
 
+extern void usb_osal_tick_handler(void);
+
 void timer_handler(struct cpu_state* state) {
     apic_eoi();
     g_ticks++;
+
+    if (g_ticks % 1 == 0) {
+        usb_osal_tick_handler();
+    }
 
     /* Preemptive context switch is handled by isr_stubs.s common IRQ path
        The scheduler_switch returns the new stack pointer to isr_stubs.s */

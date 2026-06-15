@@ -26,8 +26,8 @@ int snprintf(char* str, size_t size, const char* format, ...);
 int vsnprintf(char* str, size_t size, const char* format, va_list ap);
 
 /* Scheduler / Task Manager */
-#define MAX_TASKS 5
-typedef enum { TASK_IDLE, TASK_RUNNING, TASK_SQUEEZED } task_state_t;
+#define MAX_TASKS 16
+typedef enum { TASK_DEAD, TASK_RUNNING, TASK_SQUEEZED } task_state_t;
 
 typedef struct {
     int id;
@@ -38,6 +38,7 @@ typedef struct {
 
 void scheduler_init(void);
 void scheduler_add_task(const char *name, void (*entry)(void));
+void scheduler_remove_task(int task_id);
 void scheduler_run(void);
 int scheduler_get_task_count(void);
 task_t* scheduler_get_task(int index);

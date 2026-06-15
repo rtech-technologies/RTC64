@@ -2,7 +2,6 @@
 #include "pro_os.h"
 #include <string.h>
 
-#define MAX_TASKS 5
 #define STACK_SIZE 16384
 
 static task_t tasks[MAX_TASKS];
@@ -11,17 +10,36 @@ static int current_task_idx = -1;
 static int task_count = 0;
 static uint64_t task_rsps[MAX_TASKS];
 
+static void kernel_idle_task(void) {
+    while (1) {
+        __asm__("hlt");
+    }
+}
+
 void scheduler_init(void) {
     task_count = 0;
     current_task_idx = -1;
+    /* Add kernel idle task as the absolute fallback */
+    scheduler_add_task("Idle Task", kernel_idle_task);
 }
 
 void scheduler_add_task(const char *name, void (*entry)(void)) {
-    if (task_count < MAX_TASKS) {
-        tasks[task_count].id = task_count;
-        tasks[task_count].name = name;
-        tasks[task_count].state = TASK_RUNNING;
-        tasks[task_count].entry = entry;
+    int slot = -1;
+    for (int i = 0; i < MAX_TASKS; i++) {
+        if (i < task_count && tasks[i].state == TASK_DEAD) {
+            slot = i;
+            break;
+        }
+    }
+    if (slot == -1 && task_count < MAX_TASKS) {
+        slot = task_count++;
+    }
+
+    if (slot != -1) {
+        tasks[slot].id = slot;
+        tasks[slot].name = name;
+        tasks[slot].state = TASK_RUNNING;
+        tasks[slot].entry = entry;
 
         /* POWER: Setup initial context on the stack */
         uint64_t stack_top = (uint64_t)&task_stacks[task_count][STACK_SIZE];
@@ -66,21 +84,37 @@ void scheduler_add_task(const char *name, void (*entry)(void)) {
         uint32_t *mxcsr = (uint32_t *)((uint8_t *)stack + 24);
         *mxcsr = 0x1F80;
 
-        task_rsps[task_count] = (uint64_t)stack;
-        task_count++;
+        task_rsps[slot] = (uint64_t)stack;
     }
 }
 
-/* POWER: The meaty preemptive context switch */
+/* Modified by Sovereign: State-based task removal to preserve task IDs */
+void scheduler_remove_task(int task_id) {
+    if (task_id <= 0 || task_id >= MAX_TASKS) return;
+    if (task_id < task_count) {
+        tasks[task_id].state = TASK_DEAD;
+    }
+}
+
+/* POWER: The meaty preemptive context switch with DEAD-state awareness */
 uint64_t scheduler_switch(uint64_t current_rsp) {
     if (task_count == 0) return current_rsp;
 
-    if (current_task_idx != -1) {
+    if (current_task_idx != -1 && current_task_idx < task_count) {
         task_rsps[current_task_idx] = current_rsp;
     }
 
-    current_task_idx = (current_task_idx + 1) % task_count;
-    return task_rsps[current_task_idx];
+    /* Find next non-DEAD task */
+    for (int i = 0; i < task_count; i++) {
+        current_task_idx = (current_task_idx + 1) % task_count;
+        if (tasks[current_task_idx].state != TASK_DEAD) {
+            return task_rsps[current_task_idx];
+        }
+    }
+
+    /* Fallback to idle task (always index 0) */
+    current_task_idx = 0;
+    return task_rsps[0];
 }
 
 void scheduler_run(void) {
