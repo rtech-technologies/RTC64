@@ -26,6 +26,7 @@ KERNEL_OBJS = kernel/kernel.o src/app_ui.o src/chell.o src/lab.o src/installer.o
               kernel/tlsf_impl.o kernel/math.o kernel/panic.o \
               kernel/gdt.o kernel/interrupts.o kernel/isr_stubs.o \
               kernel/apic.o kernel/pmm.o \
+              kernel/comprec.o kernel/cm.o \
               kernel/malloc_glue.o kernel/storage_hal.o kernel/panic_hal.o \
               kernel/diskio_impl.o kernel/ffsystem_impl.o \
               kernel/fatfs/ff.o kernel/fatfs/ffunicode.o \

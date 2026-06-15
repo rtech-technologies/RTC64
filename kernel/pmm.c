@@ -142,8 +142,13 @@ void* pmm_alloc_blocks_low(size_t count) {
     return NULL;
 }
 
+/* Sovereign Covenant: Security-hardened memory reclamation with automated scrubbing */
 void pmm_free(void* addr) {
     if (!addr) return;
+
+    /* Audit Step 2: Scrub memory before returning to PMM (Sovereign Covenant Requirement) */
+    memset((void*)((uint64_t)addr + hhdm_offset), 0, PAGE_SIZE);
+
     uint64_t page = (uint64_t)addr / PAGE_SIZE;
     if (page < pmm_total_pages) {
         pmm_mark_free(page);
@@ -152,6 +157,10 @@ void pmm_free(void* addr) {
 
 void pmm_free_blocks(void* addr, size_t count) {
     if (!addr) return;
+
+    /* Audit Step 2: Scrub multiple blocks (Sovereign Covenant Requirement) */
+    memset((void*)((uint64_t)addr + hhdm_offset), 0, count * PAGE_SIZE);
+
     uint64_t start_page = (uint64_t)addr / PAGE_SIZE;
     for (size_t i = 0; i < count; i++) {
         if (start_page + i < pmm_total_pages) {

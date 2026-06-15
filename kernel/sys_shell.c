@@ -35,6 +35,11 @@ void system_shell_task(void) {
                     serial_write("  help   - Show this help\n");
                     serial_write("  health - System integrity audit\n");
                     serial_printf("  uptime - Show system uptime\n");
+                    serial_write("  connect - Show external device status\n");
+                } else if (strcmp(shell_buffer, "connect") == 0) {
+                    char buf[512];
+                    vfs_ls("/connect", buf, sizeof(buf));
+                    serial_write(buf);
                 } else if (strcmp(shell_buffer, "health") == 0) {
                     serial_write("--- Sovereign NEONT Health Audit ---\n");
                     serial_printf("  Executive Heap: %s\n", tlsf_get_global() ? "VALID" : "ERROR");

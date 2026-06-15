@@ -53,6 +53,14 @@ uint32_t scheduler_get_current_upid(void);
 void system_shell_init(void);
 void system_shell_task(void);
 void usb_osal_tick_handler(void);
+
+/* COMPREC & Safety */
+void comprec_log(const char* msg);
+void comprec_task(void);
+void comprec_handle_fault(int task_id, const char* reason);
+
+/* Configuration Manager */
+void cm_orchestrate_drivers(void);
 void* tlsf_get_global(void);
 
 /* VFS */

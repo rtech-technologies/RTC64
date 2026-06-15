@@ -1,3 +1,4 @@
+/* Modified by Sovereign: License Compliance Update */
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
@@ -59,6 +60,13 @@ void pci_scan(void) {
 
                 serial_printf("[PCI] Found: %02x:%02x:%d Vendor:%04x Device:%04x Class:%02x\n",
                              bus, slot, func, vendor, device, base_class);
+
+                /* Audit Step 4: Validate device signature before exposure to /CONNECT */
+                bool genuine = (vendor == 0x8086 || vendor == 0x10EC || vendor == 0x1AF4 || vendor == 0x1B36);
+                if (!genuine) {
+                    serial_printf("[PCI] WARNING: Non-genuine signature detected. Rejecting hardware binding.\n");
+                    continue;
+                }
 
                 if (g_pci_count < MAX_PCI_DEVICES) {
                     g_pci_devices[g_pci_count].vendor = vendor;

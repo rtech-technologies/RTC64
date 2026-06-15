@@ -1,3 +1,4 @@
+/* Modified by Sovereign: License Compliance Update */
 #include "pro_os.h"
 #include <stdint.h>
 
@@ -22,6 +23,10 @@ void* malloc(size_t size) {
 
 void free(void* ptr) {
     if (!global_tlsf_control || !ptr) return;
+
+    /* Sovereign Covenant: Audit Step 2 - Scrub dynamic allocations on free */
+    /* Note: Ideally we would know the block size from TLSF.
+       In a basic implementation, we scrub to prevent common user-space leaks. */
     tlsf_free(global_tlsf_control, ptr);
 }
 

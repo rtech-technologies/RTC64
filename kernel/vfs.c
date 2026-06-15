@@ -83,6 +83,22 @@ int vfs_ls(const char* path, char* out, size_t sz) {
         }
         return 0;
     }
+    if (strcmp(path, "/connect") == 0 || strcmp(path, "/connect/") == 0) {
+        /* Modified by Sovereign: List external hot-pluggable devices */
+        int off = 0;
+        off += snprintf(out + off, sz - off, "External Connections:\n");
+        int dev_count = hal_storage_get_device_count();
+        for (int i = 0; i < dev_count; i++) {
+            storage_device_t *dev = hal_storage_get_device(i);
+            if (dev && dev->type == STORAGE_TYPE_USB) {
+                off += snprintf(out + off, sz - off, "[USB] %s (Connected)\n", dev->name);
+            }
+        }
+        /* Future: Add HDMI/Audio status here */
+        off += snprintf(out + off, sz - off, "[HDMI] No External Monitor\n");
+        off += snprintf(out + off, sz - off, "[JACK] No Audio Device\n");
+        return 0;
+    }
 
     DIR dir;
     FILINFO fno;

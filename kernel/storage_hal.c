@@ -1,3 +1,4 @@
+/* Modified by Sovereign: License Compliance Update */
 #include "hal.h"
 #include <string.h>
 #include "pro_os.h"

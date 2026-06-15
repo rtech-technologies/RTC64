@@ -1,3 +1,4 @@
+/* Modified by Sovereign: License Compliance Update */
 #include <stdint.h>
 
 #define PI 3.14159265358979323846

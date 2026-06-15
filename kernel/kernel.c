@@ -170,12 +170,13 @@ void kernel_main(void) {
     serial_printf("[STEP 6] Probing I/O Matrix and initializing peripheral drivers...\n");
     hal_input_init();
     scheduler_init();
-    vfs_init();
-    pci_scan();
-    hal_storage_init();
-    hal_storage_finish_init();
-    vfs_refresh_mounts();
-    hal_usb_init();
+
+    /* Sovereign: Launch COMPREC as the first background safety task (UAID 0, UPID 0) */
+    scheduler_add_task("COMPREC Service", comprec_task, 0, 0);
+
+    /* CM Orchestration Layer (SECTION 0 Equivalent to services.exe) */
+    cm_orchestrate_drivers();
+
     serial_printf("[STEP 6] I/O Manager initialized. Hardware start-drivers loaded.\n");
 
     /* USER SPACE: The Environment Management Hand-off */

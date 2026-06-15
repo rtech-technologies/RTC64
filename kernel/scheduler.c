@@ -1,6 +1,7 @@
 /* Modified by Sovereign: Meaty Preemptive Scheduler with Context Switching and SSE State support */
 #include "pro_os.h"
 #include <string.h>
+#include "serial.h"
 
 #define STACK_SIZE 16384
 
@@ -90,11 +91,39 @@ void scheduler_add_task(const char *name, void (*entry)(void), uint32_t uaid, ui
     }
 }
 
-/* Modified by Sovereign: State-based task removal to preserve task IDs */
+/* Section 3: IHT (Integral Handle Table) for secure object tracking */
+typedef struct {
+    uint32_t handle_id;
+    void* object_ptr;
+} iht_entry_t;
+
+static iht_entry_t task_iht[MAX_TASKS][32];
+
+/* Audit Step 3: Journaled Finalization (COMPREC) */
+static void scheduler_journaled_finalize(int task_id) {
+    serial_printf("[COMPREC] Finalizing task %d (%s)...\n", task_id, tasks[task_id].name);
+
+    /* Audit: Reclaim IHT handles before memory reclamation */
+    for (int i = 0; i < 32; i++) {
+        if (task_iht[task_id][i].object_ptr) {
+            serial_printf("[COMPREC] Reclaiming IHT handle %d\n", task_iht[task_id][i].handle_id);
+            task_iht[task_id][i].object_ptr = NULL;
+        }
+    }
+
+    /* Sovereign Covenant: Audit Step 2 - Ensure memory is scrubbed during finalization */
+    /* Handled by pmm_free if the stack was allocated there, but we scrub task control block here. */
+    memset(&tasks[task_id], 0, sizeof(task_t));
+    tasks[task_id].state = TASK_DEAD;
+
+    serial_printf("[COMPREC] Task %d successfully journaled and finalized.\n", task_id);
+}
+
+/* Modified by Sovereign: COMPREC-aware task removal */
 void scheduler_remove_task(int task_id) {
     if (task_id <= 0 || task_id >= MAX_TASKS) return;
-    if (task_id < task_count) {
-        tasks[task_id].state = TASK_DEAD;
+    if (task_id < task_count && tasks[task_id].state != TASK_DEAD) {
+        scheduler_journaled_finalize(task_id);
     }
 }
 

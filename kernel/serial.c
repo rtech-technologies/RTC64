@@ -1,3 +1,4 @@
+/* Modified by Sovereign: License Compliance Update */
 #include "serial.h"
 #include <stdarg.h>
 #include "pro_os.h"

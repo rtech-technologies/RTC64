@@ -1,3 +1,4 @@
+/* Modified by Sovereign: License Compliance Update */
 #include "os_api.h"
 #include <string.h>
 #include <stdbool.h>

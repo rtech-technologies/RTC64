@@ -1,3 +1,4 @@
+/* Modified by Sovereign: License Compliance Update */
 #include "pro_os.h"
 
 /* Hardware bridge for graphical panic reporting */

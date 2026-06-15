@@ -93,6 +93,7 @@ int ahci_init(uint64_t mmio);
 /* --- USB System --- */
 void hal_usb_init(void);
 void hal_usb_poll(void);
+bool hal_usb_validate_signature(void *device_desc);
 void USBH_IRQHandler(uint8_t busid);
 
 /* --- RTC System --- */

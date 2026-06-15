@@ -1,3 +1,4 @@
+/* Modified by Sovereign: License Compliance Update */
 #include "nk_software_renderer.h"
 #include <string.h>
 #include <stdbool.h>

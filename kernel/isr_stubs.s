@@ -215,6 +215,10 @@ irq_common:
     call scheduler_switch
     movq %rax, %rsp
 
+    /* Sovereign ABI Audit: Zero out scratch registers to prevent leak from User to Kernel (Step 1) */
+    xorq %r11, %r11
+    xorq %rcx, %rcx
+
     fxrstor (%rsp)
     addq $520, %rsp /* 512 + 8 */
 

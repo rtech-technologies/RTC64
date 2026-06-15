@@ -1,3 +1,4 @@
+/* Modified by Sovereign: License Compliance Update */
 #include "fatfs/ff.h"
 #include "fatfs/diskio.h"
 #include "hal.h"
