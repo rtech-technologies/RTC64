@@ -110,29 +110,4 @@ cp kernel/limine.cfg iso_root/boot/limine.conf
 cp kernel/limine.cfg iso_root/boot/limine.cfg
 cp external/limine/limine-bios.sys iso_root/boot/
 cp external/limine/limine-bios-cd.bin iso_root/boot/
-xorriso -as mkisofs -b boot/limine-bios-cd.bin \
-	-no-emul-boot -boot-load-size 4 -boot-info-table \
-	iso_root -o os.iso
-xorriso 1.5.6 : RockRidge filesystem manipulator, libburnia project.
-
-Drive current: -outdev 'stdio:os.iso'
-Media current: stdio file, overwriteable
-Media status : is blank
-Media summary: 0 sessions, 0 data blocks, 0 data, 92.7g free
-Added to ISO image: directory '/'='/app/iso_root'
-xorriso : UPDATE :       9 files added in 1 seconds
-xorriso : UPDATE :       9 files added in 1 seconds
-ISO image produced: 534 sectors
-Written to medium : 534 sectors at LBA 0
-Writing to 'stdio:os.iso' completed successfully.
-
-./external/limine/limine bios-install os.iso
-Physical block size of 512 bytes.
-No active partition found, some systems may not boot.
-Setting partition 1 as active to work around the issue...
-Installing to MBR.
-Stage 2 to be located at 0x200 and 0x2c00.
-Reminder: Remember to copy the limine-bios.sys file in either
-          the root, /boot, /limine, or /boot/limine directories of
-          one of the partitions on the device, or boot will fail!
-Limine BIOS stages installed successfully!
+Warning: xorriso not found, skipping ISO creation.

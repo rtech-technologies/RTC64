@@ -195,8 +195,6 @@ void kernel_main(void) {
     os_app.current_state = STATE_LOGIN;
 
     /* Modified by Sovereign: Launch persistent System Shell and Environment Manager */
-    extern void system_shell_init(void);
-    extern void system_shell_task(void);
     system_shell_init();
     scheduler_add_task("System Shell", system_shell_task);
 

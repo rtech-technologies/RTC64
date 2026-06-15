@@ -86,6 +86,9 @@ int hal_nvme_init(uint64_t mmio);
 int hal_sata_init(uint64_t mmio);
 int ramdisk_init(void);
 
+int nvme_init(uint64_t mmio);
+int ahci_init(uint64_t mmio);
+
 /* --- USB System --- */
 void hal_usb_init(void);
 void hal_usb_poll(void);

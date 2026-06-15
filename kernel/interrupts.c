@@ -23,12 +23,6 @@ static idt_ptr_t idt_ptr;
 
 extern void* isr_stub_table[];
 
-// Hardware exception gateways from panic.c
-extern void handler_divide_by_zero(void);
-extern void handler_general_protection_fault(void);
-extern void handler_page_fault(void);
-extern void handler_double_fault(void);
-
 void idt_set_gate(uint8_t num, uint64_t base, uint16_t sel, uint8_t flags) {
     idt[num].offset_low = base & 0xFFFF;
     idt[num].selector = sel;
@@ -46,7 +40,6 @@ void idt_init(void) {
     }
 
     // Map remaining vectors to a safe default (Point 24, 25)
-    extern void isr_stub_39(void); // Using IRQ 7 stub as a safe-ish default for unmapped
     for (int i = 48; i < 256; i++) {
         idt_set_gate(i, (uint64_t)isr_stub_39, 0x08, 0x8E);
     }

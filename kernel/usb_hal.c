@@ -6,8 +6,6 @@
 #include "usbh_msc.h"
 
 extern uint64_t xhci_mmio_base;
-extern uint64_t ehci_mmio_base;
-extern uint64_t hhdm_offset;
 extern void USBH_IRQHandler(uint8_t busid);
 
 void hal_usb_init(void) {

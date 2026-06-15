@@ -117,7 +117,6 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
         }
 
         if (app->show_explorer) {
-            extern void lab_update(struct nk_context* ctx, void* s);
             lab_update(ctx, app);
 
             if (nk_begin(ctx, "Explorer", nk_rect(150, 150, 500, 350),

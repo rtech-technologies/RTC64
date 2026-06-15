@@ -91,11 +91,10 @@ int usb_osal_sem_take(usb_osal_sem_t sem, uint32_t timeout) {
     usb_sem_t *s = (usb_sem_t *)sem;
     if (!s) return -1;
 
-    uint32_t start_time = 0; // Simplified
+    uint64_t start_time = hal_get_uptime_ms();
     while (s->count == 0) {
-        if (timeout != 0xFFFFFFFFU && start_time >= timeout) return -1;
+        if (timeout != 0xFFFFFFFFU && (hal_get_uptime_ms() - start_time) >= timeout) return -1;
         __asm__("pause");
-        start_time++; // Dummy increment
     }
 
     size_t flags = usb_osal_enter_critical_section();
@@ -187,11 +186,10 @@ int usb_osal_mq_recv(usb_osal_mq_t mq, uintptr_t *addr, uint32_t timeout) {
     usb_mq_t *m = (usb_mq_t *)mq;
     if (!m || !addr) return -1;
     
-    uint32_t wait = 0;
+    uint64_t start_time = hal_get_uptime_ms();
     while (m->head == m->tail) {
-        if (timeout != 0xFFFFFFFFU && wait >= timeout) return -1;
+        if (timeout != 0xFFFFFFFFU && (hal_get_uptime_ms() - start_time) >= timeout) return -1;
         __asm__("pause");
-        wait++;
     }
     
     size_t flags = usb_osal_enter_critical_section();
@@ -280,9 +278,9 @@ void usb_osal_tick_handler(void) {
 }
 
 void usb_osal_msleep(uint32_t delay) {
-    /* MEATY: Calibrated delay loop for x86-64 */
-    for (uint32_t i = 0; i < delay; i++) {
-        for (volatile uint32_t j = 0; j < 1000000; j++) __asm__("pause");
+    uint64_t start = hal_get_uptime_ms();
+    while ((hal_get_uptime_ms() - start) < delay) {
+        __asm__("pause");
     }
 }
 

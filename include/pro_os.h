@@ -39,9 +39,15 @@ typedef struct {
 void scheduler_init(void);
 void scheduler_add_task(const char *name, void (*entry)(void));
 void scheduler_remove_task(int task_id);
+uint64_t scheduler_switch(uint64_t current_rsp);
 void scheduler_run(void);
 int scheduler_get_task_count(void);
 task_t* scheduler_get_task(int index);
+
+/* System Shell */
+void system_shell_init(void);
+void system_shell_task(void);
+void usb_osal_tick_handler(void);
 
 /* VFS */
 void vfs_init(void);
@@ -58,6 +64,7 @@ typedef struct {
 
 bool uac_check_permit(int app_id, const char *action);
 void uac_request_permit(int app_id, const char *action);
+void uac_set_permit(int app_id, bool net, bool storage);
 
 /* I18n */
 const char* i18n_translate(const char *key);
@@ -74,16 +81,28 @@ struct cpu_state {
 } __attribute__((aligned(16)));
 
 void kpanic(const char* message);
+void render_bsod_screen(const char* error_title, void* rsp_pointer);
 
 /* Hardware & Memory */
 void hal_malloc_init(void* mem, size_t bytes);
 size_t hal_malloc_get_used(void);
 size_t hal_malloc_get_total(void);
 void pmm_init(struct limine_memmap_response* map);
+void* pmm_alloc_blocks(size_t count);
 void gdt_init(void);
 void idt_init(void);
 void apic_init(void);
+void apic_write(uint32_t reg, uint32_t val);
+void apic_eoi(void);
 void irq_install_handler(int irq, void (*handler)(struct cpu_state*));
+void timer_handler(struct cpu_state* state);
+
+/* Exception Handlers */
+void handler_divide_by_zero(void);
+void handler_general_protection_fault(void);
+void handler_page_fault(void);
+void handler_double_fault(void);
+void isr_stub_39(void);
 
 /* Hardware Driver Interfaces */
 void xhci_init(uint64_t mmio);

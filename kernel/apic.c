@@ -11,11 +11,10 @@
 #define APIC_TICR  0x380
 
 extern uint64_t hhdm_offset;
-extern uint64_t scheduler_switch(uint64_t current_rsp);
 
 volatile uint64_t g_ticks = 0;
 
-static void apic_write(uint32_t reg, uint32_t val) {
+void apic_write(uint32_t reg, uint32_t val) {
     volatile uint32_t* addr = (volatile uint32_t*)(APIC_BASE + hhdm_offset + reg);
     *addr = val;
 }
@@ -47,8 +46,6 @@ void apic_init(void) {
 uint64_t hal_get_uptime_ms(void) {
     return g_ticks * 10; /* Assuming 100Hz timer */
 }
-
-extern void usb_osal_tick_handler(void);
 
 void timer_handler(struct cpu_state* state) {
     apic_eoi();
