@@ -7,12 +7,9 @@ build_sdl/
 *.elf
 kernel/kernel
 
-# External Dependencies (Global ignore)
-external/
-
-# EXCEPTION: Allow tracked fix for 64-bit address truncation in CherryUSB
-!external/CherryUSB/port/ehci/usb_ehci_reg.h
-!external/CherryUSB/port/ehci/usb_hc_ehci.c
+# External Dependencies
+external/*
+!external/CherryUSB/
 
 # Misc
 nuklear_cherry_usb
