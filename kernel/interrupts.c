@@ -79,5 +79,5 @@ void exception_handler(struct cpu_state *state) {
     /* Sovereign: Connect generic exceptions to the master graphical crash renderer (NEONT SECTION 4) */
     char exc_msg[64];
     snprintf(exc_msg, 64, "UNHANDLED_EXCEPTION (Vector %d)", (int)state->interrupt_number);
-    render_bsod_screen(exc_msg, state);
+    render_bsod_screen(exc_msg, state, 1);
 }

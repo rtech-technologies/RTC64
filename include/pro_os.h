@@ -104,7 +104,7 @@ struct cpu_state {
 } __attribute__((aligned(16)));
 
 void kpanic(const char* message);
-void render_bsod_screen(const char* error_title, void* rsp_pointer);
+void render_bsod_screen(const char* error_title, void* rsp_pointer, int type);
 
 /* Hardware & Memory */
 void hal_malloc_init(void* mem, size_t bytes);

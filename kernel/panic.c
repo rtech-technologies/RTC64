@@ -11,7 +11,7 @@
 struct cpu_state_frame {
     uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
     uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
-    uint64_t error_code;
+    uint64_t interrupt_number, error_code;
     uint64_t rip, cs, rflags, rsp, ss;
 };
 
@@ -147,14 +147,21 @@ static void u64_to_hex(uint64_t val, char* out_buf) {
 /* =========================================================================
  * 4. THE MASTER GRAPHICAL CRASH RENDERER
  * ========================================================================= */
-void render_bsod_screen(const char* error_title, void* rsp_pointer) {
+void render_bsod_screen(const char* error_title, void* rsp_pointer, int type) {
     panic_nest_level++;
     if (panic_nest_level > 1) {
         serial_printf("\n[DOUBLE PANIC] System halted to prevent triple fault loop.\n");
         while(1) { __asm__ volatile("cli; hlt"); }
     }
 
-    struct cpu_state_frame* frame = (struct cpu_state_frame*)rsp_pointer;
+    struct cpu_state_frame* frame = NULL;
+    if (type == 1 && rsp_pointer) {
+        /* Modified by Sovereign: Correctly skip SSE (512), Padding (8), Segments (32), and CRs (24) = 576 bytes */
+        frame = (struct cpu_state_frame*)((uint8_t*)rsp_pointer + 576);
+    } else {
+        frame = (struct cpu_state_frame*)rsp_pointer;
+    }
+
     struct panic_framebuffer* fb = get_kernel_framebuffer();
 
     serial_printf("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
@@ -162,10 +169,15 @@ void render_bsod_screen(const char* error_title, void* rsp_pointer) {
     serial_printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 
     if (frame) {
-        serial_printf("RIP: %p  ERR: %p\n", (void*)frame->rip, (void*)frame->error_code);
+        serial_printf("RIP: %p  ERR: %p  VEC: %d\n", (void*)frame->rip, (void*)frame->error_code, (int)frame->interrupt_number);
         serial_printf("RAX: %p  RBX: %p  RCX: %p\n", (void*)frame->rax, (void*)frame->rbx, (void*)frame->rcx);
         serial_printf("RDX: %p  RSI: %p  RDI: %p\n", (void*)frame->rdx, (void*)frame->rsi, (void*)frame->rdi);
         serial_printf("RBP: %p  RSP: %p  FLG: %p\n", (void*)frame->rbp, (void*)frame->rsp, (void*)frame->rflags);
+
+        if (type == 1) {
+            struct cpu_state* s = (struct cpu_state*)rsp_pointer;
+            serial_printf("CR2: %p  CR3: %p  CR4: %p\n", (void*)s->cr2, (void*)s->cr3, (void*)s->cr4);
+        }
 
         int tid = scheduler_get_current_task_idx();
         if (tid != -1) {
@@ -232,7 +244,7 @@ void render_bsod_screen(const char* error_title, void* rsp_pointer) {
 }
 
 void kpanic(const char* message) {
-    render_bsod_screen(message, NULL);
+    render_bsod_screen(message, NULL, 0);
 }
 
 /* =========================================================================
@@ -262,8 +274,10 @@ void kpanic(const char* message) {
         ".global " #name "\n" \
         #name ":\n" \
         "cli\n" \
+        "pushq $0\n" \
         PUSH_REGS_ASM \
         "movq %rsp, %rsi\n" \
+        "movq $0, %rdx\n" \
         "leaq str_" #name "(%rip), %rdi\n" \
         "call render_bsod_screen\n" \
         "1: cli\n hlt\n jmp 1b\n" \
@@ -279,8 +293,10 @@ void kpanic(const char* message) {
         #name ":\n" \
         "cli\n" \
         "pushq $0\n" \
+        "pushq $0\n" \
         PUSH_REGS_ASM \
         "movq %rsp, %rsi\n" \
+        "movq $0, %rdx\n" \
         "leaq str_" #name "(%rip), %rdi\n" \
         "call render_bsod_screen\n" \
         "1: cli\n hlt\n jmp 1b\n" \
