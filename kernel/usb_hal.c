@@ -5,7 +5,6 @@
 #include "usbh_hid.h"
 #include "usbh_msc.h"
 
-extern uint64_t xhci_mmio_base;
 void hal_usb_init(void) {
     if (xhci_mmio_base != 0) {
         usbh_initialize(0, xhci_mmio_base + hhdm_offset, NULL);

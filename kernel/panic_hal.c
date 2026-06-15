@@ -1,7 +1,6 @@
 #include "pro_os.h"
 
-/* External from kernel.c */
-extern struct limine_framebuffer_request framebuffer_request;
+/* Hardware bridge for graphical panic reporting */
 
 struct panic_framebuffer* get_kernel_framebuffer(void) {
     if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {

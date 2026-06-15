@@ -138,6 +138,7 @@ int pci_get_device_count(void);
 int pci_get_device_info(int index, char* buf, size_t sz);
 
 extern uint64_t hhdm_offset;
+extern volatile struct limine_framebuffer_request framebuffer_request;
 extern uint64_t xhci_mmio_base;
 extern uint64_t ehci_mmio_base;
 extern uint64_t nvme_mmio_base;

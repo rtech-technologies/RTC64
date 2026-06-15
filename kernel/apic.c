@@ -10,8 +10,6 @@
 #define APIC_TDCR  0x3E0
 #define APIC_TICR  0x380
 
-extern uint64_t hhdm_offset;
-
 volatile uint64_t g_ticks = 0;
 
 void apic_write(uint32_t reg, uint32_t val) {

@@ -11,8 +11,6 @@
 #define AHCI_PORT_CMD_LIST 0x100
 #define AHCI_PORT_FIS_BASE 0x108
 
-extern uint64_t hhdm_offset;
-
 typedef struct {
     uint32_t dba, dbau, rsvd0, flags;
 } ahci_prdt_t;
