@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include "pro_os.h"
 #include <string.h>
+#include "serial.h"
 
 typedef struct {
     uint16_t limit_low;
@@ -53,12 +54,12 @@ static struct {
     gdt_entry_t user_code;
     gdt_entry_t user_data;
     gdt_tss_entry_t tss;
-} __attribute__((packed)) gdt;
+} __attribute__((packed, aligned(4096))) gdt;
 
 static gdt_ptr_t gdt_ptr;
-static tss_t tss;
+static tss_t tss __attribute__((aligned(16)));
 
-static uint8_t double_fault_stack[16384];
+static uint8_t double_fault_stack[16384] __attribute__((aligned(4096)));
 
 void gdt_init(void) {
     memset(&gdt, 0, sizeof(gdt));
@@ -87,6 +88,8 @@ void gdt_init(void) {
 
     /* Setup IST1 for Double Fault (Vector 8) */
     tss.ist1 = (uint64_t)&double_fault_stack[sizeof(double_fault_stack)];
+
+    serial_printf("[GDT] DEBUG: TSS Base at %p, IST1 Stack at %p\n", &tss, (void*)tss.ist1);
 
     gdt_ptr.limit = sizeof(gdt) - 1;
     gdt_ptr.base = (uint64_t)&gdt;

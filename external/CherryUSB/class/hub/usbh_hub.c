@@ -106,6 +106,7 @@ static int _usbh_hub_get_portstatus(struct usbh_hub *hub, uint8_t port, struct h
     struct usb_setup_packet *setup;
     int ret;
 
+    if (!hub || !hub->parent || !hub->parent->setup) return -1;
     setup = hub->parent->setup;
 
     setup->bmRequestType = USB_REQUEST_DIR_IN | USB_REQUEST_CLASS | USB_REQUEST_RECIPIENT_OTHER;

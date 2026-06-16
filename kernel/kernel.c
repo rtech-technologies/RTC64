@@ -29,6 +29,8 @@ static volatile LIMINE_REQUESTS_END_MARKER;
 
 uint64_t hhdm_offset = 0;
 
+static uint8_t kernel_stack[65536] __attribute__((aligned(16)));
+
 /* Environment Manager Data */
 struct nk_context nk_ctx;
 struct app_state os_app;
@@ -98,13 +100,19 @@ void environment_manager_entry(void* arg) {
         nk_sw_render(&sw_fb, &nk_ctx);
 
         draw_cursor(&canvas, cursor_x, cursor_y);
-        __asm__("pause");
+        scheduler_yield();
     }
 }
 
 void kernel_main(void) {
     /* PHASE 0: The Bare-Metal Isolation Layer */
-    __asm__ volatile("cli");
+    __asm__ volatile(
+        "cli\n\t"
+        "movq %0, %%rsp\n\t"
+        "movq %%rsp, %%rbp"
+        : : "r"(&kernel_stack[65536]) : "memory"
+    );
+
     serial_init();
     serial_printf("\n\n#################################################################\n");
     serial_printf("# Sovereign RTC64 HIGH-POWER NEONT Executive Initialization #\n");

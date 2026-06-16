@@ -160,5 +160,6 @@ void system_shell_task(void* arg) {
             char echo[2] = {c, 0};
             serial_write(echo);
         }
+        scheduler_yield();
     }
 }

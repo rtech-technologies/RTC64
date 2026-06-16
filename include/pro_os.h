@@ -43,6 +43,8 @@ void scheduler_init(void);
 int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32_t uaid, uint32_t upid);
 void scheduler_remove_task(int task_id);
 uint64_t scheduler_switch(uint64_t current_rsp);
+void scheduler_yield(void);
+void scheduler_yield(void);
 void scheduler_run(void);
 int scheduler_get_task_count(void);
 task_t* scheduler_get_task(int index);
@@ -65,6 +67,7 @@ void cm_orchestrate_drivers(void);
 void* tlsf_get_global(void);
 void hal_storage_init(void);
 void hal_storage_finish_init(void);
+void init_sse(void);
 
 /* VFS */
 void vfs_init(void);
@@ -108,7 +111,6 @@ struct cpu_state {
 
 void kpanic(const char* message);
 void render_bsod_screen(const char* error_title, void* rsp_pointer, int type);
-void init_sse(void);
 void environment_manager_entry(void* arg);
 
 /* Hardware & Memory */

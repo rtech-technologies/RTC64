@@ -47,7 +47,7 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
         tasks[slot].arg = arg;
 
         /* POWER: Setup initial context on the stack */
-        uint64_t stack_top = (uint64_t)&task_stacks[task_count][STACK_SIZE];
+        uint64_t stack_top = (uint64_t)&task_stacks[slot][STACK_SIZE];
         stack_top &= ~15; /* Ensure 16-byte alignment */
         uint64_t *stack = (uint64_t *)stack_top;
 
@@ -156,8 +156,15 @@ uint64_t scheduler_switch(uint64_t current_rsp) {
     return task_rsps[0];
 }
 
+void scheduler_yield(void) {
+    /* Trigger the timer interrupt (IRQ 0 -> Vector 32) manually to yield */
+    __asm__ volatile("int $32");
+}
+
 void scheduler_run(void) {
-    /* Preemptive scheduler is driven by timer interrupt */
+    /* Preemptive scheduler is driven by timer interrupt.
+       On the first call, we just enable interrupts and wait for the heartbeat. */
+    __asm__ volatile("sti");
     while(1) { __asm__("hlt"); }
 }
 

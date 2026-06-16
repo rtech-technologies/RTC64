@@ -33,7 +33,7 @@ void comprec_task(void* arg) {
 
     while (1) {
         /* Background integrity auditing */
-        __asm__("pause");
+        scheduler_yield();
 
         /* POWER: Periodic check of task health slots */
         for (int i = 0; i < MAX_TASKS; i++) {
