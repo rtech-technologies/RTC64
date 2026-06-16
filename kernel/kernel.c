@@ -22,10 +22,10 @@ __attribute__((used, section(".limine_requests")))
 static volatile struct limine_memmap_request memmap_request = { .id = LIMINE_MEMMAP_REQUEST, .revision = 0 };
 
 __attribute__((used, section(".limine_requests_start")))
-static volatile LIMINE_REQUESTS_START_MARKER
+static volatile LIMINE_REQUESTS_START_MARKER;
 
 __attribute__((used, section(".limine_requests_end")))
-static volatile LIMINE_REQUESTS_END_MARKER
+static volatile LIMINE_REQUESTS_END_MARKER;
 
 uint64_t hhdm_offset = 0;
 

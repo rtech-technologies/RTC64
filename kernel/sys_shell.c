@@ -36,6 +36,51 @@ void system_shell_task(void) {
                     serial_write("  health - System integrity audit\n");
                     serial_printf("  uptime - Show system uptime\n");
                     serial_write("  connect - Show external device status\n");
+                    serial_write("  ls [path] - List directory\n");
+                    serial_write("  cat [file] - Read file\n");
+                    serial_write("  mkdir [dir] - Create directory\n");
+                    serial_write("  write [file] [content] - Write file\n");
+                    serial_write("  mounts - List mount points\n");
+                    serial_write("  uac - Show app permissions\n");
+                } else if (strncmp(shell_buffer, "ls", 2) == 0) {
+                    char buf[1024];
+                    const char* path = shell_buffer[2] == ' ' ? shell_buffer + 3 : "/mnt";
+                    if (vfs_ls(path, buf, sizeof(buf)) == 0) serial_write(buf);
+                    else serial_write("Error listing path.\n");
+                } else if (strncmp(shell_buffer, "cat", 3) == 0) {
+                    char buf[2048];
+                    if (shell_ptr > 4) {
+                        if (vfs_cat(shell_buffer + 4, buf, sizeof(buf)) == 0) serial_write(buf);
+                        else serial_write("Error reading file.\n");
+                    }
+                } else if (strncmp(shell_buffer, "mkdir", 5) == 0) {
+                    if (shell_ptr > 6) {
+                        if (vfs_mkdir(shell_buffer + 6) == 0) serial_write("Directory created.\n");
+                        else serial_write("Error creating directory.\n");
+                    }
+                } else if (strncmp(shell_buffer, "write", 5) == 0) {
+                    if (shell_ptr > 7) {
+                        char* path = shell_buffer + 6;
+                        char* space = strchr(path, ' ');
+                        if (space) {
+                            *space = '\0';
+                            if (vfs_write(path, space + 1) == 0) serial_write("File written.\n");
+                            else serial_write("Error writing file.\n");
+                        }
+                    }
+                } else if (strcmp(shell_buffer, "mounts") == 0) {
+                    char buf[512];
+                    vfs_get_mounts(buf, sizeof(buf));
+                    serial_write(buf);
+                } else if (strcmp(shell_buffer, "uac") == 0) {
+                    serial_write("Active UAC Permissions:\n");
+                    for (int i = 0; i < scheduler_get_task_count(); i++) {
+                        task_t* t = scheduler_get_task(i);
+                        if (t && t->state != TASK_DEAD) {
+                            serial_printf("  Task %d (%s): NET:%d STR:%d\n",
+                                i, t->name, uac_check_permit(i, "network"), uac_check_permit(i, "storage"));
+                        }
+                    }
                 } else if (strcmp(shell_buffer, "connect") == 0) {
                     char buf[512];
                     vfs_ls("/connect", buf, sizeof(buf));
