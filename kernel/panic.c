@@ -212,6 +212,14 @@ void render_bsod_screen(const char* error_title, void* rsp_pointer, int type) {
     __asm__ volatile("mov %%cr2, %0" : "=r"(cr2));
     __asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
 
+    /* Hardware Context: Report last bound PCI hardware if applicable */
+    int pci_cnt = pci_get_device_count();
+    if (pci_cnt > 0) {
+        char hw_info[128];
+        pci_get_device_info(pci_cnt - 1, hw_info, sizeof(hw_info));
+        bsod_print("Last Bound HW: ", fb); bsod_print(hw_info, fb); bsod_print("\n\n", fb);
+    }
+
     u64_to_hex(cr2, hex_str);
     bsod_print("CR2 (Faulting Addr): ", fb); bsod_print(hex_str, fb); bsod_print("\n", fb);
     u64_to_hex(cr3, hex_str);
