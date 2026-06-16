@@ -157,27 +157,30 @@ void kernel_main(void) {
     idt_init();
     serial_printf("[STEP 4] CPU Exception Gateways and architectural frames loaded.\n");
 
-    /* PHASE 1: The Executive Subsystem Onboarding */
-    serial_printf("[PHASE 1] Transitioning to Executive Subsystem Onboarding.\n");
     /* STEP 5: The Entropy and Security Activation */
-    serial_printf("[STEP 5] Clock genesis: Activating Local APIC and Timer interrupts...\n");
+    serial_printf("[STEP 5] Clock genesis: Calibrating Local APIC and Timer hardware...\n");
     apic_init();
     irq_install_handler(32, timer_handler);
-    __asm__ volatile("sti");
-    serial_printf("[STEP 5] STI executed. System interrupts are now ACTIVE.\n");
+    serial_printf("[STEP 5] Timer hardware calibrated. (Interrupts still disabled).\n");
 
     /* STEP 6: The Hardware Peripheral I/O Probe */
     serial_printf("[STEP 6] Probing I/O Matrix and initializing peripheral drivers...\n");
     hal_input_init();
     scheduler_init();
 
-    /* Sovereign: Launch COMPREC as the first background safety task (UAID 0, UPID 0) */
-    scheduler_add_task("COMPREC Service", comprec_task, 0, 0);
-
     /* CM Orchestration Layer (SECTION 0 Equivalent to services.exe) */
     cm_orchestrate_drivers();
 
     serial_printf("[STEP 6] I/O Manager initialized. Hardware start-drivers loaded.\n");
+
+    /* PHASE 1: The Executive Subsystem Onboarding */
+    serial_printf("[PHASE 1] Transitioning to Executive Subsystem Onboarding.\n");
+    serial_printf("[PHASE 1] Activating Interrupts (STI) and background services...\n");
+    __asm__ volatile("sti");
+    serial_printf("[PHASE 1] STI executed. System interrupts are now ACTIVE.\n");
+
+    /* Sovereign: Launch COMPREC as the first background safety task (UAID 0, UPID 0) */
+    scheduler_add_task("COMPREC Service", comprec_task, 0, 0);
 
     /* USER SPACE: The Environment Management Hand-off */
     serial_printf("[PHASE 7] User Land Pivot & Subsystem Startup.\n");

@@ -146,6 +146,7 @@ int vfs_get_mounts(char* out, size_t sz);
 int devmgr_list(char* out, size_t sz);
 int pci_get_device_count(void);
 int pci_get_device_info(int index, char* buf, size_t sz);
+bool pci_is_scan_complete(void);
 
 extern uint64_t hhdm_offset;
 extern volatile struct limine_framebuffer_request framebuffer_request;

@@ -23,6 +23,11 @@ void comprec_log(const char* msg) {
 }
 
 void comprec_task(void) {
+    /* Dependency: Wait for PCI hardware scan to finalize before enforcing policies */
+    while (!pci_is_scan_complete()) {
+        __asm__("pause");
+    }
+
     comprec_log("Service initializing (Sovereign Covenant Enforcement)...");
 
     while (1) {

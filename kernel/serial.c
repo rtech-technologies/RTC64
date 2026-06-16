@@ -6,6 +6,18 @@
 
 #define COM1 0x3F8
 
+static volatile int serial_lock = 0;
+
+static void spin_lock(volatile int* lock) {
+    while (__sync_lock_test_and_set(lock, 1)) {
+        __asm__("pause");
+    }
+}
+
+static void spin_unlock(volatile int* lock) {
+    __sync_lock_release(lock);
+}
+
 void serial_init(void) {
     outb(COM1 + 1, 0x00);
     outb(COM1 + 3, 0x80);
@@ -26,7 +38,9 @@ void serial_putc(char c) {
 }
 
 void serial_write(const char* str) {
+    spin_lock(&serial_lock);
     while (*str) serial_putc(*str++);
+    spin_unlock(&serial_lock);
 }
 
 void serial_printf(const char* fmt, ...) {
@@ -34,7 +48,12 @@ void serial_printf(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
     vsnprintf(buf, sizeof(buf), fmt, args);
-    serial_write(buf);
+
+    spin_lock(&serial_lock);
+    const char* p = buf;
+    while (*p) serial_putc(*p++);
+    spin_unlock(&serial_lock);
+
     va_end(args);
 }
 
