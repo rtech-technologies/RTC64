@@ -82,13 +82,27 @@ void system_shell_task(void* arg) {
                     char buf[512];
                     vfs_get_mounts(buf, sizeof(buf));
                     serial_write(buf);
-                } else if (strcmp(shell_buffer, "uac") == 0) {
-                    serial_write("Active UAC Permissions:\n");
-                    for (int i = 0; i < scheduler_get_task_count(); i++) {
-                        task_t* t = scheduler_get_task(i);
-                        if (t && t->state != TASK_DEAD) {
-                            serial_printf("  Task %d (%s): NET:%d STR:%d\n",
-                                i, t->name, uac_check_permit(i, "network"), uac_check_permit(i, "storage"));
+                } else if (strncmp(shell_buffer, "uac", 3) == 0) {
+                    if (shell_ptr > 4) {
+                        /* uac <id> <net> <str> */
+                        int id = 0, n = 0, s = 0;
+                        if (snprintf(NULL, 0, "%s", shell_buffer + 4) > 0) {
+                            /* Quick manual parse for demo stability */
+                            char* p = shell_buffer + 4;
+                            id = *p - '0';
+                            p += 2; if (*p) n = *p - '0';
+                            p += 2; if (*p) s = *p - '0';
+                            uac_set_permit(id, n != 0, s != 0);
+                            serial_printf("UAC Updated for task %d.\n", id);
+                        }
+                    } else {
+                        serial_write("Active UAC Permissions:\n");
+                        for (int i = 0; i < scheduler_get_task_count(); i++) {
+                            task_t* t = scheduler_get_task(i);
+                            if (t && t->state != TASK_DEAD) {
+                                serial_printf("  Task %d (%s): NET:%d STR:%d\n",
+                                    i, t->name, uac_check_permit(i, "network"), uac_check_permit(i, "storage"));
+                            }
                         }
                     }
                 } else if (strcmp(shell_buffer, "connect") == 0) {

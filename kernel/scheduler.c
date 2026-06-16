@@ -25,7 +25,7 @@ void scheduler_init(void) {
     scheduler_add_task("Idle Task", kernel_idle_task, NULL, 0, 0);
 }
 
-void scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32_t uaid, uint32_t upid) {
+int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32_t uaid, uint32_t upid) {
     int slot = -1;
     for (int i = 0; i < MAX_TASKS; i++) {
         if (i < task_count && tasks[i].state == TASK_DEAD) {
@@ -94,7 +94,9 @@ void scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint3
         *mxcsr = 0x1F80;
 
         task_rsps[slot] = (uint64_t)stack;
+        return slot;
     }
+    return -1;
 }
 
 /* Section 3: IHT (Integral Handle Table) for secure object tracking */

@@ -47,9 +47,9 @@ usb_osal_thread_t usb_osal_thread_create(const char *name, uint32_t stack_size, 
     if (entry) {
         /* MEATY: Registering with kernel scheduler for true multitasking */
         /* Sovereign: System tasks for USB are assigned UAID 0, UPID 0 */
-        scheduler_add_task(name, (void (*)(void*))entry, argument, 0, 0);
-        /* In this freestanding implementation, we return a dummy handle for now */
-        return (usb_osal_thread_t)1;
+        int tid = scheduler_add_task(name, (void (*)(void*))entry, argument, 0, 0);
+        /* Return the actual Task ID as the thread handle */
+        return (usb_osal_thread_t)(uintptr_t)tid;
     }
     return (usb_osal_thread_t)NULL;
 }

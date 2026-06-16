@@ -40,7 +40,7 @@ typedef struct {
 } task_t;
 
 void scheduler_init(void);
-void scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32_t uaid, uint32_t upid);
+int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32_t uaid, uint32_t upid);
 void scheduler_remove_task(int task_id);
 uint64_t scheduler_switch(uint64_t current_rsp);
 void scheduler_run(void);
