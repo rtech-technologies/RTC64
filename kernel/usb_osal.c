@@ -42,13 +42,13 @@ void usb_osal_leave_critical_section(size_t flag) {
 }
 
 usb_osal_thread_t usb_osal_thread_create(const char *name, uint32_t stack_size, uint32_t priority, usb_thread_entry_t entry, void *argument) {
-    (void)stack_size; (void)priority; (void)argument;
+    (void)stack_size; (void)priority;
     serial_printf("[USB OSAL] Creating thread: %s\n", name);
     if (entry) {
         /* MEATY: Registering with kernel scheduler for true multitasking */
         /* Sovereign: System tasks for USB are assigned UAID 0, UPID 0 */
-        scheduler_add_task(name, (void (*)(void))entry, 0, 0);
-        /* In this freestanding implementation, we pass the task ID as thread handle */
+        scheduler_add_task(name, (void (*)(void*))entry, argument, 0, 0);
+        /* In this freestanding implementation, we return a dummy handle for now */
         return (usb_osal_thread_t)1;
     }
     return (usb_osal_thread_t)NULL;

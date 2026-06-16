@@ -180,7 +180,7 @@ void kernel_main(void) {
     serial_printf("[PHASE 1] STI executed. System interrupts are now ACTIVE.\n");
 
     /* Sovereign: Launch COMPREC as the first background safety task (UAID 0, UPID 0) */
-    scheduler_add_task("COMPREC Service", comprec_task, 0, 0);
+    scheduler_add_task("COMPREC Service", (void (*)(void*))comprec_task, NULL, 0, 0);
 
     /* USER SPACE: The Environment Management Hand-off */
     serial_printf("[PHASE 7] User Land Pivot & Subsystem Startup.\n");
@@ -200,10 +200,10 @@ void kernel_main(void) {
     /* Modified by Sovereign: Launch persistent System Shell and Environment Manager with NEONT IDs */
     system_shell_init();
     /* UAID: 0x00, UPID: 0x01 for System Shell */
-    scheduler_add_task("System Shell", system_shell_task, 0x00, 0x01);
+    scheduler_add_task("System Shell", (void (*)(void*))system_shell_task, NULL, 0x00, 0x01);
 
     /* UAID: 0x01, UPID: 0x01 for Environment Manager (Privileged User Land) */
-    scheduler_add_task("Environment Manager", environment_manager_entry, 0x01, 0x01);
+    scheduler_add_task("Environment Manager", (void (*)(void*))environment_manager_entry, NULL, 0x01, 0x01);
 
     serial_printf("[PHASE 7] Hand-off complete. Relinquishing core control to scheduler.\n");
     /* Hand off to preemptive scheduler loop */

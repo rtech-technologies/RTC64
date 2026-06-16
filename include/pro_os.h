@@ -35,11 +35,12 @@ typedef struct {
     uint32_t upid;
     const char *name;
     task_state_t state;
-    void (*entry)(void);
+    void (*entry)(void*);
+    void *arg;
 } task_t;
 
 void scheduler_init(void);
-void scheduler_add_task(const char *name, void (*entry)(void), uint32_t uaid, uint32_t upid);
+void scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32_t uaid, uint32_t upid);
 void scheduler_remove_task(int task_id);
 uint64_t scheduler_switch(uint64_t current_rsp);
 void scheduler_run(void);
@@ -62,6 +63,8 @@ void comprec_handle_fault(int task_id, const char* reason);
 /* Configuration Manager */
 void cm_orchestrate_drivers(void);
 void* tlsf_get_global(void);
+void hal_storage_init(void);
+void hal_storage_finish_init(void);
 
 /* VFS */
 void vfs_init(void);
@@ -105,6 +108,7 @@ struct cpu_state {
 
 void kpanic(const char* message);
 void render_bsod_screen(const char* error_title, void* rsp_pointer, int type);
+void init_sse(void);
 
 /* Hardware & Memory */
 void hal_malloc_init(void* mem, size_t bytes);

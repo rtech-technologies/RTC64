@@ -198,7 +198,13 @@ void render_bsod_screen(const char* error_title, void* rsp_pointer, int type) {
         base[i] = BSOD_COLOR_BG;
     }
 
-    c_x = 60; c_y = 60;
+    c_x = 60; c_y = 40;
+    bsod_print("  ___   ___  ____  ____  _ \n", fb);
+    bsod_print(" / _ \\ / _ \\|  _ \\/ ___|| |\n", fb);
+    bsod_print("| | | | | | | |_) \\___ \\| |\n", fb);
+    bsod_print("| |_| | |_| |  __/ ___) |_|\n", fb);
+    bsod_print(" \\___/ \\___/|_|   |____/(_)\n\n", fb);
+
     bsod_print("A problem has been detected and Sovereign OS has been shut down to prevent damage\n", fb);
     bsod_print("to your computer.\n\n", fb);
     bsod_print(error_title, fb); bsod_print("\n\n", fb);

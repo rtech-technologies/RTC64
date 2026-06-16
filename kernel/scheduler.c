@@ -11,7 +11,8 @@ static int current_task_idx = -1;
 static int task_count = 0;
 static uint64_t task_rsps[MAX_TASKS];
 
-static void kernel_idle_task(void) {
+static void kernel_idle_task(void* arg) {
+    (void)arg;
     while (1) {
         __asm__("hlt");
     }
@@ -21,10 +22,10 @@ void scheduler_init(void) {
     task_count = 0;
     current_task_idx = -1;
     /* Add kernel idle task as the absolute fallback */
-    scheduler_add_task("Idle Task", kernel_idle_task, 0, 0);
+    scheduler_add_task("Idle Task", kernel_idle_task, NULL, 0, 0);
 }
 
-void scheduler_add_task(const char *name, void (*entry)(void), uint32_t uaid, uint32_t upid) {
+void scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32_t uaid, uint32_t upid) {
     int slot = -1;
     for (int i = 0; i < MAX_TASKS; i++) {
         if (i < task_count && tasks[i].state == TASK_DEAD) {
@@ -43,6 +44,7 @@ void scheduler_add_task(const char *name, void (*entry)(void), uint32_t uaid, ui
         tasks[slot].name = name;
         tasks[slot].state = TASK_RUNNING;
         tasks[slot].entry = entry;
+        tasks[slot].arg = arg;
 
         /* POWER: Setup initial context on the stack */
         uint64_t stack_top = (uint64_t)&task_stacks[task_count][STACK_SIZE];
@@ -65,7 +67,11 @@ void scheduler_add_task(const char *name, void (*entry)(void), uint32_t uaid, ui
         *(--stack) = 0; /* interrupt_number */
 
         /* GPRs: rax, rbx, rcx, rdx, rsi, rdi, rbp, r8, r9, r10, r11, r12, r13, r14, r15 (15 regs) */
-        for(int i=0; i<15; i++) *(--stack) = 0;
+        /* RDI is the first argument in x86_64 calling convention */
+        for(int i=0; i<15; i++) {
+            if (i == 9) *(--stack) = (uint64_t)arg; /* RDI is pushed 10th in isr_stubs.s: push rax, rbx, rcx, rdx, rsi, rdi... */
+            else *(--stack) = 0;
+        }
 
         /* CRs: cr2, cr3, cr4 */
         *(--stack) = 0; /* cr2 */
