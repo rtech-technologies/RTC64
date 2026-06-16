@@ -16,7 +16,8 @@ void system_shell_init(void) {
     shell_ptr = 0;
 }
 
-void system_shell_task(void) {
+void system_shell_task(void* arg) {
+    (void)arg;
     while (serial_received()) {
         char c = serial_read();
 
@@ -42,6 +43,15 @@ void system_shell_task(void) {
                     serial_write("  write [file] [content] - Write file\n");
                     serial_write("  mounts - List mount points\n");
                     serial_write("  uac - Show app permissions\n");
+                    serial_write("  date - Show system time\n");
+                    serial_write("  echo [text] - Display text\n");
+                } else if (strcmp(shell_buffer, "date") == 0) {
+                    int h, m, s;
+                    rtc_get_time(&h, &m, &s);
+                    serial_printf("Current Time: %02d:%02d:%02d\n", h, m, s);
+                } else if (strncmp(shell_buffer, "echo ", 5) == 0) {
+                    serial_write(shell_buffer + 5);
+                    serial_write("\n");
                 } else if (strncmp(shell_buffer, "ls", 2) == 0) {
                     char buf[1024];
                     const char* path = shell_buffer[2] == ' ' ? shell_buffer + 3 : "/mnt";

@@ -22,7 +22,8 @@ void comprec_log(const char* msg) {
     }
 }
 
-void comprec_task(void) {
+void comprec_task(void* arg) {
+    (void)arg;
     /* Dependency: Wait for PCI hardware scan to finalize before enforcing policies */
     while (!pci_is_scan_complete()) {
         __asm__("pause");

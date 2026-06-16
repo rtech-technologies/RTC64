@@ -69,7 +69,8 @@ void init_sse(void) {
 }
 
 /* STEP 8: The Graphics Subsystem and Input Loop Launch (Environment Manager) */
-void environment_manager_entry(void) {
+void environment_manager_entry(void* arg) {
+    (void)arg;
     serial_printf("[USER] Environment Manager session pivot successful. PID: 1\n");
     tgx_canvas_t canvas = { (uint32_t*)primary_fb->address, primary_fb->width, primary_fb->height, primary_fb->pitch };
     int cursor_x = primary_fb->width / 2;
@@ -180,7 +181,7 @@ void kernel_main(void) {
     serial_printf("[PHASE 1] STI executed. System interrupts are now ACTIVE.\n");
 
     /* Sovereign: Launch COMPREC as the first background safety task (UAID 0, UPID 0) */
-    scheduler_add_task("COMPREC Service", (void (*)(void*))comprec_task, NULL, 0, 0);
+    scheduler_add_task("COMPREC Service", comprec_task, NULL, 0, 0);
 
     /* USER SPACE: The Environment Management Hand-off */
     serial_printf("[PHASE 7] User Land Pivot & Subsystem Startup.\n");
@@ -200,10 +201,10 @@ void kernel_main(void) {
     /* Modified by Sovereign: Launch persistent System Shell and Environment Manager with NEONT IDs */
     system_shell_init();
     /* UAID: 0x00, UPID: 0x01 for System Shell */
-    scheduler_add_task("System Shell", (void (*)(void*))system_shell_task, NULL, 0x00, 0x01);
+    scheduler_add_task("System Shell", system_shell_task, NULL, 0x00, 0x01);
 
     /* UAID: 0x01, UPID: 0x01 for Environment Manager (Privileged User Land) */
-    scheduler_add_task("Environment Manager", (void (*)(void*))environment_manager_entry, NULL, 0x01, 0x01);
+    scheduler_add_task("Environment Manager", environment_manager_entry, NULL, 0x01, 0x01);
 
     serial_printf("[PHASE 7] Hand-off complete. Relinquishing core control to scheduler.\n");
     /* Hand off to preemptive scheduler loop */

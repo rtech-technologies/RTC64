@@ -52,12 +52,12 @@ uint32_t scheduler_get_current_upid(void);
 
 /* System Shell */
 void system_shell_init(void);
-void system_shell_task(void);
+void system_shell_task(void* arg);
 void usb_osal_tick_handler(void);
 
 /* COMPREC & Safety */
 void comprec_log(const char* msg);
-void comprec_task(void);
+void comprec_task(void* arg);
 void comprec_handle_fault(int task_id, const char* reason);
 
 /* Configuration Manager */
@@ -109,6 +109,7 @@ struct cpu_state {
 void kpanic(const char* message);
 void render_bsod_screen(const char* error_title, void* rsp_pointer, int type);
 void init_sse(void);
+void environment_manager_entry(void* arg);
 
 /* Hardware & Memory */
 void hal_malloc_init(void* mem, size_t bytes);
@@ -147,6 +148,8 @@ int vfs_cat(const char* path, char* out, size_t sz);
 int vfs_mkdir(const char* path);
 int vfs_write(const char* path, const char* content);
 int vfs_get_mounts(char* out, size_t sz);
+void vfs_init(void);
+void vfs_refresh_mounts(void);
 int devmgr_list(char* out, size_t sz);
 int pci_get_device_count(void);
 int pci_get_device_info(int index, char* buf, size_t sz);
