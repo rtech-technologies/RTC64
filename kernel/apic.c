@@ -31,14 +31,35 @@ static void apic_spurious_handler(struct cpu_state* state) {
     /* Spurious interrupts do not require EOI */
 }
 
+static void pit_wait(uint16_t ms) {
+    uint32_t count = ms * 1193; /* Approx 1.193MHz */
+    outb(0x43, 0x30); /* Channel 0, lobyte/hibyte, mode 0 */
+    outb(0x40, count & 0xFF);
+    outb(0x40, (count >> 8) & 0xFF);
+    while (1) {
+        outb(0x43, 0xE2); /* Read back channel 0 */
+        if (inb(0x40) & 0x80) break;
+    }
+}
+
 void apic_init(void) {
     /* Install spurious handler on vector 255 */
     irq_install_handler(255, apic_spurious_handler);
 
     apic_write(APIC_SVR, apic_read(APIC_SVR) | 0x1FF);
-    apic_write(APIC_TDCR, 0x03);
-    apic_write(APIC_TMR, 32 | 0x20000);
-    apic_write(APIC_TICR, 1000000);
+    apic_write(APIC_TDCR, 0x03); /* Divide by 16 */
+
+    /* Professional Calibration via PIT */
+    serial_printf("[APIC] Calibrating Local Timer via PIT...\n");
+    apic_write(APIC_TICR, 0xFFFFFFFF);
+    pit_wait(10); /* Wait 10ms */
+    uint32_t ticks_per_10ms = 0xFFFFFFFF - apic_read(0x390); /* Current Count Register */
+    apic_write(APIC_TICR, 0);
+
+    serial_printf("[APIC] Calibration complete: %d ticks/10ms\n", (int)ticks_per_10ms);
+
+    apic_write(APIC_TMR, 32 | 0x20000); /* Vector 32, Periodic */
+    apic_write(APIC_TICR, ticks_per_10ms);
 }
 
 uint64_t hal_get_uptime_ms(void) {

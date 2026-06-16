@@ -235,6 +235,17 @@ void render_bsod_screen(const char* error_title, void* rsp_pointer, int type) {
         }
     }
 
+    bsod_print("\nSTACK BACKTRACE:\n", fb);
+    uint64_t* rbp = (uint64_t*)frame->rbp;
+    for (int i = 0; i < 5; i++) {
+        if (!rbp || (uint64_t)rbp < hhdm_offset) break;
+        uint64_t rip = rbp[1];
+        u64_to_hex(rip, hex_str);
+        bsod_print("  [", fb); bsod_print(hex_str, fb); bsod_print("]\n", fb);
+        serial_printf("  Stack Frame %d: %p\n", i, (void*)rip);
+        rbp = (uint64_t*)rbp[0];
+    }
+
     bsod_print("\nESTATE SECURED. EXECUTION HALTED SAFELY.", fb);
     serial_printf("ESTATE SECURED. EXECUTION HALTED SAFELY.\n");
 

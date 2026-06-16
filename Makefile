@@ -1,7 +1,7 @@
 CC = gcc
 LD = ld
 
-CFLAGS = -Wall -Wextra -std=c11 -ffreestanding -fno-stack-protector \
+CFLAGS = -Wall -Wextra -Werror -std=c11 -ffreestanding -fno-stack-protector \
          -fno-stack-check -fno-lto -fno-pic -m64 -march=x86-64 -mcmodel=kernel \
          -mno-red-zone -fno-asynchronous-unwind-tables \
          -I./include -I./kernel -I./kernel/drivers -I./kernel/fatfs \
