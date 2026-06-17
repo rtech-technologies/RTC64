@@ -44,14 +44,15 @@ void vfs_refresh_mounts(void) {
 
         FRESULT res = f_mount(&m->fs, drv_path, 1);
 
-        /* Audit Step 2: Auto-format Sovereign Ramdisk if filesystem is missing */
-        if (res == FR_NO_FILESYSTEM && dev->type == STORAGE_TYPE_RAMDISK) {
-            serial_printf("[VFS] No filesystem on Ramdisk. Initializing Sovereign FAT Genesis...\n");
+        /* Audit Step 2: Auto-format Sovereign storage if filesystem is missing (FAT Genesis) */
+        if (res == FR_NO_FILESYSTEM) {
+            serial_printf("[VFS] No filesystem on disk %d (%s). Initializing Sovereign FAT...\n", i, dev->name);
             BYTE work[FF_MAX_SS];
             if (f_mkfs(drv_path, 0, work, sizeof(work)) == FR_OK) {
                 res = f_mount(&m->fs, drv_path, 1);
             }
         }
+
 
         m->mounted = (res == FR_OK);
 

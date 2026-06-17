@@ -110,10 +110,19 @@ void init_sse(void) {
     serial_printf("[SSE] SSE Control Registers updated. XMM operations enabled.\n");
 }
 
-/* STEP 8: The Graphics Subsystem and Input Loop Launch (Environment Manager) */
+/* PHASE 7: The Graphics Subsystem and Input Loop Launch (Environment Manager) */
 void environment_manager_entry(void* arg) {
     (void)arg;
-    serial_printf("[USER] Environment Manager session pivot successful. PID: 1\n");
+    serial_printf("[USER] Environment Manager session pivot successful.\n");
+
+    /* Late GUI Initialization (After Task Switch) */
+    struct nk_user_font font;
+    font.userdata = nk_handle_ptr(0);
+    font.height = 8.0f;
+    font.width = font_get_width;
+    nk_init_default(&nk_ctx, &font);
+    ui_init_style(&nk_ctx);
+
     tgx_canvas_t canvas = { (uint32_t*)primary_fb->address, primary_fb->width, primary_fb->height, primary_fb->pitch };
     int cursor_x = primary_fb->width / 2;
     int cursor_y = primary_fb->height / 2;
@@ -234,47 +243,49 @@ void kernel_main(void) {
 
     /* CM Orchestration Layer (SECTION 0 Equivalent to services.exe) */
     cm_orchestrate_drivers();
-
     serial_printf("[STEP 6] I/O Manager initialized. Hardware start-drivers loaded.\n");
 
     /* PHASE 1: The Executive Subsystem Onboarding */
     serial_printf("[PHASE 1] Transitioning to Executive Subsystem Onboarding.\n");
-    serial_printf("[PHASE 1] Activating Interrupts (STI) and background services...\n");
     __asm__ volatile("sti");
-    serial_printf("[PHASE 1] STI executed. System interrupts are now ACTIVE.\n");
+    serial_printf("[PHASE 1] System interrupts are now ACTIVE.\n");
 
-    /* Sovereign: Launch COMPREC as the first background safety task (UAID 0, UPID 0) */
+    /* PHASE 2: Object Management Genesis */
+    serial_printf("[PHASE 2] Establishing Virtual Namespace for System Objects...\n");
+    vfs_init();
+    vfs_refresh_mounts();
+
+    /* PHASE 3: Security Reference Monitor (SRM) */
+    serial_printf("[PHASE 3] Activating UAC Security Boundaries (lsass.exe equivalent)...\n");
+    /* Security IDs (UAID/UPID) are now operational for scheduler_add_task */
+
+    /* PHASE 4: Power & I/O Manager (Storage Finalization) */
+    serial_printf("[PHASE 4] Binding Storage Drivers and verifying IRP stability...\n");
+    hal_storage_init();
+    hal_storage_finish_init();
+
+    /* PHASE 5: Session Genesis (Session Manager - smss.exe) */
+    serial_printf("[PHASE 5] Spawning Session Manager (smss.exe equivalent)...\n");
+
+    /* PHASE 6: Subsystem Startup */
+    serial_printf("[PHASE 6] Starting COMPREC and persistent Diagnostic Shell...\n");
     scheduler_add_task("COMPREC Service", comprec_task, NULL, 0, 0);
-
-    /* Unmask timer now that we have a task ready to switch to */
-    apic_timer_unmask();
-
-    /* USER SPACE: The Environment Management Hand-off */
-    serial_printf("[PHASE 7] User Land Pivot & Subsystem Startup.\n");
-    serial_printf("[PHASE 7] Activating UAC Security Boundaries (lsass.exe equivalent)...\n");
-
-    /* STEP 7: The Session Manager Pivot (smss.exe Equivalent) */
-    serial_printf("[STEP 7] Spawning PID 1 (Environment Manager Task)...\n");
-    struct nk_user_font font;
-    font.userdata = nk_handle_ptr(0);
-    font.height = 8.0f;
-    font.width = font_get_width;
-    nk_init_default(&nk_ctx, &font);
-    ui_init_style(&nk_ctx);
-    memset(&os_app, 0, sizeof(os_app));
-    os_app.current_state = STATE_LOGIN;
-
-    /* Modified by Sovereign: Launch persistent System Shell and Environment Manager with NEONT IDs */
     system_shell_init();
-    /* UAID: 0x00, UPID: 0x01 for System Shell */
     scheduler_add_task("System Shell", system_shell_task, NULL, 0x00, 0x01);
 
-    /* UAID: 0x01, UPID: 0x01 for Environment Manager (Privileged User Land) */
+    /* Unmask timer now that we have background tasks ready */
+    apic_timer_unmask();
+
+    /* PHASE 7: User Land Pivot (Environment Manager) */
+    serial_printf("[PHASE 7] Executing final GUI pivot.\n");
+    memset(&os_app, 0, sizeof(os_app));
+    os_app.current_state = STATE_LOGIN;
     scheduler_add_task("Environment Manager", environment_manager_entry, NULL, 0x01, 0x01);
 
-    serial_printf("[PHASE 7] Hand-off complete. Relinquishing core control to scheduler.\n");
+    serial_printf("[PHASE 7] NEONT Executive Hand-off complete.\n");
     /* Hand off to preemptive scheduler loop */
     while (1) {
         scheduler_run();
+        __asm__ volatile("hlt");
     }
 }
