@@ -1,45 +1,41 @@
-#include "pro_os.h"
 #include "hal.h"
 #include "usbh_core.h"
 #include "usbh_msc.h"
+#include <string.h>
 
-/*
- * Sovereign Storage Implementation
- * Genuine integration with CherryUSB Host MSC Stack
- */
+static storage_device_t* devices[16]; static int count = 0;
+int hal_storage_register_device(storage_device_t *d) { if (count<16) { devices[count++] = d; return 0; } return -1; }
+int hal_storage_get_device_count(void) { return count; }
+storage_device_t* hal_storage_get_device(int i) { return (i>=0 && i<count) ? devices[i] : 0; }
+int hal_storage_read(storage_device_t* d, uint64_t s, void* b, uint32_t c) { if (d && d->read) return d->read(d, s, b, c); return -1; }
+int hal_storage_write(storage_device_t* d, uint64_t s, const void* b, uint32_t c) { if (d && d->write) return d->write(d, s, b, c); return -1; }
+void hal_storage_init(void) { count = 0; }
 
-void hal_storage_init(void) {
-    /* Ready for hotplug events */
+typedef struct { storage_device_t base; struct usbh_msc *msc; } usb_dev_t;
+static usb_dev_t usb_pool[4]; static int usb_ptr = 0;
+
+static int usb_read_wrap(storage_device_t* d, uint64_t s, void* b, uint32_t c) {
+    usb_dev_t* ud = (usb_dev_t*)d;
+    return usbh_msc_scsi_read10(ud->msc, (uint32_t)s, b, c);
+}
+static int usb_write_wrap(storage_device_t* d, uint64_t s, const void* b, uint32_t c) {
+    usb_dev_t* ud = (usb_dev_t*)d;
+    return usbh_msc_scsi_write10(ud->msc, (uint32_t)s, b, c);
 }
 
 void usbh_msc_run(struct usbh_msc *msc_class) {
-    static storage_device_t dev;
+    if (usb_ptr >= 4) return;
+    usb_dev_t *d = &usb_pool[usb_ptr++];
+    d->msc = msc_class;
+    d->base.name = "Genuine USB Disk"; d->base.type = STORAGE_TYPE_USB;
+    d->base.total_blocks = msc_class->blocknum; d->base.block_size = msc_class->blocksize;
+    d->base.read = usb_read_wrap; d->base.write = usb_write_wrap;
 
-    /* Technical identification from descriptor hierarchy */
-    dev.name = msc_class->hport->config.intf[0].devname;
-    if (!dev.name || !dev.name[0]) {
-        dev.name = "Genuine USB Disk";
-    }
+    // Register with both HAL and DEVMGR
+    hal_storage_register_device(&d->base);
+    void devmgr_register_storage(storage_device_t* d);
+    devmgr_register_storage(&d->base);
 
-    dev.type = STORAGE_TYPE_USB;
-    dev.total_blocks = msc_class->blocknum;
-    dev.block_size = msc_class->blocksize;
-
-    /* Genuine block registration - Hooking to CherryUSB usbh_msc_scsi_write/read */
-    hal_storage_register_device(&dev);
-
-    /* Refresh VFS logic to reflect new mount /dev/usbN */
-    extern void vfs_refresh_mounts(void);
-    vfs_refresh_mounts();
+    extern void vfs_refresh_mounts(void); vfs_refresh_mounts();
 }
-
-void usbh_msc_stop(struct usbh_msc *msc_class) {
-    (void)msc_class;
-    /* Flush dirty blocks and invalidate device handle */
-}
-
-int hal_storage_read(storage_device_t* dev, uint64_t sector, void* buffer, uint32_t count) {
-    (void)dev; (void)sector; (void)buffer; (void)count;
-    /* Translation to usbh_msc_scsi_read10 */
-    return 0;
-}
+void usbh_msc_stop(struct usbh_msc *m) { (void)m; }

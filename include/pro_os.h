@@ -22,6 +22,8 @@ char* strcpy(char* dest, const char* src);
 int strcmp(const char* s1, const char* s2);
 int strncmp(const char* s1, const char* s2, size_t n);
 char* strchr(const char* s, int c);
+#include <stdarg.h>
+int vsnprintf(char* str, size_t size, const char* format, va_list ap);
 int snprintf(char* str, size_t size, const char* format, ...);
 
 /* Scheduler / Task Manager */
@@ -39,9 +41,22 @@ void scheduler_init(void);
 void scheduler_add_task(const char *name, void (*entry)(void));
 void scheduler_run(void);
 
+void pci_scan(void);
+void vfs_refresh_mounts(void);
+void devmgr_register_storage(storage_device_t* d);
+int devmgr_get_count(void);
+const char* devmgr_get_label(int index);
+storage_device_t* devmgr_get_device(int index);
+int devmgr_list(char* out, size_t sz);
+void acpi_init(void* rsdp_addr);
 /* VFS */
 void vfs_init(void);
 const char* vfs_resolve(const char *path);
+int vfs_ls(const char* path, char* out, size_t sz);
+int vfs_cat(const char* path, char* out, size_t sz);
+int vfs_mkdir(const char* path);
+int vfs_write(const char* path, const char* content);
+int vfs_get_mounts(char* out, size_t sz);
 
 /* Security / UAC */
 typedef struct {
