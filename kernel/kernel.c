@@ -31,10 +31,50 @@ uint64_t hhdm_offset = 0;
 
 static uint8_t kernel_stack[65536] __attribute__((aligned(16)));
 
+struct limine_framebuffer *primary_fb;
+
+static const uint8_t font_8x8[128][8] = {
+    ['0'] = {0x3c,0x66,0x6e,0x76,0x66,0x66,0x3c,0x00},
+    ['1'] = {0x18,0x1c,0x18,0x18,0x18,0x18,0x3c,0x00},
+    ['2'] = {0x3c,0x66,0x06,0x0c,0x18,0x30,0x7e,0x00},
+    ['3'] = {0x3c,0x66,0x06,0x1c,0x06,0x66,0x3c,0x00},
+    ['4'] = {0x0c,0x1c,0x2c,0x4c,0x7e,0x0c,0x0c,0x00},
+    ['5'] = {0x7e,0x60,0x7c,0x06,0x06,0x66,0x3c,0x00},
+    ['6'] = {0x3c,0x66,0x60,0x7c,0x66,0x66,0x3c,0x00},
+    ['7'] = {0x7e,0x66,0x06,0x0c,0x18,0x18,0x18,0x00},
+    ['8'] = {0x3c,0x66,0x66,0x3c,0x66,0x66,0x3c,0x00},
+    ['9'] = {0x3c,0x66,0x66,0x3e,0x06,0x66,0x3c,0x00},
+    ['/'] = {0x00,0x02,0x04,0x08,0x10,0x20,0x40,0x00},
+    ['T'] = {0x7e,0x18,0x18,0x18,0x18,0x18,0x18,0x00},
+    ['a'] = {0x00,0x3c,0x06,0x3e,0x66,0x66,0x3e,0x00},
+    ['s'] = {0x00,0x3c,0x60,0x3c,0x06,0x66,0x3c,0x00},
+    ['k'] = {0x66,0x66,0x6c,0x78,0x7c,0x66,0x66,0x00},
+    [':'] = {0x00,0x18,0x18,0x00,0x18,0x18,0x00,0x00},
+    [' '] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}
+};
+
+void draw_char_8x8(int x, int y, char c, uint32_t color) {
+    if ((uint8_t)c >= 128) return;
+    uint32_t* fb = (uint32_t*)primary_fb->address;
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            if (font_8x8[(uint8_t)c][i] & (0x80 >> j)) {
+                fb[(y + i) * (primary_fb->pitch/4) + (x + j)] = color;
+            }
+        }
+    }
+}
+
+void draw_text_8x8(int x, int y, const char* str, uint32_t color) {
+    while (*str) {
+        draw_char_8x8(x, y, *str++, color);
+        x += 8;
+    }
+}
+
 /* Environment Manager Data */
 struct nk_context nk_ctx;
 struct app_state os_app;
-struct limine_framebuffer *primary_fb;
 
 static float font_get_width(nk_handle handle, float height, const char *text, int len) {
     (void)handle; (void)height; (void)text;
@@ -98,6 +138,10 @@ void environment_manager_entry(void* arg) {
         ui_render(&nk_ctx, &os_app, primary_fb->width, primary_fb->height);
         struct nk_sw_fb sw_fb = { primary_fb->address, primary_fb->width, primary_fb->height, primary_fb->pitch };
         nk_sw_render(&sw_fb, &nk_ctx);
+
+        char task_buf[32];
+        snprintf(task_buf, 32, "Task:%d/%d", scheduler_get_current_task_idx(), scheduler_get_task_count());
+        draw_text_8x8(10, 10, task_buf, 0x00FF00);
 
         draw_cursor(&canvas, cursor_x, cursor_y);
         scheduler_yield();
@@ -190,6 +234,9 @@ void kernel_main(void) {
 
     /* Sovereign: Launch COMPREC as the first background safety task (UAID 0, UPID 0) */
     scheduler_add_task("COMPREC Service", comprec_task, NULL, 0, 0);
+
+    /* Unmask timer now that we have a task ready to switch to */
+    apic_timer_unmask();
 
     /* USER SPACE: The Environment Management Hand-off */
     serial_printf("[PHASE 7] User Land Pivot & Subsystem Startup.\n");

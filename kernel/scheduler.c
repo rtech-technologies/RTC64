@@ -79,11 +79,13 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
         *(--stack) = current_cr3;
         *(--stack) = current_cr4;
 
-        /* Segments: gs, fs, es, ds */
-        *(--stack) = 0x10; /* ds */
-        *(--stack) = 0x10; /* es */
+        /* Segments: matching isr_stubs.s (ds, es, fs, gs) */
+        /* Note: pushed as ds, then es, then fs, then gs */
+        /* stack-- pushes from high to low address */
+        *(--stack) = 0x10; /* gs (lowest address) */
         *(--stack) = 0x10; /* fs */
-        *(--stack) = 0x10; /* gs */
+        *(--stack) = 0x10; /* es */
+        *(--stack) = 0x10; /* ds (highest address) */
 
         /* Padding for 16-byte alignment of FXSAVE */
         *(--stack) = 0;

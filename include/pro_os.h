@@ -126,6 +126,7 @@ void gdt_init(void);
 void idt_init(void);
 void apic_init(void);
 void apic_write(uint32_t reg, uint32_t val);
+void apic_timer_unmask(void);
 void apic_eoi(void);
 void irq_install_handler(int irq, void (*handler)(struct cpu_state*));
 void timer_handler(struct cpu_state* state);

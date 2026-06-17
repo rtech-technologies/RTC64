@@ -285,13 +285,13 @@ void kpanic(const char* message) {
     "pushq %r14\n" \
     "pushq %r15\n"
 
-#define DEFINE_EXCEPTION_GATEWAY_WITH_ERR(name, title_string) \
+#define DEFINE_EXCEPTION_GATEWAY_WITH_ERR(name, title_string, vector) \
     void name(void); \
     __asm__( \
         ".global " #name "\n" \
         #name ":\n" \
         "cli\n" \
-        "pushq $0\n" \
+        "pushq $" #vector "\n" \
         PUSH_REGS_ASM \
         "movq %rsp, %rsi\n" \
         "movq $0, %rdx\n" \
@@ -303,14 +303,14 @@ void kpanic(const char* message) {
         ".text\n" \
     );
 
-#define DEFINE_EXCEPTION_GATEWAY_NO_ERR(name, title_string) \
+#define DEFINE_EXCEPTION_GATEWAY_NO_ERR(name, title_string, vector) \
     void name(void); \
     __asm__( \
         ".global " #name "\n" \
         #name ":\n" \
         "cli\n" \
         "pushq $0\n" \
-        "pushq $0\n" \
+        "pushq $" #vector "\n" \
         PUSH_REGS_ASM \
         "movq %rsp, %rsi\n" \
         "movq $0, %rdx\n" \
@@ -322,7 +322,7 @@ void kpanic(const char* message) {
         ".text\n" \
     );
 
-DEFINE_EXCEPTION_GATEWAY_NO_ERR(  handler_divide_by_zero, "STATUS_INTEGER_DIVIDE_BY_ZERO (#DE)")
-DEFINE_EXCEPTION_GATEWAY_WITH_ERR(handler_general_protection_fault, "SYSTEM_THREAD_EXCEPTION_NOT_HANDLED (#GP)")
-DEFINE_EXCEPTION_GATEWAY_WITH_ERR(handler_page_fault, "PAGE_FAULT_IN_NONPAGED_AREA (#PF)")
-DEFINE_EXCEPTION_GATEWAY_NO_ERR(  handler_double_fault, "CRITICAL_PROCESS_DIED (#DF)")
+DEFINE_EXCEPTION_GATEWAY_NO_ERR(  handler_divide_by_zero, "STATUS_INTEGER_DIVIDE_BY_ZERO (#DE)", 0)
+DEFINE_EXCEPTION_GATEWAY_WITH_ERR(handler_general_protection_fault, "SYSTEM_THREAD_EXCEPTION_NOT_HANDLED (#GP)", 13)
+DEFINE_EXCEPTION_GATEWAY_WITH_ERR(handler_page_fault, "PAGE_FAULT_IN_NONPAGED_AREA (#PF)", 14)
+DEFINE_EXCEPTION_GATEWAY_NO_ERR(  handler_double_fault, "CRITICAL_PROCESS_DIED (#DF)", 8)

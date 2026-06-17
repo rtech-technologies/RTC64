@@ -58,8 +58,14 @@ void apic_init(void) {
 
     serial_printf("[APIC] Calibration complete: %d ticks/10ms\n", (int)ticks_per_10ms);
 
-    apic_write(APIC_TMR, 32 | 0x20000); /* Vector 32, Periodic */
+    /* Initially mask the timer interrupt */
+    apic_write(APIC_TMR, 32 | 0x20000 | 0x10000); /* Vector 32, Periodic, Masked */
     apic_write(APIC_TICR, ticks_per_10ms);
+}
+
+void apic_timer_unmask(void) {
+    uint32_t val = apic_read(APIC_TMR);
+    apic_write(APIC_TMR, val & ~0x10000);
 }
 
 uint64_t hal_get_uptime_ms(void) {
