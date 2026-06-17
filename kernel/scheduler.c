@@ -67,9 +67,10 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
         *(--stack) = 0; /* interrupt_number */
 
         /* GPRs: rax, rbx, rcx, rdx, rsi, rdi, rbp, r8, r9, r10, r11, r12, r13, r14, r15 (15 regs) */
-        /* RDI is the first argument in x86_64 calling convention */
+        /* In isr_stubs.s, rax is pushed first (highest address), r15 last (lowest address) */
+        /* stack-- pushes from highest to lowest address */
         for(int i=0; i<15; i++) {
-            if (i == 9) *(--stack) = (uint64_t)arg; /* RDI is pushed 10th in isr_stubs.s: push rax, rbx, rcx, rdx, rsi, rdi... */
+            if (i == 5) *(--stack) = (uint64_t)arg; /* i=5 is rdi, the 6th register pushed (rax, rbx, rcx, rdx, rsi, rdi) */
             else *(--stack) = 0;
         }
 

@@ -124,6 +124,7 @@ static void blit_char(char c, uint32_t x, uint32_t y, struct panic_framebuffer* 
 }
 
 static void bsod_print(const char* str, struct panic_framebuffer* fb) {
+    serial_write(str); /* Modified by Sovereign: Dual-mode serial/graphics output */
     for (size_t i = 0; str[i] != '\0'; i++) {
         if (str[i] == '\n') {
             c_x = 50; c_y += 20;
@@ -171,26 +172,6 @@ void render_bsod_screen(const char* error_title, void* rsp_pointer, int type) {
     serial_printf("!!! KERNEL PANIC: %s\n", error_title);
     serial_printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 
-    if (frame) {
-        serial_printf("RIP: %p  ERR: %p  VEC: %d\n", (void*)frame->rip, (void*)frame->error_code, (int)frame->interrupt_number);
-        serial_printf("RAX: %p  RBX: %p  RCX: %p\n", (void*)frame->rax, (void*)frame->rbx, (void*)frame->rcx);
-        serial_printf("RDX: %p  RSI: %p  RDI: %p\n", (void*)frame->rdx, (void*)frame->rsi, (void*)frame->rdi);
-        serial_printf("RBP: %p  RSP: %p  FLG: %p\n", (void*)frame->rbp, (void*)frame->rsp, (void*)frame->rflags);
-
-        if (type == 1) {
-            struct cpu_state* s = (struct cpu_state*)rsp_pointer;
-            serial_printf("CR2: %p  CR3: %p  CR4: %p\n", (void*)s->cr2, (void*)s->cr3, (void*)s->cr4);
-        }
-
-        int tid = scheduler_get_current_task_idx();
-        if (tid != -1) {
-            task_t* t = scheduler_get_task(tid);
-            if (t) {
-                serial_printf("UAID: %08X  UPID: %08X  TASK: %s\n", t->uaid, t->upid, t->name);
-            }
-        }
-    }
-
     if (!fb || !fb->address) {
         serial_printf("[PANIC] Framebuffer unavailable. System halted.\n");
         while(1) { __asm__ volatile("cli; hlt"); }
@@ -216,40 +197,49 @@ void render_bsod_screen(const char* error_title, void* rsp_pointer, int type) {
     bsod_print("driver alignment settings and pointer-to-integer conversion widths.\n\n", fb);
     bsod_print("--- TECHNICAL INFORMATION ---\n\n", fb);
 
-    uint64_t cr2, cr3;
-    char hex_str[20];
-    __asm__ volatile("mov %%cr2, %0" : "=r"(cr2));
-    __asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
+    if (frame) {
+        char val_buf[20];
+        bsod_print("RIP: ", fb); u64_to_hex(frame->rip, val_buf); bsod_print(val_buf, fb);
+        bsod_print("  ERR: ", fb); u64_to_hex(frame->error_code, val_buf); bsod_print(val_buf, fb);
+        bsod_print("  VEC: ", fb); u64_to_hex(frame->interrupt_number, val_buf); bsod_print(val_buf, fb); bsod_print("\n", fb);
+
+        bsod_print("RAX: ", fb); u64_to_hex(frame->rax, val_buf); bsod_print(val_buf, fb);
+        bsod_print(" RBX: ", fb); u64_to_hex(frame->rbx, val_buf); bsod_print(val_buf, fb);
+        bsod_print(" RCX: ", fb); u64_to_hex(frame->rcx, val_buf); bsod_print(val_buf, fb); bsod_print("\n", fb);
+
+        bsod_print("RDX: ", fb); u64_to_hex(frame->rdx, val_buf); bsod_print(val_buf, fb);
+        bsod_print(" RSI: ", fb); u64_to_hex(frame->rsi, val_buf); bsod_print(val_buf, fb);
+        bsod_print(" RDI: ", fb); u64_to_hex(frame->rdi, val_buf); bsod_print(val_buf, fb); bsod_print("\n", fb);
+
+        bsod_print("RBP: ", fb); u64_to_hex(frame->rbp, val_buf); bsod_print(val_buf, fb);
+        bsod_print(" RSP: ", fb); u64_to_hex(frame->rsp, val_buf); bsod_print(val_buf, fb);
+        bsod_print(" FLG: ", fb); u64_to_hex(frame->rflags, val_buf); bsod_print(val_buf, fb); bsod_print("\n", fb);
+
+        if (type == 1) {
+            struct cpu_state* s = (struct cpu_state*)rsp_pointer;
+            bsod_print("CR2: ", fb); u64_to_hex(s->cr2, val_buf); bsod_print(val_buf, fb);
+            bsod_print(" CR3: ", fb); u64_to_hex(s->cr3, val_buf); bsod_print(val_buf, fb);
+            bsod_print(" CR4: ", fb); u64_to_hex(s->cr4, val_buf); bsod_print(val_buf, fb); bsod_print("\n", fb);
+        }
+
+        int tid = scheduler_get_current_task_idx();
+        if (tid != -1) {
+            task_t* t = scheduler_get_task(tid);
+            if (t) {
+                char u_buf[20];
+                bsod_print("UAID: ", fb); u64_to_hex(t->uaid, u_buf); bsod_print(u_buf, fb);
+                bsod_print("  UPID: ", fb); u64_to_hex(t->upid, u_buf); bsod_print(u_buf, fb);
+                bsod_print("\nTASK: ", fb); bsod_print(t->name, fb); bsod_print("\n", fb);
+            }
+        }
+    }
 
     /* Hardware Context: Report last bound PCI hardware if applicable */
     int pci_cnt = pci_get_device_count();
     if (pci_cnt > 0) {
         char hw_info[128];
         pci_get_device_info(pci_cnt - 1, hw_info, sizeof(hw_info));
-        bsod_print("Last Bound HW: ", fb); bsod_print(hw_info, fb); bsod_print("\n\n", fb);
-    }
-
-    u64_to_hex(cr2, hex_str);
-    bsod_print("CR2 (Faulting Addr): ", fb); bsod_print(hex_str, fb); bsod_print("\n", fb);
-    u64_to_hex(cr3, hex_str);
-    bsod_print("CR3 (Page Directory): ", fb); bsod_print(hex_str, fb); bsod_print("\n\n", fb);
-
-    if (frame) {
-        u64_to_hex(frame->rip, hex_str);
-        bsod_print("RIP: ", fb); bsod_print(hex_str, fb);
-        u64_to_hex(frame->rsp, hex_str);
-        bsod_print("  RSP: ", fb); bsod_print(hex_str, fb); bsod_print("\n", fb);
-
-        int tid = scheduler_get_current_task_idx();
-        if (tid != -1) {
-            task_t* t = scheduler_get_task(tid);
-            if (t) {
-                char id_buf[32];
-                bsod_print("UAID: ", fb); u64_to_hex(t->uaid, id_buf); bsod_print(id_buf, fb);
-                bsod_print("  UPID: ", fb); u64_to_hex(t->upid, id_buf); bsod_print(id_buf, fb);
-                bsod_print("\nTASK: ", fb); bsod_print(t->name, fb); bsod_print("\n", fb);
-            }
-        }
+        bsod_print("Last Bound HW: ", fb); bsod_print(hw_info, fb); bsod_print("\n", fb);
     }
 
     bsod_print("\nSTACK BACKTRACE:\n", fb);
@@ -257,14 +247,13 @@ void render_bsod_screen(const char* error_title, void* rsp_pointer, int type) {
     for (int i = 0; i < 5; i++) {
         if (!rbp || (uint64_t)rbp < hhdm_offset) break;
         uint64_t rip = rbp[1];
-        u64_to_hex(rip, hex_str);
-        bsod_print("  [", fb); bsod_print(hex_str, fb); bsod_print("]\n", fb);
-        serial_printf("  Stack Frame %d: %p\n", i, (void*)rip);
+        char h_buf[20];
+        u64_to_hex(rip, h_buf);
+        bsod_print("  [", fb); bsod_print(h_buf, fb); bsod_print("]\n", fb);
         rbp = (uint64_t*)rbp[0];
     }
 
-    bsod_print("\nESTATE SECURED. EXECUTION HALTED SAFELY.", fb);
-    serial_printf("ESTATE SECURED. EXECUTION HALTED SAFELY.\n");
+    bsod_print("\nESTATE SECURED. EXECUTION HALTED SAFELY.\n", fb);
 
     while (1) {
         __asm__ volatile("cli; hlt");
