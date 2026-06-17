@@ -152,6 +152,7 @@ static void u64_to_hex(uint64_t val, char* out_buf) {
  * 4. THE MASTER GRAPHICAL CRASH RENDERER
  * ========================================================================= */
 void render_bsod_screen(const char* error_title, void* rsp_pointer, int type) {
+    serial_force_unlock();
     panic_nest_level++;
     if (panic_nest_level > 1) {
         serial_printf("\n[DOUBLE PANIC] System halted to prevent triple fault loop.\n");

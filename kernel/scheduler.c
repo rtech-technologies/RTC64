@@ -14,6 +14,7 @@ static uint64_t task_rsps[MAX_TASKS];
 
 static uint64_t idle_ticks = 0;
 static uint64_t total_ticks = 0;
+static uint64_t ctx_switches = 0;
 static int cpu_load = 0;
 
 static void kernel_idle_task(void* arg) {
@@ -25,6 +26,9 @@ static void kernel_idle_task(void* arg) {
         uint64_t now = hal_get_uptime_ms();
         if (now - last_calc >= 1000) {
             /* Modified by Sovereign: Comprehensive System Monitoring in Idle Task */
+            static uint64_t audit_timer = 0;
+            audit_timer++;
+
             uint64_t work_ticks = total_ticks - idle_ticks;
             if (total_ticks > 0) {
                 cpu_load = (int)((work_ticks * 100) / total_ticks);
@@ -42,6 +46,12 @@ static void kernel_idle_task(void* arg) {
 
             /* 3. VFS Health Check (Refresh Mounts) */
             vfs_refresh_mounts();
+
+            if (audit_timer >= 10) {
+                serial_printf("[AUDIT] System Integrity: PASS | Ctx:%llu | CPU:%d%%\n",
+                               ctx_switches, cpu_load);
+                audit_timer = 0;
+            }
 
             /* Reset for next window to ensure rolling average */
             idle_ticks = 0;
@@ -76,7 +86,7 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
         tasks[slot].id = slot;
         tasks[slot].uaid = uaid;
         tasks[slot].upid = upid;
-        tasks[slot].name = name;
+        strncpy(tasks[slot].name, name, 31);
         tasks[slot].state = TASK_RUNNING;
         tasks[slot].entry = entry;
         tasks[slot].arg = arg;
@@ -114,13 +124,12 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
         *(--stack) = current_cr3;
         *(--stack) = current_cr4;
 
-        /* Segments: matching isr_stubs.s (ds, es, fs, gs) */
-        /* Note: pushed as ds, then es, then fs, then gs */
+        /* Segments: matching isr_stubs.s pop order (ds, es, fs, gs) */
         /* stack-- pushes from high to low address */
-        *(--stack) = 0x10; /* gs (lowest address) */
+        *(--stack) = 0x10; /* gs (highest address) */
         *(--stack) = 0x10; /* fs */
         *(--stack) = 0x10; /* es */
-        *(--stack) = 0x10; /* ds (highest address) */
+        *(--stack) = 0x10; /* ds (lowest address) */
 
         /* Padding for 16-byte alignment of FXSAVE */
         *(--stack) = 0;
@@ -180,6 +189,7 @@ void scheduler_remove_task(int task_id) {
 /* POWER: The meaty preemptive context switch with DEAD-state awareness */
 uint64_t scheduler_switch(uint64_t current_rsp) {
     total_ticks++;
+    ctx_switches++;
     if (task_count == 0) return current_rsp;
 
     if (current_task_idx != -1 && current_task_idx < task_count) {
@@ -230,6 +240,10 @@ uint32_t scheduler_get_current_upid(void) {
 
 int scheduler_get_cpu_load(void) {
     return cpu_load;
+}
+
+uint64_t scheduler_get_ctx_switches(void) {
+    return ctx_switches;
 }
 
 /* Audit Step 3: Proactive Stack Integrity Check */

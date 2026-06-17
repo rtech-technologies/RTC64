@@ -145,9 +145,10 @@ void environment_manager_entry(void* arg) {
         if (tid == 0) strcpy(tid_str, "IDLE");
         else snprintf(tid_str, 8, "%d", tid);
 
-        snprintf(task_buf, 128, "Task:%s/%d CPU:%d%% Mem:%dKB Up:%ds",
+        snprintf(task_buf, 128, "T:%s/%d Ctx:%lu CPU:%d%% M:%dKB Up:%ds",
                  tid_str,
-                 scheduler_get_task_count() - 1, /* Exclude Idle from count */
+                 scheduler_get_task_count() - 1,
+                 (unsigned long)scheduler_get_ctx_switches(),
                  scheduler_get_cpu_load(),
                  (int)(hal_malloc_get_used() / 1024),
                  (int)(hal_get_uptime_ms() / 1000));

@@ -126,8 +126,8 @@ Media summary: 0 sessions, 0 data blocks, 0 data, 92.6g free
 Added to ISO image: directory '/'='/app/iso_root'
 xorriso : UPDATE :       9 files added in 1 seconds
 xorriso : UPDATE :       9 files added in 1 seconds
-ISO image produced: 539 sectors
-Written to medium : 539 sectors at LBA 0
+ISO image produced: 543 sectors
+Written to medium : 543 sectors at LBA 0
 Writing to 'stdio:os.iso' completed successfully.
 
 ./external/limine/limine bios-install os.iso

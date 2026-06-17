@@ -18,8 +18,9 @@ void system_shell_init(void) {
 
 void system_shell_task(void* arg) {
     (void)arg;
-    while (serial_received()) {
-        char c = serial_read();
+    while (1) {
+        if (serial_received()) {
+            char c = serial_read();
 
         if (c == '\r' || c == '\n') {
             serial_write("\n");
@@ -149,16 +150,17 @@ void system_shell_task(void* arg) {
             }
 
             serial_write("> ");
-            shell_ptr = 0;
-        } else if (c == '\b' || c == 127) {
-            if (shell_ptr > 0) {
-                shell_ptr--;
-                serial_write("\b \b");
+                shell_ptr = 0;
+            } else if (c == '\b' || c == 127) {
+                if (shell_ptr > 0) {
+                    shell_ptr--;
+                    serial_write("\b \b");
+                }
+            } else if (shell_ptr < SHELL_BUF_SIZE - 1) {
+                shell_buffer[shell_ptr++] = c;
+                char echo[2] = {c, 0};
+                serial_write(echo);
             }
-        } else if (shell_ptr < SHELL_BUF_SIZE - 1) {
-            shell_buffer[shell_ptr++] = c;
-            char echo[2] = {c, 0};
-            serial_write(echo);
         }
         scheduler_yield();
     }

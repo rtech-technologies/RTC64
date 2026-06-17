@@ -127,6 +127,7 @@ static int _usbh_hub_set_feature(struct usbh_hub *hub, uint8_t port, uint8_t fea
 {
     struct usb_setup_packet *setup;
 
+    if (!hub || !hub->parent || !hub->parent->setup) return -1;
     setup = hub->parent->setup;
 
     setup->bmRequestType = USB_REQUEST_DIR_OUT | USB_REQUEST_CLASS | USB_REQUEST_RECIPIENT_OTHER;
@@ -142,6 +143,7 @@ static int _usbh_hub_clear_feature(struct usbh_hub *hub, uint8_t port, uint8_t f
 {
     struct usb_setup_packet *setup;
 
+    if (!hub || !hub->parent || !hub->parent->setup) return -1;
     setup = hub->parent->setup;
 
     setup->bmRequestType = USB_REQUEST_DIR_OUT | USB_REQUEST_CLASS | USB_REQUEST_RECIPIENT_OTHER;
@@ -158,6 +160,7 @@ static int _usbh_hub_set_depth(struct usbh_hub *hub, uint16_t depth)
 {
     struct usb_setup_packet *setup;
 
+    if (!hub || !hub->parent || !hub->parent->setup) return -1;
     setup = hub->parent->setup;
 
     setup->bmRequestType = USB_REQUEST_DIR_OUT | USB_REQUEST_CLASS | USB_REQUEST_RECIPIENT_DEVICE;

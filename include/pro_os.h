@@ -19,6 +19,7 @@ void* memchr(const void* s, int c, size_t n);
 int memcmp(const void* s1, const void* s2, size_t n);
 size_t strlen(const char* s);
 char* strcpy(char* dest, const char* src);
+char* strncpy(char* dest, const char* src, size_t n);
 int strcmp(const char* s1, const char* s2);
 int strncmp(const char* s1, const char* s2, size_t n);
 char* strchr(const char* s, int c);
@@ -33,7 +34,7 @@ typedef struct {
     int id;
     uint32_t uaid;
     uint32_t upid;
-    const char *name;
+    char name[32];
     task_state_t state;
     void (*entry)(void*);
     void *arg;
@@ -44,8 +45,9 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
 void scheduler_remove_task(int task_id);
 uint64_t scheduler_switch(uint64_t current_rsp);
 void scheduler_yield(void);
-void scheduler_yield(void);
 void scheduler_run(void);
+void serial_force_unlock(void);
+void scheduler_yield(void);
 int scheduler_get_task_count(void);
 task_t* scheduler_get_task(int index);
 int scheduler_get_current_task_idx(void);
@@ -53,6 +55,7 @@ uint32_t scheduler_get_current_uaid(void);
 uint32_t scheduler_get_current_upid(void);
 int scheduler_get_cpu_load(void);
 void scheduler_audit_stacks(void);
+uint64_t scheduler_get_ctx_switches(void);
 
 /* System Shell */
 void system_shell_init(void);
@@ -155,6 +158,7 @@ int vfs_write(const char* path, const char* content);
 int vfs_get_mounts(char* out, size_t sz);
 void vfs_init(void);
 void vfs_refresh_mounts(void);
+void serial_force_unlock(void);
 int devmgr_list(char* out, size_t sz);
 int pci_get_device_count(void);
 int pci_get_device_info(int index, char* buf, size_t sz);
