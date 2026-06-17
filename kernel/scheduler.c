@@ -4,6 +4,7 @@
 #include "serial.h"
 
 #define STACK_SIZE 16384
+#define STACK_CANARY 0xDEADC0DEBEEFC0DEULL
 
 static task_t tasks[MAX_TASKS];
 static uint8_t task_stacks[MAX_TASKS][STACK_SIZE] __attribute__((aligned(16)));
@@ -11,9 +12,43 @@ static int current_task_idx = -1;
 static int task_count = 0;
 static uint64_t task_rsps[MAX_TASKS];
 
+static uint64_t idle_ticks = 0;
+static uint64_t total_ticks = 0;
+static int cpu_load = 0;
+
 static void kernel_idle_task(void* arg) {
     (void)arg;
+    uint64_t last_calc = 0;
     while (1) {
+        idle_ticks++;
+
+        uint64_t now = hal_get_uptime_ms();
+        if (now - last_calc >= 1000) {
+            /* Modified by Sovereign: Comprehensive System Monitoring in Idle Task */
+            uint64_t work_ticks = total_ticks - idle_ticks;
+            if (total_ticks > 0) {
+                cpu_load = (int)((work_ticks * 100) / total_ticks);
+            }
+
+            /* 1. Audit Stack Integrity */
+            scheduler_audit_stacks();
+
+            /* 2. Monitor Memory Pressure */
+            size_t used = hal_malloc_get_used();
+            size_t total = hal_malloc_get_total();
+            if (used > (total * 90) / 100) {
+                serial_printf("[MONITOR] WARNING: Critical Memory Pressure Detected!\n");
+            }
+
+            /* 3. VFS Health Check (Refresh Mounts) */
+            vfs_refresh_mounts();
+
+            /* Reset for next window to ensure rolling average */
+            idle_ticks = 0;
+            total_ticks = 0;
+            last_calc = now;
+        }
+
         __asm__("hlt");
     }
 }
@@ -96,6 +131,10 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
         uint32_t *mxcsr = (uint32_t *)((uint8_t *)stack + 24);
         *mxcsr = 0x1F80;
 
+        /* Sovereign: Place stack canary at the very bottom of the allocated stack area */
+        uint64_t* canary_ptr = (uint64_t*)&task_stacks[slot][0];
+        *canary_ptr = STACK_CANARY;
+
         task_rsps[slot] = (uint64_t)stack;
         return slot;
     }
@@ -140,6 +179,7 @@ void scheduler_remove_task(int task_id) {
 
 /* POWER: The meaty preemptive context switch with DEAD-state awareness */
 uint64_t scheduler_switch(uint64_t current_rsp) {
+    total_ticks++;
     if (task_count == 0) return current_rsp;
 
     if (current_task_idx != -1 && current_task_idx < task_count) {
@@ -186,4 +226,21 @@ uint32_t scheduler_get_current_uaid(void) {
 uint32_t scheduler_get_current_upid(void) {
     if (current_task_idx != -1 && current_task_idx < task_count) return tasks[current_task_idx].upid;
     return 0;
+}
+
+int scheduler_get_cpu_load(void) {
+    return cpu_load;
+}
+
+/* Audit Step 3: Proactive Stack Integrity Check */
+void scheduler_audit_stacks(void) {
+    for (int i = 0; i < task_count; i++) {
+        if (tasks[i].state != TASK_DEAD) {
+            uint64_t* canary_ptr = (uint64_t*)&task_stacks[i][0];
+            if (*canary_ptr != STACK_CANARY) {
+                serial_printf("[SECURITY] STACK OVERFLOW DETECTED in task %d (%s)!\n", i, tasks[i].name);
+                kpanic("STACK_BUFFER_OVERRUN");
+            }
+        }
+    }
 }

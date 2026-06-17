@@ -156,8 +156,12 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
             snprintf(mem_buf, 64, "Memory: %d KB / %d KB", (int)(used/1024), (int)(total/1024));
             nk_layout_row_dynamic(ctx, 20, 1);
             nk_label(ctx, mem_buf, NK_TEXT_LEFT);
-            nk_label(ctx, "CPU: 2% (Scheduler ACTIVE)", NK_TEXT_LEFT);
-            nk_progress(ctx, (nk_size*)&app->cpu_usage, 100, nk_false);
+
+            char cpu_buf[64];
+            int load = scheduler_get_cpu_load();
+            snprintf(cpu_buf, 64, "CPU Load: %d%%", load);
+            nk_label(ctx, cpu_buf, NK_TEXT_LEFT);
+            nk_progress(ctx, (nk_size*)&load, 100, nk_false);
         }
         nk_end(ctx);
     }

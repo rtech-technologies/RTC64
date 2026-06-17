@@ -139,8 +139,18 @@ void environment_manager_entry(void* arg) {
         struct nk_sw_fb sw_fb = { primary_fb->address, primary_fb->width, primary_fb->height, primary_fb->pitch };
         nk_sw_render(&sw_fb, &nk_ctx);
 
-        char task_buf[32];
-        snprintf(task_buf, 32, "Task:%d/%d", scheduler_get_current_task_idx(), scheduler_get_task_count());
+        char task_buf[128];
+        int tid = scheduler_get_current_task_idx();
+        char tid_str[8];
+        if (tid == 0) strcpy(tid_str, "IDLE");
+        else snprintf(tid_str, 8, "%d", tid);
+
+        snprintf(task_buf, 128, "Task:%s/%d CPU:%d%% Mem:%dKB Up:%ds",
+                 tid_str,
+                 scheduler_get_task_count() - 1, /* Exclude Idle from count */
+                 scheduler_get_cpu_load(),
+                 (int)(hal_malloc_get_used() / 1024),
+                 (int)(hal_get_uptime_ms() / 1000));
         draw_text_8x8(10, 10, task_buf, 0x00FF00);
 
         draw_cursor(&canvas, cursor_x, cursor_y);
