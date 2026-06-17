@@ -37,6 +37,14 @@ double sqrt(double x) {
     return res;
 }
 
+float roundf(float x) {
+    if (x >= 0.0f) {
+        return (float)((int)(x + 0.5f));
+    } else {
+        return (float)((int)(x - 0.5f));
+    }
+}
+
 double log(double x) {
     if (x <= 0) return 0;
     double res = 0;

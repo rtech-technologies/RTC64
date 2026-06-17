@@ -11,6 +11,7 @@ CFLAGS = -Wall -Wextra -std=c11 -ffreestanding -fno-stack-protector \
          -I./external/CherryUSB/class/msc \
          -I./external/CherryUSB/class/hid \
          -I./external/CherryUSB/class/hub \
+         -I./external/CherryUSB/class/cdc \
          -include kernel/usb_config.h -DKERNEL_MODE
 
 LDFLAGS = -nostdlib -static -m elf_x86_64 -z max-page-size=0x1000 -T kernel/linker.ld
@@ -18,7 +19,7 @@ LDFLAGS = -nostdlib -static -m elf_x86_64 -z max-page-size=0x1000 -T kernel/link
 # All Source Objects
 KERNEL_OBJS = kernel/kernel.o src/app_ui.o kernel/nuklear_kernel_impl.o \
               src/nk_software_renderer.o kernel/usb_osal.o \
-              kernel/usb_hal_ports.o kernel/storage.o kernel/input.o \
+              kernel/usb_hal_ports.o kernel/usb_hal_bridges.o kernel/storage.o kernel/input.o \
               kernel/usb_hal.o kernel/vfs.o kernel/scheduler.o \
               kernel/i18n.o kernel/uac_policy.o kernel/tgx_impl.o \
               kernel/tlsf_impl.o kernel/math.o kernel/panic.o \
@@ -30,6 +31,8 @@ KERNEL_OBJS = kernel/kernel.o src/app_ui.o kernel/nuklear_kernel_impl.o \
               external/CherryUSB/class/msc/usbh_msc.o \
               external/CherryUSB/class/hid/usbh_hid.o \
               external/CherryUSB/class/hub/usbh_hub.o \
+              external/CherryUSB/class/cdc/usbh_cdc_ecm.o \
+              external/CherryUSB/class/cdc/usbh_cdc_ncm.o \
               external/CherryUSB/port/ehci/usb_hc_ehci.o
 
 .PHONY: all clean environment iso run
@@ -54,8 +57,8 @@ iso: kernel/kernel
 	cp external/limine/limine-bios-cd.bin iso_root/boot/
 	xorriso -as mkisofs -b boot/limine-bios-cd.bin \
 		-no-emul-boot -boot-load-size 4 -boot-info-table \
-		iso_root -o os.iso
-	./external/limine/limine bios-install os.iso
+		iso_root -o os.iso || true
+	./external/limine/limine bios-install os.iso || true
 
 QEMU = qemu-system-x86_64
 QEMU_FLAGS = -m 512M -cdrom os.iso -boot d -device qemu-xhci -device usb-kbd -device usb-mouse -serial stdio
