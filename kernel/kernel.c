@@ -129,9 +129,8 @@ void session_manager_task(void* arg) {
     memset(&os_app, 0, sizeof(os_app));
     os_app.current_state = STATE_DESKTOP;
     os_app.show_terminal = 1;
-    scheduler_add_task("Environment Manager", environment_manager_entry, NULL, 0x01, 0x01);
-
-    /* 2. Initialize the Graphical Shell (The WinPE Console) - Already handled via Chell update in Environment Manager */
+    /* Use industrial SPAWN for Environment Manager (New App Domain) */
+    scheduler_spawn("Environment Manager", environment_manager_entry, NULL);
 
     /* Session manager persists to monitor system health */
     while(1) {
@@ -215,13 +214,14 @@ void kernel_main(void) {
     /* PHASE 6: Service Control Manager */
     serial_printf("[PHASE 6] Starting Core Background Services (COMPREC/Terminal)...\n");
     system_shell_init();
-    scheduler_add_task("System Shell", system_shell_task, NULL, 0, 1);
-    scheduler_add_task("COMPREC", comprec_task, NULL, 0, 0);
+    /* System services use fixed IDs for security binding (0,1 or 1,1) */
+    scheduler_add_task("System Shell", system_shell_task, NULL, 1, 1);
+    scheduler_add_task("COMPREC", comprec_task, NULL, 1, 1);
     apic_timer_unmask();
 
     /* PHASE 7: User Land Pivot */
     serial_printf("[PHASE 7] Pivoting to Session Initialization...\n");
-    scheduler_add_task("SMSS", session_manager_task, NULL, 0x01, 0x01);
+    scheduler_add_task("SMSS", session_manager_task, NULL, 1, 1);
 
     while (1) {
         scheduler_run();

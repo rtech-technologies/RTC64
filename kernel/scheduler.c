@@ -17,6 +17,10 @@ static uint64_t total_ticks = 0;
 static uint64_t ctx_switches = 0;
 static int cpu_load = 0;
 
+/* Modified by Sovereign: Dynamic ID generation counters */
+static uint32_t next_uaid = 100;
+static uint32_t next_upid = 1000;
+
 static void kernel_idle_task(void* arg) {
     (void)arg;
     uint64_t last_calc = 0;
@@ -25,7 +29,6 @@ static void kernel_idle_task(void* arg) {
 
         uint64_t now = hal_get_uptime_ms();
         if (now - last_calc >= 1000) {
-            /* Modified by Sovereign: Comprehensive System Monitoring in Idle Task */
             static uint64_t audit_timer = 0;
             audit_timer++;
 
@@ -34,17 +37,14 @@ static void kernel_idle_task(void* arg) {
                 cpu_load = (int)((work_ticks * 100) / total_ticks);
             }
 
-            /* 1. Audit Stack Integrity */
             scheduler_audit_stacks();
 
-            /* 2. Monitor Memory Pressure */
             size_t used = hal_malloc_get_used();
             size_t total = hal_malloc_get_total();
             if (used > (total * 90) / 100) {
                 serial_printf("[MONITOR] WARNING: Critical Memory Pressure Detected!\n");
             }
 
-            /* 3. VFS Health Check (Refresh Mounts) */
             vfs_refresh_mounts();
 
             if (audit_timer >= 10) {
@@ -53,7 +53,6 @@ static void kernel_idle_task(void* arg) {
                 audit_timer = 0;
             }
 
-            /* Reset for next window to ensure rolling average */
             idle_ticks = 0;
             total_ticks = 0;
             last_calc = now;
@@ -66,7 +65,7 @@ static void kernel_idle_task(void* arg) {
 void scheduler_init(void) {
     task_count = 0;
     current_task_idx = -1;
-    /* Add kernel idle task as the absolute fallback */
+    /* Add kernel idle task as the absolute fallback (System IDs 0,0) */
     scheduler_add_task("Idle Task", kernel_idle_task, NULL, 0, 0);
 }
 
@@ -111,36 +110,30 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
         *(--stack) = 0; /* error_code */
         *(--stack) = 0; /* interrupt_number */
 
-        /* GPRs: rax, rbx, rcx, rdx, rsi, rdi, rbp, r8, r9, r10, r11, r12, r13, r14, r15 (15 regs) */
-        /* In isr_stubs.s, rax is pushed first (highest address), r15 last (lowest address) */
-        /* stack-- pushes from highest to lowest address */
+        /* GPRs */
         for(int i=0; i<15; i++) {
-            if (i == 5) *(--stack) = (uint64_t)arg; /* i=5 is rdi, the 6th register pushed (rax, rbx, rcx, rdx, rsi, rdi) */
+            if (i == 5) *(--stack) = (uint64_t)arg; /* rdi */
             else *(--stack) = 0;
         }
 
-        /* CRs: cr2, cr3, cr4 */
+        /* CRs */
         *(--stack) = 0; /* cr2 */
         *(--stack) = current_cr3;
         *(--stack) = current_cr4;
 
-        /* Segments: matching isr_stubs.s pop order (ds, es, fs, gs) */
-        /* stack-- pushes from high to low address */
-        *(--stack) = 0x10; /* gs (highest address) */
+        /* Segments */
+        *(--stack) = 0x10; /* gs */
         *(--stack) = 0x10; /* fs */
         *(--stack) = 0x10; /* es */
-        *(--stack) = 0x10; /* ds (lowest address) */
+        *(--stack) = 0x10; /* ds */
 
-        /* Padding for 16-byte alignment of FXSAVE */
-        *(--stack) = 0;
+        *(--stack) = 0; /* Padding */
 
-        /* FXSAVE region (512 bytes = 64 uint64_t) */
+        /* FXSAVE region */
         for(int i=0; i<64; i++) *(--stack) = 0;
-        /* Initialize MXCSR to default */
         uint32_t *mxcsr = (uint32_t *)((uint8_t *)stack + 24);
         *mxcsr = 0x1F80;
 
-        /* Sovereign: Place stack canary at the very bottom of the allocated stack area */
         uint64_t* canary_ptr = (uint64_t*)&task_stacks[slot][0];
         *canary_ptr = STACK_CANARY;
 
@@ -150,7 +143,21 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
     return -1;
 }
 
-/* Section 3: IHT (Integral Handle Table) for secure object tracking */
+/* Modified by Sovereign: Professional SPAWN (New App) vs FORK (New Process) logic */
+int scheduler_spawn(const char* name, void (*entry)(void*), void* arg) {
+    uint32_t uaid = next_uaid++;
+    uint32_t upid = next_upid++;
+    serial_printf("[SCHEDULER] Spawning New App: %s (UAID:%d, UPID:%d)\n", name, uaid, upid);
+    return scheduler_add_task(name, entry, arg, uaid, upid);
+}
+
+int scheduler_fork(const char* name, void (*entry)(void*), void* arg) {
+    uint32_t uaid = scheduler_get_current_uaid();
+    uint32_t upid = next_upid++;
+    serial_printf("[SCHEDULER] Forking Process: %s (UAID:%d, UPID:%d)\n", name, uaid, upid);
+    return scheduler_add_task(name, entry, arg, uaid, upid);
+}
+
 typedef struct {
     uint32_t handle_id;
     void* object_ptr;
@@ -158,11 +165,9 @@ typedef struct {
 
 static iht_entry_t task_iht[MAX_TASKS][32];
 
-/* Audit Step 3: Journaled Finalization (COMPREC) */
 static void scheduler_journaled_finalize(int task_id) {
     serial_printf("[COMPREC] Finalizing task %d (%s)...\n", task_id, tasks[task_id].name);
 
-    /* Audit: Reclaim IHT handles before memory reclamation */
     for (int i = 0; i < 32; i++) {
         if (task_iht[task_id][i].object_ptr) {
             serial_printf("[COMPREC] Reclaiming IHT handle %d\n", task_iht[task_id][i].handle_id);
@@ -170,15 +175,12 @@ static void scheduler_journaled_finalize(int task_id) {
         }
     }
 
-    /* Sovereign Covenant: Audit Step 2 - Ensure memory is scrubbed during finalization */
-    /* Handled by pmm_free if the stack was allocated there, but we scrub task control block here. */
     memset(&tasks[task_id], 0, sizeof(task_t));
     tasks[task_id].state = TASK_DEAD;
 
     serial_printf("[COMPREC] Task %d successfully journaled and finalized.\n", task_id);
 }
 
-/* Modified by Sovereign: COMPREC-aware task removal */
 void scheduler_remove_task(int task_id) {
     if (task_id <= 0 || task_id >= MAX_TASKS) return;
     if (task_id < task_count && tasks[task_id].state != TASK_DEAD) {
@@ -186,7 +188,6 @@ void scheduler_remove_task(int task_id) {
     }
 }
 
-/* POWER: The meaty preemptive context switch with DEAD-state awareness */
 uint64_t scheduler_switch(uint64_t current_rsp) {
     total_ticks++;
     ctx_switches++;
@@ -196,7 +197,6 @@ uint64_t scheduler_switch(uint64_t current_rsp) {
         task_rsps[current_task_idx] = current_rsp;
     }
 
-    /* Find next non-DEAD task */
     for (int i = 0; i < task_count; i++) {
         current_task_idx = (current_task_idx + 1) % task_count;
         if (tasks[current_task_idx].state != TASK_DEAD) {
@@ -204,19 +204,15 @@ uint64_t scheduler_switch(uint64_t current_rsp) {
         }
     }
 
-    /* Fallback to idle task (always index 0) */
     current_task_idx = 0;
     return task_rsps[0];
 }
 
 void scheduler_yield(void) {
-    /* Trigger the timer interrupt (IRQ 0 -> Vector 32) manually to yield */
     __asm__ volatile("int $32");
 }
 
 void scheduler_run(void) {
-    /* Preemptive scheduler is driven by timer interrupt.
-       On the first call, we just enable interrupts and wait for the heartbeat. */
     __asm__ volatile("sti");
     while(1) { __asm__("hlt"); }
 }
@@ -246,7 +242,6 @@ uint64_t scheduler_get_ctx_switches(void) {
     return ctx_switches;
 }
 
-/* Audit Step 3: Proactive Stack Integrity Check */
 void scheduler_audit_stacks(void) {
     for (int i = 0; i < task_count; i++) {
         if (tasks[i].state != TASK_DEAD) {
