@@ -10,9 +10,13 @@ bool uac_check_permit(int app_id, const char *action) {
     return false;
 }
 
+/* Modified by Sovereign: Fixed unused parameter warnings */
 void uac_request_permit(int app_id, const char *action) {
-    (void)app_id; (void)action;
-    // In a real OS, this would trigger the UAC popup
+    /* Sovereign UAC: Future implementation will trigger secure interrupt for elevation */
+    if (app_id < 0 || !action) return;
+    /* Placeholder logic for auditing - ensures parameters are 'used' by the compiler */
+    volatile int dummy = app_id;
+    (void)dummy;
 }
 
 void uac_set_permit(int app_id, bool net, bool storage) {

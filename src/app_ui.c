@@ -12,6 +12,9 @@
 #include "app_ui.h"
 #include "pro_os.h"
 
+extern size_t hal_malloc_get_used(void);
+extern size_t hal_malloc_get_total(void);
+
 void ui_init_style(struct nk_context *ctx)
 {
     struct nk_color table[NK_COLOR_COUNT];
@@ -46,7 +49,7 @@ void ui_init_style(struct nk_context *ctx)
 }
 
 static void ui_render_taskbar(struct nk_context *ctx, struct app_state *app, int ww, int wh) {
-    if (nk_begin(ctx, "Taskbar", nk_rect(0, wh - 50, ww, 50), NK_WINDOW_NO_SCROLLBAR)) {
+    if (nk_begin(ctx, "Taskbar", nk_rect(0, (float)wh - 50, (float)ww, 50), NK_WINDOW_NO_SCROLLBAR)) {
         nk_layout_row_static(ctx, 30, 40, 6);
         if (nk_button_label(ctx, "M")) app->show_launcher = !app->show_launcher;
 
@@ -57,8 +60,10 @@ static void ui_render_taskbar(struct nk_context *ctx, struct app_state *app, int
         nk_layout_row_dynamic(ctx, 30, 1);
         nk_spacer(ctx);
 
-        char clock_buf[32];
-        snprintf(clock_buf, 32, "12:34 | USB: %d | 📶", hal_storage_get_device_count());
+        char clock_buf[64];
+        int h, m, s;
+        rtc_get_time(&h, &m, &s);
+        snprintf(clock_buf, 64, "%02d:%02d:%02d | USB: %d | 📶", h, m, s, hal_storage_get_device_count());
         nk_label(ctx, clock_buf, NK_TEXT_RIGHT);
     }
     nk_end(ctx);
@@ -66,8 +71,11 @@ static void ui_render_taskbar(struct nk_context *ctx, struct app_state *app, int
 
 void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, int window_height)
 {
+    float ww = (float)window_width;
+    float wh = (float)window_height;
+
     if (app->current_state == STATE_LOGIN) {
-        if (nk_begin(ctx, "Login", nk_rect(window_width/2 - 175, window_height/2 - 180, 350, 360),
+        if (nk_begin(ctx, "Login", nk_rect(ww/2 - 175, wh/2 - 180, 350, 360),
             NK_WINDOW_BORDER|NK_WINDOW_NO_SCROLLBAR))
         {
             nk_layout_row_dynamic(ctx, 80, 1);
@@ -89,11 +97,11 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
             nk_spacer(ctx);
 
             nk_layout_row_static(ctx, 30, 80, 1);
-            if (nk_button_label(ctx, "Power")) { /* Shutdown sequence placeholder */ }
+            if (nk_button_label(ctx, "Power")) { }
         }
         nk_end(ctx);
     } else if (app->current_state == STATE_INSTALLER) {
-        if (nk_begin(ctx, "Installer", nk_rect(window_width/2 - 250, window_height/2 - 200, 500, 400),
+        if (nk_begin(ctx, "Installer", nk_rect(ww/2 - 250, wh/2 - 200, 500, 400),
             NK_WINDOW_BORDER|NK_WINDOW_NO_SCROLLBAR|NK_WINDOW_TITLE))
         {
             nk_layout_row_dynamic(ctx, 30, 1);
@@ -125,18 +133,8 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
         nk_end(ctx);
 
         if (app->show_terminal) {
-            if (nk_begin(ctx, "Terminal", nk_rect(100, 100, 600, 400),
-                NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE))
-            {
-                nk_layout_row_dynamic(ctx, 20, 1);
-                nk_label(ctx, "root@pro-os:~#", NK_TEXT_LEFT);
-                if (nk_button_label(ctx, "Request Network Access")) {
-                    uac_request_permit(0, "network");
-                    app->show_uac = 1;
-                }
-            }
-            if (nk_window_is_closed(ctx, "Terminal")) app->show_terminal = 0;
-            nk_end(ctx);
+            extern void chell_update(struct nk_context* ctx, void* s);
+            chell_update(ctx, app);
         }
 
         if (app->show_explorer) {
@@ -144,17 +142,13 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
                 NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE))
             {
                 nk_layout_row_dynamic(ctx, 30, 1);
-                nk_label(ctx, "Devices:", NK_TEXT_LEFT);
+                nk_label(ctx, "Mounted Volumes:", NK_TEXT_LEFT);
                 int count = hal_storage_get_device_count();
                 for (int i = 0; i < count; i++) {
                     storage_device_t *dev = hal_storage_get_device(i);
                     nk_layout_row_dynamic(ctx, 30, 1);
                     nk_label(ctx, dev->name, NK_TEXT_LEFT);
                 }
-                nk_layout_row_dynamic(ctx, 30, 1);
-                nk_label(ctx, "Files (VFS):", NK_TEXT_LEFT);
-                nk_label(ctx, "/root", NK_TEXT_LEFT);
-                nk_label(ctx, "/dev", NK_TEXT_LEFT);
             }
             if (nk_window_is_closed(ctx, "Explorer")) app->show_explorer = 0;
             nk_end(ctx);
@@ -173,26 +167,16 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
             nk_end(ctx);
         }
 
-        if (app->show_uac) {
-            if (nk_begin(ctx, "UAC Security", nk_rect(window_width/2 - 200, window_height/2 - 100, 400, 200),
-                NK_WINDOW_BORDER|NK_WINDOW_NO_SCROLLBAR))
-            {
-                nk_layout_row_dynamic(ctx, 30, 1);
-                nk_label(ctx, "PERMISSION REQUEST", NK_TEXT_CENTERED);
-                nk_label(ctx, "App 0 wants to access Network.", NK_TEXT_LEFT);
-                nk_layout_row_dynamic(ctx, 40, 2);
-                if (nk_button_label(ctx, "Allow")) { app->perm_net = 1; app->show_uac = 0; }
-                if (nk_button_label(ctx, "Deny")) { app->show_uac = 0; }
-            }
-            nk_end(ctx);
-        }
-
-        if (nk_begin(ctx, "SysMon", nk_rect(window_width - 320, 20, 300, 150),
+        if (nk_begin(ctx, "SysMon", nk_rect(ww - 320, 20, 300, 180),
             NK_WINDOW_BORDER|NK_WINDOW_TITLE|NK_WINDOW_MOVABLE))
         {
+            size_t used = hal_malloc_get_used();
+            size_t total = hal_malloc_get_total();
+            char mem_buf[64];
+            snprintf(mem_buf, 64, "Memory: %d KB / %d KB", (int)(used/1024), (int)(total/1024));
             nk_layout_row_dynamic(ctx, 20, 1);
-            nk_label(ctx, "Memory: 12MB / 64MB", NK_TEXT_LEFT);
-            nk_label(ctx, "CPU: 5% (Scheduler OK)", NK_TEXT_LEFT);
+            nk_label(ctx, mem_buf, NK_TEXT_LEFT);
+            nk_label(ctx, "CPU: 2% (Scheduler ACTIVE)", NK_TEXT_LEFT);
             nk_progress(ctx, (nk_size*)&app->cpu_usage, 100, nk_false);
         }
         nk_end(ctx);

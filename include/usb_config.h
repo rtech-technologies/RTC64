@@ -1,3 +1,4 @@
+/* Modified by Sovereign: Added OSAL configuration macros */
 #ifndef USB_CONFIG_H
 #define USB_CONFIG_H
 
@@ -24,5 +25,10 @@
 #define CONFIG_USBHOST_REQUEST_BUFFER_LEN 512
 #define CONFIG_USBHOST_MAX_EXTHUBS 1
 #define CONFIG_USBHOST_CONTROL_TRANSFER_TIMEOUT 500
+
+/* OSAL Configuration */
+#define CONFIG_USB_OSAL_THREAD_SET_ARGV void *argument
+#define CONFIG_USB_OSAL_THREAD_GET_ARGV ((uintptr_t)argument)
+#define USB_OSAL_WAITING_FOREVER (0xFFFFFFFFU)
 
 #endif

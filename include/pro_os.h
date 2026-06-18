@@ -23,6 +23,7 @@ int strcmp(const char* s1, const char* s2);
 int strncmp(const char* s1, const char* s2, size_t n);
 char* strchr(const char* s, int c);
 int snprintf(char* str, size_t size, const char* format, ...);
+int vsnprintf(char* str, size_t size, const char* format, va_list ap);
 
 /* Scheduler / Task Manager */
 #define MAX_TASKS 5
@@ -45,6 +46,7 @@ task_t* scheduler_get_task(int index);
 void vfs_init(void);
 void vfs_refresh_mounts(void);
 const char* vfs_resolve(const char *path);
+void* vfs_read_file(const char* path, size_t* out_sz);
 
 /* Security / UAC */
 typedef struct {
@@ -60,27 +62,27 @@ void uac_request_permit(int app_id, const char *action);
 const char* i18n_translate(const char *key);
 
 struct cpu_state {
-    // Segment registers
-    uint64_t gs, fs, es, ds;
-    // Control registers
+    uint8_t fxsave_region[512]; /* 512-byte area for FPU/SSE state */
+    uint64_t padding; /* 8-byte padding for 16-byte alignment */
+    uint64_t ds, es, fs, gs;
     uint64_t cr4, cr3, cr2;
-    // General purpose registers
     uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
     uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
-    // Pushed automatically by CPU and stubs
-    uint64_t interrupt_number;
-    uint64_t error_code;
-    uint64_t rip;
-    uint64_t cs;
-    uint64_t rflags;
-    uint64_t rsp;
-    uint64_t ss;
-};
+    uint64_t interrupt_number, error_code;
+    uint64_t rip, cs, rflags, rsp, ss;
+} __attribute__((aligned(16)));
 
 void kpanic(const char* message);
 
 /* Hardware & Memory */
 void hal_malloc_init(void* mem, size_t bytes);
+size_t hal_malloc_get_used(void);
+size_t hal_malloc_get_total(void);
+void pmm_init(struct limine_memmap_response* map);
+void gdt_init(void);
+void idt_init(void);
+void apic_init(void);
+void irq_install_handler(int irq, void (*handler)(struct cpu_state*));
 
 /* Hardware Driver Interfaces */
 void xhci_init(uint64_t mmio);

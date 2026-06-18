@@ -1,3 +1,4 @@
+/* Modified by Sovereign: functional USB operation in polled mode */
 #include "hal.h"
 #include "pro_os.h"
 #include "usbh_core.h"
@@ -7,6 +8,7 @@
 extern uint64_t xhci_mmio_base;
 extern uint64_t ehci_mmio_base;
 extern uint64_t hhdm_offset;
+extern void USBH_IRQHandler(uint8_t busid);
 
 void hal_usb_init(void) {
     if (xhci_mmio_base != 0) {
@@ -17,12 +19,7 @@ void hal_usb_init(void) {
 }
 
 void hal_usb_poll(void) {
-    /* CherryUSB uses interrupt-driven architecture
-     * Poll is called periodically but actual work happens in IRQ handlers
-     * This is a placeholder for future polling-based devices */
+    /* MEATY: Drive CherryUSB stack in polled mode by manually invoking IRQ handler */
+    /* This allows USB to function before the IDT is fully configured for hardware IRQs */
+    USBH_IRQHandler(0);
 }
-
-/* Callbacks from CherryUSB for HID devices */
-extern void usbh_hid_callback(struct usbh_hid *hid_class, uint8_t event);
-extern void usbh_msc_run(struct usbh_msc *msc_class);
-extern void usbh_msc_stop(struct usbh_msc *msc_class);

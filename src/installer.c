@@ -12,13 +12,15 @@ struct installer_state {
 static struct installer_state state;
 
 void installer_init(void* s) {
-    (void)s;
+    struct app_state* app = (struct app_state*)s;
+    if (app) app->current_state = STATE_INSTALLER;
     memset(&state, 0, sizeof(state));
     state.selected_drive = -1;
 }
 
 void installer_update(struct nk_context* ctx, void* s) {
-    (void)s;
+    struct app_state* app = (struct app_state*)s;
+    (void)app;
     if (nk_begin(ctx, "Sovereign Installer", nk_rect(200, 100, 400, 500), NK_WINDOW_BORDER|NK_WINDOW_TITLE)) {
         nk_layout_row_dynamic(ctx, 30, 1);
         nk_label(ctx, "Select target for OS deployment:", NK_TEXT_LEFT);
