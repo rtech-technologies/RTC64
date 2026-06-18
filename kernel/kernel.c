@@ -28,49 +28,8 @@ __attribute__((used, section(".limine_requests_end")))
 static volatile LIMINE_REQUESTS_END_MARKER;
 
 uint64_t hhdm_offset = 0;
-
 static uint8_t kernel_stack[65536] __attribute__((aligned(16)));
-
 struct limine_framebuffer *primary_fb;
-
-static const uint8_t font_8x8[128][8] = {
-    ['0'] = {0x3c,0x66,0x6e,0x76,0x66,0x66,0x3c,0x00},
-    ['1'] = {0x18,0x1c,0x18,0x18,0x18,0x18,0x3c,0x00},
-    ['2'] = {0x3c,0x66,0x06,0x0c,0x18,0x30,0x7e,0x00},
-    ['3'] = {0x3c,0x66,0x06,0x1c,0x06,0x66,0x3c,0x00},
-    ['4'] = {0x0c,0x1c,0x2c,0x4c,0x7e,0x0c,0x0c,0x00},
-    ['5'] = {0x7e,0x60,0x7c,0x06,0x06,0x66,0x3c,0x00},
-    ['6'] = {0x3c,0x66,0x60,0x7c,0x66,0x66,0x3c,0x00},
-    ['7'] = {0x7e,0x66,0x06,0x0c,0x18,0x18,0x18,0x00},
-    ['8'] = {0x3c,0x66,0x66,0x3c,0x66,0x66,0x3c,0x00},
-    ['9'] = {0x3c,0x66,0x66,0x3e,0x06,0x66,0x3c,0x00},
-    ['/'] = {0x00,0x02,0x04,0x08,0x10,0x20,0x40,0x00},
-    ['T'] = {0x7e,0x18,0x18,0x18,0x18,0x18,0x18,0x00},
-    ['a'] = {0x00,0x3c,0x06,0x3e,0x66,0x66,0x3e,0x00},
-    ['s'] = {0x00,0x3c,0x60,0x3c,0x06,0x66,0x3c,0x00},
-    ['k'] = {0x66,0x66,0x6c,0x78,0x7c,0x66,0x66,0x00},
-    [':'] = {0x00,0x18,0x18,0x00,0x18,0x18,0x00,0x00},
-    [' '] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}
-};
-
-void draw_char_8x8(int x, int y, char c, uint32_t color) {
-    if ((uint8_t)c >= 128) return;
-    uint32_t* fb = (uint32_t*)primary_fb->address;
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
-            if (font_8x8[(uint8_t)c][i] & (0x80 >> j)) {
-                fb[(y + i) * (primary_fb->pitch/4) + (x + j)] = color;
-            }
-        }
-    }
-}
-
-void draw_text_8x8(int x, int y, const char* str, uint32_t color) {
-    while (*str) {
-        draw_char_8x8(x, y, *str++, color);
-        x += 8;
-    }
-}
 
 /* Environment Manager Data */
 struct nk_context nk_ctx;
@@ -101,21 +60,17 @@ void init_sse(void) {
     serial_printf("[SSE] Activating Streaming SIMD Extensions (SSE2)...\n");
     uint64_t cr0, cr4;
     __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
-    cr0 &= ~(1 << 2);
-    cr0 |= (1 << 1);
+    cr0 &= ~(1 << 2); cr0 |= (1 << 1);
     __asm__ volatile("mov %0, %%cr0" : : "r"(cr0));
     __asm__ volatile("mov %%cr4, %0" : "=r"(cr4));
     cr4 |= (3 << 9);
     __asm__ volatile("mov %0, %%cr4" : : "r"(cr4));
-    serial_printf("[SSE] SSE Control Registers updated. XMM operations enabled.\n");
 }
 
-/* PHASE 7: The Graphics Subsystem and Input Loop Launch (Environment Manager) */
 void environment_manager_entry(void* arg) {
     (void)arg;
-    serial_printf("[USER] Environment Manager session pivot successful.\n");
+    serial_printf("[SMSS] Environment Manager session pivot successful.\n");
 
-    /* Late GUI Initialization (After Task Switch) */
     struct nk_user_font font;
     font.userdata = nk_handle_ptr(0);
     font.height = 8.0f;
@@ -123,11 +78,12 @@ void environment_manager_entry(void* arg) {
     nk_init_default(&nk_ctx, &font);
     ui_init_style(&nk_ctx);
 
-    tgx_canvas_t canvas = { (uint32_t*)primary_fb->address, primary_fb->width, primary_fb->height, primary_fb->pitch };
+    /* Professional access to framebuffer using HHDM */
+    uint32_t* fb_virt = (uint32_t*)((uint64_t)primary_fb->address + hhdm_offset);
+    tgx_canvas_t canvas = { fb_virt, primary_fb->width, primary_fb->height, primary_fb->pitch };
     int cursor_x = primary_fb->width / 2;
     int cursor_y = primary_fb->height / 2;
 
-    serial_printf("[USER] Initializing Nuklear GUI State engine...\n");
     while (1) {
         tgx_clear(&canvas, 0x001010);
         hal_usb_poll();
@@ -140,36 +96,51 @@ void environment_manager_entry(void* arg) {
                 cursor_y = ev.mouse.y;
                 nk_input_motion(&nk_ctx, cursor_x, cursor_y);
                 nk_input_button(&nk_ctx, NK_BUTTON_LEFT, cursor_x, cursor_y, (ev.mouse.buttons & 1));
+            } else if (ev.type == INPUT_TYPE_KEYBOARD) {
+                if (ev.kbd.down) {
+                    if (ev.kbd.key >= 32 && ev.kbd.key <= 126) {
+                        nk_input_unicode(&nk_ctx, (nk_rune)ev.kbd.key);
+                    }
+                    if (ev.kbd.key == 0x0A || ev.kbd.key == 0x0D) nk_input_key(&nk_ctx, NK_KEY_ENTER, 1);
+                    if (ev.kbd.key == 0x08) nk_input_key(&nk_ctx, NK_KEY_BACKSPACE, 1);
+                } else {
+                    if (ev.kbd.key == 0x0A || ev.kbd.key == 0x0D) nk_input_key(&nk_ctx, NK_KEY_ENTER, 0);
+                    if (ev.kbd.key == 0x08) nk_input_key(&nk_ctx, NK_KEY_BACKSPACE, 0);
+                }
             }
         }
         nk_input_end(&nk_ctx);
 
         ui_render(&nk_ctx, &os_app, primary_fb->width, primary_fb->height);
-        struct nk_sw_fb sw_fb = { primary_fb->address, primary_fb->width, primary_fb->height, primary_fb->pitch };
+        struct nk_sw_fb sw_fb = { fb_virt, primary_fb->width, primary_fb->height, primary_fb->pitch };
         nk_sw_render(&sw_fb, &nk_ctx);
-
-        char task_buf[128];
-        int tid = scheduler_get_current_task_idx();
-        char tid_str[8];
-        if (tid == 0) strcpy(tid_str, "IDLE");
-        else snprintf(tid_str, 8, "%d", tid);
-
-        snprintf(task_buf, 128, "T:%s/%d Ctx:%lu CPU:%d%% M:%dKB Up:%ds",
-                 tid_str,
-                 scheduler_get_task_count() - 1,
-                 (unsigned long)scheduler_get_ctx_switches(),
-                 scheduler_get_cpu_load(),
-                 (int)(hal_malloc_get_used() / 1024),
-                 (int)(hal_get_uptime_ms() / 1000));
-        draw_text_8x8(10, 10, task_buf, 0x00FF00);
 
         draw_cursor(&canvas, cursor_x, cursor_y);
         scheduler_yield();
     }
 }
 
+/* PHASE 7: The Executive Session Genesis (smss.exe equivalent) */
+void session_manager_task(void* arg) {
+    (void)arg;
+    serial_printf("[SMSS] Initializing Session 0...\n");
+
+    /* 1. Initialize the Environment Manager (The Desktop/Windowing UI) */
+    memset(&os_app, 0, sizeof(os_app));
+    os_app.current_state = STATE_DESKTOP;
+    os_app.show_terminal = 1;
+    scheduler_add_task("Environment Manager", environment_manager_entry, NULL, 0x01, 0x01);
+
+    /* 2. Initialize the Graphical Shell (The WinPE Console) - Already handled via Chell update in Environment Manager */
+
+    /* Session manager persists to monitor system health */
+    while(1) {
+        scheduler_yield();
+    }
+}
+
 void kernel_main(void) {
-    /* PHASE 0: The Bare-Metal Isolation Layer */
+    /* PHASE 0: The Bare-Metal Isolation Layer (POST/Loader) */
     __asm__ volatile(
         "cli\n\t"
         "movq %0, %%rsp\n\t"
@@ -178,112 +149,80 @@ void kernel_main(void) {
     );
 
     serial_init();
-    serial_printf("\n\n#################################################################\n");
-    serial_printf("# Sovereign RTC64 HIGH-POWER NEONT Executive Initialization #\n");
-    serial_printf("#################################################################\n\n");
-    serial_printf("[PHASE 0] Entering Bare-Metal Isolation Layer. Interrupts disabled.\n");
+    serial_printf("\n\nSovereign RTC64 Boot Genesis\n");
+    serial_printf("[PHASE 0] Entering Bare-Metal Isolation Layer.\n");
 
-    /* STEP 1: The Bootloader Handoff and Registry Mapping */
-    serial_printf("[STEP 1] Executing Winload-style handoff from Limine...\n");
-
-    /* Robustness: Ensure essential Limine responses are present (Errors 2, 4) */
-    if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
-        serial_printf("[FATAL] Video output device not found. Check Limine configuration.\n");
-        while (1) { __asm__("hlt"); }
+    /* Step 1: Bootloader Handoff */
+    serial_printf("[STEP 1] Validating Limine Handoff and Framebuffer...\n");
+    if (!framebuffer_request.response || !hhdm_request.response || !memmap_request.response) {
+        serial_printf("[FATAL] Essential boot protocols missing.\n");
+        while(1) __asm__("hlt");
     }
-    if (hhdm_request.response == NULL) {
-        serial_printf("[FATAL] HHDM response missing. Architectural memory mapping impossible.\n");
-        while(1) { __asm__("hlt"); }
-    }
-    if (memmap_request.response == NULL) {
-        serial_printf("[FATAL] Memory map response missing. PMM initialization aborted.\n");
-        while(1) { __asm__("hlt"); }
-    }
-
     hhdm_offset = hhdm_request.response->offset;
-    serial_printf("[STEP 1] HHDM Mapping established at: %p\n", (void*)hhdm_offset);
-
     primary_fb = framebuffer_request.response->framebuffers[0];
-    serial_printf("[STEP 1] Framebuffer registered: %dx%d @ %p\n", primary_fb->width, primary_fb->height, primary_fb->address);
+    serial_printf("[STEP 1] Framebuffer registered at Phys: %p, Virt: %p\n",
+                  (void*)primary_fb->address, (void*)((uint64_t)primary_fb->address + hhdm_offset));
     init_sse();
 
-    /* STEP 2: The Core Memory Matrix Allocation */
-    serial_printf("[STEP 2] Building Physical Memory Matrix...\n");
+    /* Step 2: Memory Matrix */
+    serial_printf("[STEP 2] Building Physical Memory Matrix (PMM)...\n");
     pmm_init(memmap_request.response);
 
-    /* STEP 3: The Critical Kernel Heap Genesis */
-    serial_printf("[STEP 3] Establishing Kernel Heap Genesis (Executive Pool)...\n");
-    // Allocate 16MB for the kernel heap from PMM to ensure it's in the Direct Map range
-    size_t heap_pages = (16 * 1024 * 1024) / 4096;
-    void* heap_phys = pmm_alloc_blocks(heap_pages);
-    if (!heap_phys) {
-        serial_printf("[FATAL] Failed to allocate 16MB for Executive Heap.\n");
-        while(1) { __asm__("hlt"); }
-    }
-    void* kernel_heap = (void*)((uint64_t)heap_phys + hhdm_offset);
-    hal_malloc_init(kernel_heap, heap_pages * 4096);
-    serial_printf("[STEP 3] Executive Heap (16MB) allocated at: Phys %p -> Virt %p\n", heap_phys, kernel_heap);
+    /* Step 3: Kernel Heap Genesis */
+    serial_printf("[STEP 3] Establishing Executive Pool (Heap)...\n");
+    void* heap_phys = pmm_alloc_blocks(4096); /* 16MB */
+    hal_malloc_init((void*)((uint64_t)heap_phys + hhdm_offset), 4096 * 4096);
 
-    /* STEP 4: The Hardware Architecture Frame Setup */
-    serial_printf("[STEP 4] Constructing Global Descriptor and Interrupt Tables...\n");
+    /* Step 4: Architecture Frame Setup */
+    serial_printf("[STEP 4] Constructing GDT/IDT/TSS Security Boundaries...\n");
     gdt_init();
     idt_init();
-    serial_printf("[STEP 4] CPU Exception Gateways and architectural frames loaded.\n");
 
-    /* STEP 5: The Entropy and Security Activation */
-    serial_printf("[STEP 5] Clock genesis: Calibrating Local APIC and Timer hardware...\n");
+    /* Step 5: Entropy and Security Activation */
+    serial_printf("[STEP 5] Calibrating Local APIC and Security Entropy...\n");
     apic_init();
     irq_install_handler(32, timer_handler);
-    serial_printf("[STEP 5] Timer hardware calibrated. (Interrupts still disabled).\n");
 
-    /* STEP 6: The Hardware Peripheral I/O Probe */
-    serial_printf("[STEP 6] Probing I/O Matrix and initializing peripheral drivers...\n");
+    /* Step 6: Hardware Peripheral I/O Probe */
+    serial_printf("[STEP 6] Probing I/O Matrix and Driver Orchestration...\n");
     hal_input_init();
+    cm_orchestrate_drivers();
+
+    /* Step 7: Subsystem Threading */
+    serial_printf("[STEP 7] Initializing Subsystem Threading (Scheduler)...\n");
     scheduler_init();
 
-    /* CM Orchestration Layer (SECTION 0 Equivalent to services.exe) */
-    cm_orchestrate_drivers();
-    serial_printf("[STEP 6] I/O Manager initialized. Hardware start-drivers loaded.\n");
-
-    /* PHASE 1: The Executive Subsystem Onboarding */
-    serial_printf("[PHASE 1] Transitioning to Executive Subsystem Onboarding.\n");
+    /* PHASE 1: Kernel Initialization (Executive mode start) */
+    serial_printf("[PHASE 1] Transitioning to Executive mode. Enabling STI.\n");
     __asm__ volatile("sti");
-    serial_printf("[PHASE 1] System interrupts are now ACTIVE.\n");
 
-    /* PHASE 2: Object Management Genesis */
-    serial_printf("[PHASE 2] Establishing Virtual Namespace for System Objects...\n");
+    /* PHASE 2: Namespace Initialization */
+    serial_printf("[PHASE 2] Establishing VFS and System Namespace...\n");
     vfs_init();
     vfs_refresh_mounts();
 
-    /* PHASE 3: Security Reference Monitor (SRM) */
-    serial_printf("[PHASE 3] Activating UAC Security Boundaries (lsass.exe equivalent)...\n");
-    /* Security IDs (UAID/UPID) are now operational for scheduler_add_task */
+    /* PHASE 3: Security Monitor (SRM) */
+    serial_printf("[PHASE 3] Activating Security Reference Monitor (SRM)...\n");
 
-    /* PHASE 4: Power & I/O Manager (Storage Finalization) */
-    serial_printf("[PHASE 4] Binding Storage Drivers and verifying IRP stability...\n");
+    /* PHASE 4: Power & I/O Manager */
+    serial_printf("[PHASE 4] Finalizing Storage Stacks and IRP Stability...\n");
     hal_storage_init();
     hal_storage_finish_init();
 
-    /* PHASE 5: Session Genesis (Session Manager - smss.exe) */
-    serial_printf("[PHASE 5] Spawning Session Manager (smss.exe equivalent)...\n");
+    /* PHASE 5: Session Manager (smss.exe) */
+    serial_printf("[PHASE 5] Spawning Initial Executive Session...\n");
 
-    /* PHASE 6: Subsystem Startup */
-    serial_printf("[PHASE 6] Starting COMPREC and persistent Diagnostic Shell...\n");
-    scheduler_add_task("COMPREC Service", comprec_task, NULL, 0, 0);
+    /* PHASE 6: Service Control Manager */
+    serial_printf("[PHASE 6] Starting Core Background Services (COMPREC/Terminal)...\n");
     system_shell_init();
-    scheduler_add_task("System Shell", system_shell_task, NULL, 0x00, 0x01);
-
-    /* Unmask timer now that we have background tasks ready */
+    scheduler_add_task("System Shell", system_shell_task, NULL, 0, 1);
+    scheduler_add_task("COMPREC", comprec_task, NULL, 0, 0);
     apic_timer_unmask();
 
-    /* PHASE 7: User Land Pivot (Environment Manager) */
-    serial_printf("[PHASE 7] Executing final GUI pivot.\n");
-    memset(&os_app, 0, sizeof(os_app));
-    os_app.current_state = STATE_LOGIN;
-    scheduler_add_task("Environment Manager", environment_manager_entry, NULL, 0x01, 0x01);
+    /* PHASE 7: User Land Pivot */
+    serial_printf("[PHASE 7] Pivoting to Session Initialization...\n");
+    scheduler_add_task("SMSS", session_manager_task, NULL, 0x01, 0x01);
 
-    serial_printf("[PHASE 7] NEONT Executive Hand-off complete.\n");
-    /* Hand off to preemptive scheduler loop */
     while (1) {
         scheduler_run();
         __asm__ volatile("hlt");

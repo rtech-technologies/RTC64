@@ -3,6 +3,7 @@
 
 #include "syscall_nums.h"
 #include <stddef.h>
+#include <stdint.h>
 
 extern int snprintf(char* str, size_t size, const char* format, ...);
 
@@ -38,6 +39,13 @@ static inline int os_devmgr_list(char* out, size_t sz) {
 
 static inline const char* os_i18n_translate(const char* key) {
     return (const char*)syscall_dispatch_ptr(SYS_I18N_TRANSLATE, key, (void*)0, 0);
+}
+
+static inline uint64_t os_get_uptime_ms(void) {
+    /* We don't have a direct syscall for uptime in os_api.h yet, but for now we can
+       request it via a specialized sys_info call if implemented.
+       For Sovereign, we'll implement a SYS_GET_UPTIME (99). */
+    return (uint64_t)syscall_dispatch(99, NULL, NULL, 0);
 }
 
 #endif

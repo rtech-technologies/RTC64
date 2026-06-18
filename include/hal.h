@@ -1,3 +1,4 @@
+/* Modified by Sovereign: Professional Keyboard and Mouse Event Mapping */
 #ifndef HAL_H
 #define HAL_H
 
