@@ -22,7 +22,9 @@ void hal_usb_poll(void) {
 /* Audit Step 4: Validate USB Device Signatures */
 bool hal_usb_validate_signature(void *device_desc) {
     if (!device_desc) return false;
-    /* In a full implementation, we check descriptors. For Sovereign RTC64, all boot-time
-       Human Interface Devices are trusted by default. */
+    /* High-Power implementation: ensure device descriptor has non-zero length and valid type */
+    uint8_t* desc = (uint8_t*)device_desc;
+    if (desc[0] < 18) return false; // bLength for Device Descriptor
+    if (desc[1] != 0x01) return false; // bDescriptorType 1
     return true;
 }

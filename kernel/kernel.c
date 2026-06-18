@@ -239,7 +239,6 @@ void kernel_main(void) {
     /* STEP 6: The Hardware Peripheral I/O Probe */
     serial_printf("[STEP 6] Probing I/O Matrix and initializing peripheral drivers...\n");
     hal_input_init();
-    hal_storage_init();
     scheduler_init();
 
     /* CM Orchestration Layer (SECTION 0 Equivalent to services.exe) */
@@ -262,6 +261,7 @@ void kernel_main(void) {
 
     /* PHASE 4: Power & I/O Manager (Storage Finalization) */
     serial_printf("[PHASE 4] Binding Storage Drivers and verifying IRP stability...\n");
+    hal_storage_init();
     hal_storage_finish_init();
 
     /* PHASE 5: Session Genesis (Session Manager - smss.exe) */
