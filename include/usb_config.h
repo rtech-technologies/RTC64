@@ -1,3 +1,5 @@
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
+ * Licensed under the 'respect people's property' OS license. */
 /* Modified by Sovereign: Added OSAL configuration macros */
 #ifndef USB_CONFIG_H
 #define USB_CONFIG_H

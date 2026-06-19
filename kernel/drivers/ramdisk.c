@@ -1,3 +1,5 @@
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
+ * Licensed under the 'respect people's property' OS license. */
 /* Modified by Sovereign: Meaty Ramdisk Implementation with validation */
 #include "hal.h"
 #include "pro_os.h"

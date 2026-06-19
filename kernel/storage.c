@@ -1,3 +1,5 @@
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
+ * Licensed under the 'respect people's property' OS license. */
 /* Modified by Sovereign: Meaty Storage Implementation with MSC Lifecycle tracking */
 #include "pro_os.h"
 #include "hal.h"

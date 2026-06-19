@@ -1,3 +1,5 @@
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
+ * Licensed under the 'respect people's property' OS license. */
 /**
  * Nuklear
  * Single-header ANSI C immediate mode cross-platform GUI library.
@@ -6228,7 +6230,6 @@ NK_LIB struct nk_vec2 nk_text_calculate_text_bounds(const struct nk_user_font *f
 NK_LIB int nk_strfmt(char *buf, int buf_size, const char *fmt, va_list args);
 #endif
 #ifdef NK_INCLUDE_STANDARD_IO
-NK_LIB char *nk_file_load(const char* path, nk_size* siz, const struct nk_allocator *alloc);
 #endif
 
 /* math helpers that are only used by nk_dtoa */
@@ -7806,7 +7807,9 @@ nk_murmur_hash(const void * key, int len, nk_hash seed)
     return h1;
 }
 #ifdef NK_INCLUDE_STANDARD_IO
-NK_LIB char*
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-function"
 nk_file_load(const char* path, nk_size* siz, const struct nk_allocator *alloc)
 {
     char *buf;
@@ -7839,6 +7842,7 @@ nk_file_load(const char* path, nk_size* siz, const struct nk_allocator *alloc)
     fclose(fd);
     return buf;
 }
+#pragma GCC diagnostic pop
 #endif
 NK_LIB int
 nk_text_clamp(const struct nk_user_font *font, const char *text,

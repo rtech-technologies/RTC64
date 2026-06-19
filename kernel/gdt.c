@@ -1,3 +1,5 @@
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
+ * Licensed under the 'respect people's property' OS license. */
 /* Modified by Sovereign: Robust 64-bit GDT implementation for High-Power Mode */
 #include <stdint.h>
 #include "pro_os.h"

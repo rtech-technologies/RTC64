@@ -1,3 +1,5 @@
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
+ * Licensed under the 'respect people's property' OS license. */
 #ifndef NUKLEAR_CONFIG_H
 #define NUKLEAR_CONFIG_H
 

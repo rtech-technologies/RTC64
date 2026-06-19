@@ -1,3 +1,5 @@
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
+ * Licensed under the 'respect people's property' OS license. */
 #ifndef PRO_OS_H
 #define PRO_OS_H
 #include <stdarg.h>
@@ -5,7 +7,6 @@
 #include <stdbool.h>
 #include "limine.h"
 #include "nuklear_config.h"
-#include "nuklear.h"
 #include "external/stb_image.h"
 #include "external/stb_truetype.h"
 #include "external/tlsf.h"
@@ -54,7 +55,6 @@ void comprec_task(void* arg);
 void session_manager_task(void* arg);
 struct cpu_state { uint8_t fxsave_region[512]; uint64_t padding; uint64_t ds, es, fs, gs; uint64_t cr4, cr3, cr2; uint64_t r15, r14, r13, r12, r11, r10, r9, r8; uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax; uint64_t interrupt_number, error_code; uint64_t rip, cs, rflags, rsp, ss; } __attribute__((aligned(16)));
 void timer_handler(struct cpu_state* state);
-void environment_manager_entry(void* arg);
 void irq_install_handler(int irq, void (*handler)(struct cpu_state*));
 void hal_malloc_init(void* mem, size_t bytes);
 size_t hal_malloc_get_used(void);

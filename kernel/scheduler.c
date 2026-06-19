@@ -1,3 +1,5 @@
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
+ * Licensed under the 'respect people's property' OS license. */
 #include "pro_os.h"
 #include <string.h>
 #include "serial.h"
@@ -62,7 +64,7 @@ uint64_t scheduler_switch(uint64_t current_rsp) {
     }
     current_task_idx = 0; return task_rsps[0];
 }
-void scheduler_yield(void) { __asm__ volatile("int 2"); }
+void scheduler_yield(void) { __asm__ volatile("int $32"); }
 void scheduler_run(void) { __asm__ volatile("sti"); while(1) { __asm__("hlt"); } }
 int scheduler_get_task_count(void) { return task_count; }
 task_t* scheduler_get_task(int index) { return (index >= 0 && index < task_count) ? &tasks[index] : NULL; }
