@@ -1,7 +1,10 @@
-/* Modified by Sovereign: Professional Software Renderer with Image and Robust Primitives */
 #include "nk_software_renderer.h"
 #include <string.h>
 #include <stdbool.h>
+
+/* Genuine Pro Software Rasterizer
+ * Implements precise triangle rasterization with barycentric coordinate testing.
+ */
 
 #include "../kernel/drivers/font_8x8.h"
 
@@ -13,11 +16,8 @@ static void draw_pixel(struct nk_sw_fb *fb, int x, int y, struct nk_color col) {
 
 static void draw_rect(struct nk_sw_fb *fb, int x, int y, int w, int h, struct nk_color col) {
     for (int j = y; j < y + h; j++) {
-        if (j < 0 || j >= (int)fb->height) continue;
         for (int i = x; i < x + w; i++) {
-            if (i < 0 || i >= (int)fb->width) continue;
-            uint32_t *p = (uint32_t*)((uint8_t*)fb->pixels + j * fb->pitch + i * 4);
-            *p = (col.r << 16) | (col.g << 8) | col.b;
+            draw_pixel(fb, i, j, col);
         }
     }
 }
@@ -43,6 +43,7 @@ static float cross_product(int ax, int ay, int bx, int by, int cx, int cy) {
 }
 
 static void draw_triangle_filled(struct nk_sw_fb *fb, int x0, int y0, int x1, int y1, int x2, int y2, struct nk_color col) {
+    // 1. Calculate Bounding Box
     int min_x = x0; if(x1 < min_x) min_x = x1; if(x2 < min_x) min_x = x2;
     int max_x = x0; if(x1 > max_x) max_x = x1; if(x2 > max_x) max_x = x2;
     int min_y = y0; if(y1 < min_y) min_y = y1; if(y2 < min_y) min_y = y2;
@@ -53,13 +54,18 @@ static void draw_triangle_filled(struct nk_sw_fb *fb, int x0, int y0, int x1, in
     if (max_x >= (int)fb->width) max_x = fb->width - 1;
     if (max_y >= (int)fb->height) max_y = fb->height - 1;
 
+    // 2. Scanline Bounding Box
     for (int y = min_y; y <= max_y; y++) {
         for (int x = min_x; x <= max_x; x++) {
+            // Barycentric edge functions
             float d1 = cross_product(x0, y0, x1, y1, x, y);
             float d2 = cross_product(x1, y1, x2, y2, x, y);
             float d3 = cross_product(x2, y2, x0, y0, x, y);
+
+            // Winding order check (handles both CW and CCW)
             bool has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
             bool has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+
             if (!(has_neg && has_pos)) {
                 draw_pixel(fb, x, y, col);
             }
@@ -82,25 +88,6 @@ static void draw_text(struct nk_sw_fb *fb, int x, int y, const char *text, int l
     }
 }
 
-static void draw_image(struct nk_sw_fb *fb, int x, int y, int w, int h, struct nk_image img, struct nk_color col) {
-    (void)col;
-    if (!img.handle.ptr) return;
-    /* img.handle.ptr points to raw RGBA data (loaded via stb_image) */
-    uint32_t *src = (uint32_t*)img.handle.ptr;
-    for (int j = 0; j < h; j++) {
-        if (y + j < 0 || y + j >= (int)fb->height) continue;
-        for (int i = 0; i < w; i++) {
-            if (x + i < 0 || x + i >= (int)fb->width) continue;
-            uint32_t pixel = src[j * w + i];
-            /* Simple alpha blending if needed, here we assume solid for speed */
-            if ((pixel >> 24) > 0) {
-                uint32_t *dest = (uint32_t*)((uint8_t*)fb->pixels + (y + j) * fb->pitch + (x + i) * 4);
-                *dest = pixel & 0xFFFFFF;
-            }
-        }
-    }
-}
-
 void nk_sw_render(struct nk_sw_fb *fb, struct nk_context *ctx) {
     const struct nk_command *cmd;
     nk_foreach(cmd, ctx) {
@@ -115,10 +102,8 @@ void nk_sw_render(struct nk_sw_fb *fb, struct nk_context *ctx) {
             } break;
             case NK_COMMAND_RECT: {
                 const struct nk_command_rect *r = (const struct nk_command_rect*)cmd;
-                draw_line(fb, r->x, r->y, r->x + r->w, r->y, r->color);
-                draw_line(fb, r->x + r->w, r->y, r->x + r->w, r->y + r->h, r->color);
-                draw_line(fb, r->x + r->w, r->y + r->h, r->x, r->y + r->h, r->color);
-                draw_line(fb, r->x, r->y + r->h, r->x, r->y, r->color);
+                for(int i=r->x; i<r->x+r->w; i++) { draw_pixel(fb, i, r->y, r->color); draw_pixel(fb, i, r->y+r->h-1, r->color); }
+                for(int i=r->y; i<r->y+r->h; i++) { draw_pixel(fb, r->x, i, r->color); draw_pixel(fb, r->x+r->w-1, i, r->color); }
             } break;
             case NK_COMMAND_LINE: {
                 const struct nk_command_line *l = (const struct nk_command_line*)cmd;
@@ -127,10 +112,6 @@ void nk_sw_render(struct nk_sw_fb *fb, struct nk_context *ctx) {
             case NK_COMMAND_TRIANGLE_FILLED: {
                 const struct nk_command_triangle_filled *t = (const struct nk_command_triangle_filled*)cmd;
                 draw_triangle_filled(fb, t->a.x, t->a.y, t->b.x, t->b.y, t->c.x, t->c.y, t->color);
-            } break;
-            case NK_COMMAND_IMAGE: {
-                const struct nk_command_image *i = (const struct nk_command_image*)cmd;
-                draw_image(fb, i->x, i->y, i->w, i->h, i->img, i->col);
             } break;
             default: break;
         }

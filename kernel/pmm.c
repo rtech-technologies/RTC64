@@ -66,7 +66,6 @@ static bool pmm_is_used(uint64_t page) {
 }
 
 void* pmm_alloc(void) {
-    if (!pmm_bitmap) return NULL;
     for (uint64_t i = pmm_last_alloc; i < pmm_total_pages; i++) {
         if (!pmm_is_used(i)) {
             pmm_mark_used(i);
@@ -86,7 +85,6 @@ void* pmm_alloc(void) {
 }
 
 void* pmm_alloc_low(void) {
-    if (!pmm_bitmap) return NULL;
     uint64_t max_page = 0x100000000ULL / PAGE_SIZE;
     if (max_page > pmm_total_pages) max_page = pmm_total_pages;
 
@@ -100,7 +98,7 @@ void* pmm_alloc_low(void) {
 }
 
 void* pmm_alloc_blocks(size_t count) {
-    if (!pmm_bitmap || count == 0) return NULL;
+    if (count == 0) return NULL;
     if (count == 1) return pmm_alloc();
 
     for (uint64_t i = 0; i < pmm_total_pages - count; i++) {
@@ -142,13 +140,8 @@ void* pmm_alloc_blocks_low(size_t count) {
     return NULL;
 }
 
-/* Sovereign Covenant: Security-hardened memory reclamation with automated scrubbing */
 void pmm_free(void* addr) {
     if (!addr) return;
-
-    /* Audit Step 2: Scrub memory before returning to PMM (Sovereign Covenant Requirement) */
-    memset((void*)((uint64_t)addr + hhdm_offset), 0, PAGE_SIZE);
-
     uint64_t page = (uint64_t)addr / PAGE_SIZE;
     if (page < pmm_total_pages) {
         pmm_mark_free(page);
@@ -157,10 +150,6 @@ void pmm_free(void* addr) {
 
 void pmm_free_blocks(void* addr, size_t count) {
     if (!addr) return;
-
-    /* Audit Step 2: Scrub multiple blocks (Sovereign Covenant Requirement) */
-    memset((void*)((uint64_t)addr + hhdm_offset), 0, count * PAGE_SIZE);
-
     uint64_t start_page = (uint64_t)addr / PAGE_SIZE;
     for (size_t i = 0; i < count; i++) {
         if (start_page + i < pmm_total_pages) {

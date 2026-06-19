@@ -11,11 +11,20 @@
 struct cpu_state_frame {
     uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
     uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
-    uint64_t interrupt_number, error_code;
+    uint64_t error_code;
     uint64_t rip, cs, rflags, rsp, ss;
 };
 
-#define BSOD_COLOR_BG       0xFF4500
+struct panic_framebuffer {
+    uint64_t address;
+    uint64_t width;
+    uint64_t height;
+    uint64_t pitch;
+};
+
+extern struct panic_framebuffer* get_kernel_framebuffer(void);
+
+#define BSOD_COLOR_BG       0x002084
 #define BSOD_COLOR_TEXT     0xFFFFFF
 
 static uint32_t c_x = 50;
@@ -95,17 +104,12 @@ static const uint8_t bsod_font[128][16] = {
     ['w'] = {0x00,0x00,0x00,0x00,0x00,99,99,99,107,107,107,119,54,34,34,0},
     ['x'] = {0x00,0x00,0x00,0x00,0x00,102,102,60,24,24,24,60,102,102,102,0},
     ['y'] = {0x00,0x00,0x00,0x00,0x00,102,102,102,102,102,62,6,6,102,60,0},
-    ['z'] = {0x00,0x00,0x00,0x00,0x00,127,102,12,24,24,48,48,102,102,127,0},
-    ['|'] = {0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18},
-    ['/'] = {0x01,0x02,0x02,0x04,0x04,0x08,0x08,0x10,0x10,0x20,0x20,0x40,0x40,0x80,0x80,0x00},
-    ['\\'] = {0x80,0x40,0x40,0x20,0x20,0x10,0x10,0x08,0x08,0x04,0x04,0x02,0x02,0x01,0x01,0x00}
+    ['z'] = {0x00,0x00,0x00,0x00,0x00,127,102,12,24,24,48,48,102,102,127,0}
 };
 
 /* =========================================================================
  * 3. BARE-METAL GRAPHICS TEXT RENDER ENGINE
  * ========================================================================= */
-static int panic_nest_level = 0;
-
 static void blit_char(char c, uint32_t x, uint32_t y, struct panic_framebuffer* fb) {
     if ((uint8_t)c >= 128) return;
     uint32_t* base = (uint32_t*)fb->address;
@@ -124,7 +128,6 @@ static void blit_char(char c, uint32_t x, uint32_t y, struct panic_framebuffer* 
 }
 
 static void bsod_print(const char* str, struct panic_framebuffer* fb) {
-    serial_write(str); /* Modified by Sovereign: Dual-mode serial/graphics output */
     for (size_t i = 0; str[i] != '\0'; i++) {
         if (str[i] == '\n') {
             c_x = 50; c_y += 20;
@@ -151,27 +154,20 @@ static void u64_to_hex(uint64_t val, char* out_buf) {
 /* =========================================================================
  * 4. THE MASTER GRAPHICAL CRASH RENDERER
  * ========================================================================= */
-void render_bsod_screen(const char* error_title, void* rsp_pointer, int type) {
-    serial_force_unlock();
-    panic_nest_level++;
-    if (panic_nest_level > 1) {
-        serial_printf("\n[DOUBLE PANIC] System halted to prevent triple fault loop.\n");
-        while(1) { __asm__ volatile("cli; hlt"); }
-    }
-
-    struct cpu_state_frame* frame = NULL;
-    if (type == 1 && rsp_pointer) {
-        /* Modified by Sovereign: Correctly skip SSE (512), Padding (8), Segments (32), and CRs (24) = 576 bytes */
-        frame = (struct cpu_state_frame*)((uint8_t*)rsp_pointer + 576);
-    } else {
-        frame = (struct cpu_state_frame*)rsp_pointer;
-    }
-
+void render_bsod_screen(const char* error_title, void* rsp_pointer) {
+    struct cpu_state_frame* frame = (struct cpu_state_frame*)rsp_pointer;
     struct panic_framebuffer* fb = get_kernel_framebuffer();
 
     serial_printf("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
     serial_printf("!!! KERNEL PANIC: %s\n", error_title);
     serial_printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+
+    if (frame) {
+        serial_printf("RIP: %p  ERR: %p\n", (void*)frame->rip, (void*)frame->error_code);
+        serial_printf("RAX: %p  RBX: %p  RCX: %p\n", (void*)frame->rax, (void*)frame->rbx, (void*)frame->rcx);
+        serial_printf("RDX: %p  RSI: %p  RDI: %p\n", (void*)frame->rdx, (void*)frame->rsi, (void*)frame->rdi);
+        serial_printf("RBP: %p  RSP: %p  FLG: %p\n", (void*)frame->rbp, (void*)frame->rsp, (void*)frame->rflags);
+    }
 
     if (!fb || !fb->address) {
         serial_printf("[PANIC] Framebuffer unavailable. System halted.\n");
@@ -183,13 +179,7 @@ void render_bsod_screen(const char* error_title, void* rsp_pointer, int type) {
         base[i] = BSOD_COLOR_BG;
     }
 
-    c_x = 50; c_y = 40;
-    bsod_print("  ___   ___  ____  ____  _ \n", fb);
-    bsod_print(" / _ \\ / _ \\|  _ \\/ ___|| |\n", fb);
-    bsod_print("| | | | | | | |_) \\___ \\| |\n", fb);
-    bsod_print("| |_| | |_| |  __/ ___) |_|\n", fb);
-    bsod_print(" \\___/ \\___/|_|   |____/(_)\n\n", fb);
-
+    c_x = 60; c_y = 60;
     bsod_print("A problem has been detected and Sovereign OS has been shut down to prevent damage\n", fb);
     bsod_print("to your computer.\n\n", fb);
     bsod_print(error_title, fb); bsod_print("\n\n", fb);
@@ -198,63 +188,25 @@ void render_bsod_screen(const char* error_title, void* rsp_pointer, int type) {
     bsod_print("driver alignment settings and pointer-to-integer conversion widths.\n\n", fb);
     bsod_print("--- TECHNICAL INFORMATION ---\n\n", fb);
 
+    uint64_t cr2, cr3;
+    char hex_str[20];
+    __asm__ volatile("mov %%cr2, %0" : "=r"(cr2));
+    __asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
+
+    u64_to_hex(cr2, hex_str);
+    bsod_print("CR2 (Faulting Addr): ", fb); bsod_print(hex_str, fb); bsod_print("\n", fb);
+    u64_to_hex(cr3, hex_str);
+    bsod_print("CR3 (Page Directory): ", fb); bsod_print(hex_str, fb); bsod_print("\n\n", fb);
+
     if (frame) {
-        char val_buf[20];
-        bsod_print("RIP: ", fb); u64_to_hex(frame->rip, val_buf); bsod_print(val_buf, fb);
-        bsod_print("  ERR: ", fb); u64_to_hex(frame->error_code, val_buf); bsod_print(val_buf, fb);
-        bsod_print("  VEC: ", fb); u64_to_hex(frame->interrupt_number, val_buf); bsod_print(val_buf, fb); bsod_print("\n", fb);
-
-        bsod_print("RAX: ", fb); u64_to_hex(frame->rax, val_buf); bsod_print(val_buf, fb);
-        bsod_print(" RBX: ", fb); u64_to_hex(frame->rbx, val_buf); bsod_print(val_buf, fb);
-        bsod_print(" RCX: ", fb); u64_to_hex(frame->rcx, val_buf); bsod_print(val_buf, fb); bsod_print("\n", fb);
-
-        bsod_print("RDX: ", fb); u64_to_hex(frame->rdx, val_buf); bsod_print(val_buf, fb);
-        bsod_print(" RSI: ", fb); u64_to_hex(frame->rsi, val_buf); bsod_print(val_buf, fb);
-        bsod_print(" RDI: ", fb); u64_to_hex(frame->rdi, val_buf); bsod_print(val_buf, fb); bsod_print("\n", fb);
-
-        bsod_print("RBP: ", fb); u64_to_hex(frame->rbp, val_buf); bsod_print(val_buf, fb);
-        bsod_print(" RSP: ", fb); u64_to_hex(frame->rsp, val_buf); bsod_print(val_buf, fb);
-        bsod_print(" FLG: ", fb); u64_to_hex(frame->rflags, val_buf); bsod_print(val_buf, fb); bsod_print("\n", fb);
-
-        if (type == 1) {
-            struct cpu_state* s = (struct cpu_state*)rsp_pointer;
-            bsod_print("CR2: ", fb); u64_to_hex(s->cr2, val_buf); bsod_print(val_buf, fb);
-            bsod_print(" CR3: ", fb); u64_to_hex(s->cr3, val_buf); bsod_print(val_buf, fb);
-            bsod_print(" CR4: ", fb); u64_to_hex(s->cr4, val_buf); bsod_print(val_buf, fb); bsod_print("\n", fb);
-        }
-
-        int tid = scheduler_get_current_task_idx();
-        if (tid != -1) {
-            task_t* t = scheduler_get_task(tid);
-            if (t) {
-                char u_buf[20];
-                bsod_print("UAID: ", fb); u64_to_hex(t->uaid, u_buf); bsod_print(u_buf, fb);
-                bsod_print("  UPID: ", fb); u64_to_hex(t->upid, u_buf); bsod_print(u_buf, fb);
-                bsod_print("\nTASK: ", fb); bsod_print(t->name, fb); bsod_print("\n", fb);
-            }
-        }
+        u64_to_hex(frame->rip, hex_str);
+        bsod_print("RIP: ", fb); bsod_print(hex_str, fb);
+        u64_to_hex(frame->rsp, hex_str);
+        bsod_print("  RSP: ", fb); bsod_print(hex_str, fb); bsod_print("\n", fb);
     }
 
-    /* Hardware Context: Report last bound PCI hardware if applicable */
-    int pci_cnt = pci_get_device_count();
-    if (pci_cnt > 0) {
-        char hw_info[128];
-        pci_get_device_info(pci_cnt - 1, hw_info, sizeof(hw_info));
-        bsod_print("Last Bound HW: ", fb); bsod_print(hw_info, fb); bsod_print("\n", fb);
-    }
-
-    bsod_print("\nSTACK BACKTRACE:\n", fb);
-    uint64_t* rbp = (uint64_t*)frame->rbp;
-    for (int i = 0; i < 5; i++) {
-        if (!rbp || (uint64_t)rbp < hhdm_offset) break;
-        uint64_t rip = rbp[1];
-        char h_buf[20];
-        u64_to_hex(rip, h_buf);
-        bsod_print("  [", fb); bsod_print(h_buf, fb); bsod_print("]\n", fb);
-        rbp = (uint64_t*)rbp[0];
-    }
-
-    bsod_print("\nESTATE SECURED. EXECUTION HALTED SAFELY.\n", fb);
+    bsod_print("\nESTATE SECURED. EXECUTION HALTED SAFELY.", fb);
+    serial_printf("ESTATE SECURED. EXECUTION HALTED SAFELY.\n");
 
     while (1) {
         __asm__ volatile("cli; hlt");
@@ -262,7 +214,7 @@ void render_bsod_screen(const char* error_title, void* rsp_pointer, int type) {
 }
 
 void kpanic(const char* message) {
-    render_bsod_screen(message, NULL, 0);
+    render_bsod_screen(message, NULL);
 }
 
 /* =========================================================================
@@ -286,16 +238,14 @@ void kpanic(const char* message) {
     "pushq %r14\n" \
     "pushq %r15\n"
 
-#define DEFINE_EXCEPTION_GATEWAY_WITH_ERR(name, title_string, vector) \
+#define DEFINE_EXCEPTION_GATEWAY_WITH_ERR(name, title_string) \
     void name(void); \
     __asm__( \
         ".global " #name "\n" \
         #name ":\n" \
         "cli\n" \
-        "pushq $" #vector "\n" \
         PUSH_REGS_ASM \
         "movq %rsp, %rsi\n" \
-        "movq $0, %rdx\n" \
         "leaq str_" #name "(%rip), %rdi\n" \
         "call render_bsod_screen\n" \
         "1: cli\n hlt\n jmp 1b\n" \
@@ -304,17 +254,15 @@ void kpanic(const char* message) {
         ".text\n" \
     );
 
-#define DEFINE_EXCEPTION_GATEWAY_NO_ERR(name, title_string, vector) \
+#define DEFINE_EXCEPTION_GATEWAY_NO_ERR(name, title_string) \
     void name(void); \
     __asm__( \
         ".global " #name "\n" \
         #name ":\n" \
         "cli\n" \
         "pushq $0\n" \
-        "pushq $" #vector "\n" \
         PUSH_REGS_ASM \
         "movq %rsp, %rsi\n" \
-        "movq $0, %rdx\n" \
         "leaq str_" #name "(%rip), %rdi\n" \
         "call render_bsod_screen\n" \
         "1: cli\n hlt\n jmp 1b\n" \
@@ -323,7 +271,7 @@ void kpanic(const char* message) {
         ".text\n" \
     );
 
-DEFINE_EXCEPTION_GATEWAY_NO_ERR(  handler_divide_by_zero, "STATUS_INTEGER_DIVIDE_BY_ZERO (#DE)", 0)
-DEFINE_EXCEPTION_GATEWAY_WITH_ERR(handler_general_protection_fault, "SYSTEM_THREAD_EXCEPTION_NOT_HANDLED (#GP)", 13)
-DEFINE_EXCEPTION_GATEWAY_WITH_ERR(handler_page_fault, "PAGE_FAULT_IN_NONPAGED_AREA (#PF)", 14)
-DEFINE_EXCEPTION_GATEWAY_NO_ERR(  handler_double_fault, "CRITICAL_PROCESS_DIED (#DF)", 8)
+DEFINE_EXCEPTION_GATEWAY_NO_ERR(  handler_divide_by_zero, "STATUS_INTEGER_DIVIDE_BY_ZERO (#DE)")
+DEFINE_EXCEPTION_GATEWAY_WITH_ERR(handler_general_protection_fault, "SYSTEM_THREAD_EXCEPTION_NOT_HANDLED (#GP)")
+DEFINE_EXCEPTION_GATEWAY_WITH_ERR(handler_page_fault, "PAGE_FAULT_IN_NONPAGED_AREA (#PF)")
+DEFINE_EXCEPTION_GATEWAY_NO_ERR(  handler_double_fault, "CRITICAL_PROCESS_DIED (#DF)")

@@ -11,6 +11,8 @@
 #define EHCI_OPS_CONFIGFLAG 0x40
 #define EHCI_OPS_PORTSC_BASE 0x44
 
+extern uint64_t hhdm_offset;
+
 void ehci_init(uint64_t mmio) {
     if (mmio == 0) return;
     uint64_t base = mmio + hhdm_offset;

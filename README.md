@@ -1,16 +1,16 @@
-# R-TECH™ Sovereign RTC64 (NEONT Executive)
+# Nuklear CherryUSB OS Skeleton
 
-Sovereign RTC64 is a definitive, high-performance, hardened x86_64 operating system designed for extreme stability, professional diagnostics, and industrial security. It is a fully realized Higher-Half Executive kernel.
+This project provides a GUI skeleton using the Nuklear immediate mode library, integrated with the CherryUSB stack, and prepared for a kernel environment using the Limine bootloader.
 
 ## 🖼️ UI Preview
 You can see what the "R-TECH™" desktop environment looks like by opening **`preview.html`** in your web browser. This provides a high-fidelity mockup of the GUI theme and layout.
 
 ## Project Structure
 
-- `src/`: Professional Recovery Environment (WinPE-style) desktop and diagnostic suite.
-- `kernel/`: High-power NEONT Executive, featuring 8-phase boot synchronization, TSS/IST1 isolation, and preemptive scheduling.
-- `include/`: Centralized system headers for professional-grade freestanding development.
-- `external/`: Hardened third-party dependencies (CherryUSB, FatFs, TLSF, Nuklear).
+- `src/`: Hosted application source code (SDL2/OpenGL3).
+- `kernel/`: Basic kernel skeleton and Limine bootloader configuration.
+- `include/`: Shared headers, including the service plugin architecture.
+- `external/CherryUSB/`: The CherryUSB stack.
 
 ## Service Plugin Architecture
 

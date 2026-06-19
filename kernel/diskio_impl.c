@@ -1,4 +1,3 @@
-/* Modified by Sovereign: License Compliance Update */
 #include "fatfs/ff.h"
 #include "fatfs/diskio.h"
 #include "hal.h"
@@ -40,8 +39,5 @@ DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void* buff) {
 }
 
 DWORD get_fattime(void) {
-    int h, m, s;
-    rtc_get_time(&h, &m, &s);
-    return ((DWORD)(2024 - 1980) << 25) | ((DWORD)6 << 21) | ((DWORD)15 << 16) |
-           ((DWORD)h << 11) | ((DWORD)m << 5) | ((DWORD)s >> 1);
+    return 0; // No RTC for now
 }

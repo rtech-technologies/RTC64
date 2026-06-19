@@ -43,17 +43,6 @@ void vfs_refresh_mounts(void) {
         snprintf(drv_path, 4, "%d:", i);
 
         FRESULT res = f_mount(&m->fs, drv_path, 1);
-
-        /* Audit Step 2: Auto-format Sovereign storage if filesystem is missing (FAT Genesis) */
-        if (res == FR_NO_FILESYSTEM) {
-            serial_printf("[VFS] No filesystem on disk %d (%s). Initializing Sovereign FAT...\n", i, dev->name);
-            BYTE work[FF_MAX_SS];
-            if (f_mkfs(drv_path, 0, work, sizeof(work)) == FR_OK) {
-                res = f_mount(&m->fs, drv_path, 1);
-            }
-        }
-
-
         m->mounted = (res == FR_OK);
 
         if (m->mounted) {
@@ -92,22 +81,6 @@ int vfs_ls(const char* path, char* out, size_t sz) {
             int len = snprintf(out + off, sz - off, "<DIR> %s\n", mounts[i].mount_point + 5);
             off += len; if (off >= (int)sz - 1) break;
         }
-        return 0;
-    }
-    if (strcmp(path, "/connect") == 0 || strcmp(path, "/connect/") == 0) {
-        /* Modified by Sovereign: List external hot-pluggable devices */
-        int off = 0;
-        off += snprintf(out + off, sz - off, "External Connections:\n");
-        int dev_count = hal_storage_get_device_count();
-        for (int i = 0; i < dev_count; i++) {
-            storage_device_t *dev = hal_storage_get_device(i);
-            if (dev && dev->type == STORAGE_TYPE_USB) {
-                off += snprintf(out + off, sz - off, "[USB] %s (Connected)\n", dev->name);
-            }
-        }
-        /* Future: Add HDMI/Audio status here */
-        off += snprintf(out + off, sz - off, "[HDMI] No External Monitor\n");
-        off += snprintf(out + off, sz - off, "[JACK] No Audio Device\n");
         return 0;
     }
 
@@ -211,6 +184,9 @@ int vfs_get_mounts(char* out, size_t sz) {
     if (mount_count == 0) snprintf(out, sz, "No active mounts.");
     return 0;
 }
+
+extern int pci_get_device_count(void);
+extern int pci_get_device_info(int index, char* buf, size_t sz);
 
 int devmgr_list(char* out, size_t sz) {
     if (!out) return -1;

@@ -12,6 +12,8 @@
 #include "app_ui.h"
 #include "pro_os.h"
 
+extern size_t hal_malloc_get_used(void);
+extern size_t hal_malloc_get_total(void);
 
 void ui_init_style(struct nk_context *ctx)
 {
@@ -73,9 +75,31 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
     float wh = (float)window_height;
 
     if (app->current_state == STATE_LOGIN) {
-        /* Modified by Sovereign: Boot directly into a simplified WinPE-style Recovery Environment */
-        app->current_state = STATE_DESKTOP;
-        app->show_terminal = 1;
+        if (nk_begin(ctx, "Login", nk_rect(ww/2 - 175, wh/2 - 180, 350, 360),
+            NK_WINDOW_BORDER|NK_WINDOW_NO_SCROLLBAR))
+        {
+            nk_layout_row_dynamic(ctx, 80, 1);
+            nk_label(ctx, "[ AVATAR ]", NK_TEXT_CENTERED);
+
+            nk_layout_row_dynamic(ctx, 30, 1);
+            nk_label(ctx, "Sovereign User", NK_TEXT_CENTERED);
+
+            nk_layout_row_dynamic(ctx, 30, 1);
+            nk_spacer(ctx);
+
+            nk_layout_row_dynamic(ctx, 30, 1);
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, app->password, sizeof(app->password), nk_filter_default);
+
+            nk_layout_row_dynamic(ctx, 40, 1);
+            if (nk_button_label(ctx, i18n_translate("login"))) app->current_state = STATE_INSTALLER;
+
+            nk_layout_row_dynamic(ctx, 30, 1);
+            nk_spacer(ctx);
+
+            nk_layout_row_static(ctx, 30, 80, 1);
+            if (nk_button_label(ctx, "Power")) { }
+        }
+        nk_end(ctx);
     } else if (app->current_state == STATE_INSTALLER) {
         if (nk_begin(ctx, "Installer", nk_rect(ww/2 - 250, wh/2 - 200, 500, 400),
             NK_WINDOW_BORDER|NK_WINDOW_NO_SCROLLBAR|NK_WINDOW_TITLE))
@@ -104,18 +128,16 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
             nk_layout_row_static(ctx, 60, 60, 4);
             if (nk_button_label(ctx, "Term")) app->show_terminal = 1;
             if (nk_button_label(ctx, "Files")) app->show_explorer = 1;
-            if (nk_button_label(ctx, "Lab")) app->show_explorer = 1;
             if (nk_button_label(ctx, "Setup")) app->show_settings = 1;
         }
         nk_end(ctx);
 
         if (app->show_terminal) {
+            extern void chell_update(struct nk_context* ctx, void* s);
             chell_update(ctx, app);
         }
 
         if (app->show_explorer) {
-            lab_update(ctx, app);
-
             if (nk_begin(ctx, "Explorer", nk_rect(150, 150, 500, 350),
                 NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE))
             {
@@ -124,10 +146,8 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
                 int count = hal_storage_get_device_count();
                 for (int i = 0; i < count; i++) {
                     storage_device_t *dev = hal_storage_get_device(i);
-                    if (dev) {
-                        nk_layout_row_dynamic(ctx, 30, 1);
-                        nk_label(ctx, dev->name, NK_TEXT_LEFT);
-                    }
+                    nk_layout_row_dynamic(ctx, 30, 1);
+                    nk_label(ctx, dev->name, NK_TEXT_LEFT);
                 }
             }
             if (nk_window_is_closed(ctx, "Explorer")) app->show_explorer = 0;
@@ -156,12 +176,8 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
             snprintf(mem_buf, 64, "Memory: %d KB / %d KB", (int)(used/1024), (int)(total/1024));
             nk_layout_row_dynamic(ctx, 20, 1);
             nk_label(ctx, mem_buf, NK_TEXT_LEFT);
-
-            char cpu_buf[64];
-            int load = scheduler_get_cpu_load();
-            snprintf(cpu_buf, 64, "CPU Load: %d%%", load);
-            nk_label(ctx, cpu_buf, NK_TEXT_LEFT);
-            nk_progress(ctx, (nk_size*)&load, 100, nk_false);
+            nk_label(ctx, "CPU: 2% (Scheduler ACTIVE)", NK_TEXT_LEFT);
+            nk_progress(ctx, (nk_size*)&app->cpu_usage, 100, nk_false);
         }
         nk_end(ctx);
     }

@@ -23,6 +23,12 @@ static idt_ptr_t idt_ptr;
 
 extern void* isr_stub_table[];
 
+// Hardware exception gateways from panic.c
+extern void handler_divide_by_zero(void);
+extern void handler_general_protection_fault(void);
+extern void handler_page_fault(void);
+extern void handler_double_fault(void);
+
 void idt_set_gate(uint8_t num, uint64_t base, uint16_t sel, uint8_t flags) {
     idt[num].offset_low = base & 0xFFFF;
     idt[num].selector = sel;
@@ -39,15 +45,9 @@ void idt_init(void) {
         idt_set_gate(i, (uint64_t)isr_stub_table[i], 0x08, 0x8E);
     }
 
-    // Map remaining vectors to a safe default (Point 24, 25)
-    for (int i = 48; i < 256; i++) {
-        idt_set_gate(i, (uint64_t)isr_stub_39, 0x08, 0x8E);
-    }
-
     // Override critical hardware exceptions with panic gateways
     idt_set_gate(0,  (uint64_t)handler_divide_by_zero, 0x08, 0x8E);
     idt_set_gate(8,  (uint64_t)handler_double_fault,   0x08, 0x8E);
-    idt[8].ist = 1; /* Use IST1 for double fault */
     idt_set_gate(13, (uint64_t)handler_general_protection_fault, 0x08, 0x8E);
     idt_set_gate(14, (uint64_t)handler_page_fault,    0x08, 0x8E);
 
@@ -67,17 +67,10 @@ void exception_handler(struct cpu_state *state) {
     if (state->interrupt_number >= 32) {
         if (irq_handlers[state->interrupt_number]) {
             irq_handlers[state->interrupt_number](state);
-        } else if (state->interrupt_number != 255) {
-            /* Unhandled non-spurious IRQ: Send EOI to prevent interrupt storm (Error 34) */
-            apic_eoi();
         }
         return;
     }
     serial_printf("[INTERRUPT] Exception %d, Error: %p, RIP: %p\n",
                   (int)state->interrupt_number, (void*)state->error_code, (void*)state->rip);
-
-    /* Sovereign: Connect generic exceptions to the master graphical crash renderer (NEONT SECTION 4) */
-    char exc_msg[64];
-    snprintf(exc_msg, 64, "UNHANDLED_EXCEPTION (Vector %d)", (int)state->interrupt_number);
-    render_bsod_screen(exc_msg, state, 1);
+    kpanic("CPU EXCEPTION TRAP");
 }

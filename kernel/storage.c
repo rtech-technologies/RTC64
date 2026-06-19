@@ -50,6 +50,7 @@ void usbh_msc_run(struct usbh_msc *msc_class) {
         g_usb_disk_count++;
     }
 
+    extern void vfs_refresh_mounts(void);
     vfs_refresh_mounts();
 }
 

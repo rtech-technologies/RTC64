@@ -20,18 +20,6 @@ SECTIONS
         *(.rodata .rodata.*)
     } :text
 
-    .limine_requests_start : {
-        KEEP(*(.limine_requests_start))
-    } :text
-
-    .limine_requests : {
-        KEEP(*(.limine_requests))
-    } :text
-
-    .limine_requests_end : {
-        KEEP(*(.limine_requests_end))
-    } :text
-
     /* Align to page boundary to separate RX from RW */
     . = ALIGN(0x1000);
 

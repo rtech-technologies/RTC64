@@ -1,4 +1,3 @@
-/* Modified by Sovereign: License Compliance Update */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

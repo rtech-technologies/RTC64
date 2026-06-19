@@ -1,4 +1,3 @@
-/* Modified by Sovereign: License Compliance Update */
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
@@ -17,59 +16,11 @@ typedef struct {
     uint8_t  class_id;
     uint8_t  subclass;
     uint8_t  prog_if;
-    char     friendly_name[64];
 } pci_device_info_t;
 
 #define MAX_PCI_DEVICES 64
 static pci_device_info_t g_pci_devices[MAX_PCI_DEVICES];
 static int g_pci_count = 0;
-static volatile int g_pci_scan_complete = 0;
-static volatile int g_pci_lock = 0;
-
-static void pci_spin_lock(void) {
-    while (__sync_lock_test_and_set(&g_pci_lock, 1)) {
-        __asm__("pause");
-    }
-}
-
-static void pci_spin_unlock(void) {
-    __sync_lock_release(&g_pci_lock);
-}
-
-static const char* pci_class_to_str(uint8_t class, uint8_t sub, uint8_t prog) {
-    if (class == 0x01) {
-        if (sub == 0x06) return "SATA Controller (AHCI)";
-        if (sub == 0x08) return "NVMe SSD Controller";
-        return "Mass Storage Controller";
-    }
-    if (class == 0x02) return "Network Interface Card";
-    if (class == 0x03) return "Display Controller (VGA)";
-    if (class == 0x06) {
-        if (sub == 0x00) return "Host Bridge";
-        if (sub == 0x01) return "ISA Bridge";
-        return "Bridge Device";
-    }
-    if (class == 0x0C) {
-        if (sub == 0x03) {
-            if (prog == 0x20) return "USB 2.0 (EHCI)";
-            if (prog == 0x30) return "USB 3.0 (xHCI)";
-        }
-    }
-    return "Unknown Hardware";
-}
-
-static void pci_get_vendor_device_name(uint16_t v, uint16_t d, char* out) {
-    if (v == 0x8086) {
-        if (d == 0x1237) { strcpy(out, "Intel 440FX PMC"); return; }
-        if (d == 0x7000) { strcpy(out, "Intel PIIX3 ISA"); return; }
-        if (d == 0x7010) { strcpy(out, "Intel PIIX3 IDE"); return; }
-        if (d == 0x7113) { strcpy(out, "Intel PIIX4 ACPI"); return; }
-        if (d == 0x100E) { strcpy(out, "Intel E1000 NIC"); return; }
-    }
-    if (v == 0x1B36 && d == 0x000D) { strcpy(out, "QEMU xHCI Host"); return; }
-    if (v == 0x1234 && d == 0x1111) { strcpy(out, "QEMU Standard VGA"); return; }
-    strcpy(out, "Generic Device");
-}
 
 static uint32_t pci_read_config(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset) {
     uint32_t address = (uint32_t)((uint32_t)bus << 16) | ((uint32_t)slot << 11) |
@@ -88,10 +39,8 @@ uint64_t pci_get_bar(uint8_t bus, uint8_t slot, uint8_t func, uint8_t bar_index)
 }
 
 void pci_scan(void) {
-    pci_spin_lock();
     serial_printf("[PCI] Starting system hardware scan...\n");
     g_pci_count = 0;
-    g_pci_scan_complete = 0;
     memset(g_pci_devices, 0, sizeof(g_pci_devices));
 
     for (int bus = 0; bus < 256; bus++) {
@@ -108,19 +57,8 @@ void pci_scan(void) {
                 uint8_t sub_class = (class_rev >> 16) & 0xFF;
                 uint8_t prog_if = (class_rev >> 8) & 0xFF;
 
-                char vname[32];
-                pci_get_vendor_device_name(vendor, device, vname);
-                const char* cname = pci_class_to_str(base_class, sub_class, prog_if);
-
-                serial_printf("[PCI] Found: %02x:%02x:%d [%s] %s\n",
-                             bus, slot, func, vname, cname);
-
-                /* Audit Step 4: Validate device signature before exposure to /CONNECT */
-                bool genuine = (vendor == 0x8086 || vendor == 0x10EC || vendor == 0x1AF4 || vendor == 0x1B36);
-                if (!genuine) {
-                    serial_printf("[PCI] WARNING: Non-genuine signature detected. Rejecting hardware binding.\n");
-                    continue;
-                }
+                serial_printf("[PCI] Found: %02x:%02x:%d Vendor:%04x Device:%04x Class:%02x\n",
+                             bus, slot, func, vendor, device, base_class);
 
                 if (g_pci_count < MAX_PCI_DEVICES) {
                     g_pci_devices[g_pci_count].vendor = vendor;
@@ -128,7 +66,6 @@ void pci_scan(void) {
                     g_pci_devices[g_pci_count].class_id = base_class;
                     g_pci_devices[g_pci_count].subclass = sub_class;
                     g_pci_devices[g_pci_count].prog_if = prog_if;
-                    snprintf(g_pci_devices[g_pci_count].friendly_name, 64, "%s (%s)", vname, cname);
                     g_pci_count++;
                 }
 
@@ -161,13 +98,7 @@ void pci_scan(void) {
             }
         }
     }
-    g_pci_scan_complete = 1;
     serial_printf("[PCI] Scan complete. Total devices: %d\n", g_pci_count);
-    pci_spin_unlock();
-}
-
-bool pci_is_scan_complete(void) {
-    return g_pci_scan_complete;
 }
 
 int pci_get_device_count(void) {
@@ -175,14 +106,9 @@ int pci_get_device_count(void) {
 }
 
 int pci_get_device_info(int index, char* buf, size_t sz) {
-    pci_spin_lock();
-    if (index < 0 || index >= g_pci_count) {
-        pci_spin_unlock();
-        return -1;
-    }
+    if (index < 0 || index >= g_pci_count) return -1;
     pci_device_info_t* d = &g_pci_devices[index];
-    snprintf(buf, sz, "%s [V:%04X D:%04X]",
-             d->friendly_name, d->vendor, d->device);
-    pci_spin_unlock();
+    snprintf(buf, sz, "V:%04X D:%04X C:%02X S:%02X P:%02X",
+             d->vendor, d->device, d->class_id, d->subclass, d->prog_if);
     return 0;
 }

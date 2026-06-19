@@ -1,0 +1,101 @@
+CherryUSB License Information
+external/CherryUSB/common/usb_hc.h: * Copyright (c) 2022, sakumisu
+external/CherryUSB/common/usb_def.h: * Copyright (c) 2022, sakumisu
+external/CherryUSB/common/usb_log.h: * Copyright (c) 2022, sakumisu
+external/CherryUSB/common/usb_otg.h: * Copyright (c) 2025, sakumisu
+external/CherryUSB/common/usb_version.h: * Copyright (c) 2024, sakumisu
+external/CherryUSB/common/usb_list.h: * Copyright (c) 2022, sakumisu
+external/CherryUSB/common/usb_dc.h: * Copyright (c) 2022, sakumisu
+external/CherryUSB/common/usb_ringbuffer.h: * Copyright (c) 2022, Egahp
+external/CherryUSB/common/usb_errno.h: * Copyright (c) 2023, sakumisu
+external/CherryUSB/common/usb_mempool.h: * Copyright (c) 2022, sakumisu
+external/CherryUSB/common/usb_dcache.h: * Copyright (c) 2024, sakumisu
+external/CherryUSB/common/usb_memcpy.h: * Copyright (c) 2024, sakumisu
+external/CherryUSB/common/usb_osal.h: * Copyright (c) 2022, sakumisu
+external/CherryUSB/common/usb_util.h: * Copyright (c) 2022-2023, sakumisu
+external/CherryUSB/port/pusb2/rt-thread/usb_dc_glue_phytium.c: * Copyright : (C) 2024 Phytium Information Technology, Inc.
+external/CherryUSB/port/pusb2/rt-thread/usb_config.h: * Copyright : (C) 2024 Phytium Information Technology, Inc.
+external/CherryUSB/port/pusb2/rt-thread/usb_hc_glue_phytium.c: * Copyright : (C) 2024 Phytium Information Technology, Inc.
+external/CherryUSB/port/pusb2/freertos/usb_dc_glue_phytium.c: * Copyright : (C) 2024 Phytium Information Technology, Inc.
+external/CherryUSB/port/pusb2/freertos/usb_config.h: * Copyright : (C) 2024 Phytium Information Technology, Inc.
+external/CherryUSB/port/pusb2/freertos/usb_hc_glue_phytium.c: * Copyright : (C) 2024 Phytium Information Technology, Inc.
+external/CherryUSB/port/pusb2/standalone/usb_dc_glue_phytium.c: * Copyright : (C) 2024 Phytium Information Technology, Inc.
+external/CherryUSB/port/pusb2/standalone/usb_config.h: * Copyright : (C) 2024 Phytium Information Technology, Inc.
+external/CherryUSB/port/nxp/usb_glue_mcx.c: * Copyright (c) 2024 ~ 2025, sakumisu
+external/CherryUSB/port/bouffalolab/usb_dc_bl.c: * Copyright (c) 2024, sakumisu
+external/CherryUSB/port/fsdev/usb_glue_st.c: * Copyright (c) 2025, sakumisu
+external/CherryUSB/port/fsdev/usb_dc_fsdev.c: * Copyright (c) 2022, sakumisu
+external/CherryUSB/port/fsdev/usb_fsdev_reg.h: * Copyright (c) 2022, sakumisu
+external/CherryUSB/port/ohci/usb_hc_ohci.h: * Copyright (c) 2024, sakumisu
+external/CherryUSB/port/ohci/usb_glue_lpc.c: * Copyright (c) 2024, sakumisu
+external/CherryUSB/port/ohci/usb_hc_ohci.c: * Copyright (c) 2024, sakumisu
+external/CherryUSB/port/kinetis/usb_glue_mcx.c: * Copyright (c) 2024, sakumisu
+external/CherryUSB/port/kinetis/usb_dc_kinetis.c: * Copyright (c) 2024, sakumisu
+external/CherryUSB/port/kinetis/usb_kinetis_reg.h: * Copyright (c) 2024, sakumisu
+external/CherryUSB/port/hpmicro/usb_dc_hpm.c: * Copyright (c) 2022-2025 HPMicro
+external/CherryUSB/port/hpmicro/usb_hc_hpm.c: * Copyright (c) 2022-2025 HPMicro
+external/CherryUSB/port/hpmicro/usb_glue_hpm.c: * Copyright (c) 2022-2025 HPMicro
+external/CherryUSB/port/hpmicro/usb_glue_hpm.h: * Copyright (c) 2022-2025 HPMicro
+external/CherryUSB/port/chipidea/usb_dc_chipidea.c: * Copyright (c) 2021-2024 HPMicro
+external/CherryUSB/port/chipidea/usb_dc_chipidea.c: * Copyright (c) 2024, sakumisu
+external/CherryUSB/port/chipidea/usb_chipidea_reg.h: * Copyright (c) 2021-2024 HPMicro
+external/CherryUSB/port/dwc2/usb_glue_nation.c: * Copyright (c) 2025, sakumisu
+external/CherryUSB/port/dwc2/usb_glue_kendryte.c:/* Copyright (c) 2023, Canaan Bright Sight Co., Ltd
+external/CherryUSB/port/dwc2/usb_glue_st.c: * Copyright (c) 2024, sakumisu
+external/CherryUSB/port/dwc2/usb_glue_hc.c: * Copyright (c) 2022-2024, Xiaohua Semiconductor Co., Ltd.
+external/CherryUSB/port/dwc2/usb_glue_infineon.c: * Copyright (c) 2026, sakumisu
+external/CherryUSB/port/dwc2/usb_glue_gd.c: * Copyright (c) 2024, sakumisu
+external/CherryUSB/port/dwc2/usb_dwc2_param.h: * Copyright (c) 2025, sakumisu
+external/CherryUSB/port/dwc2/usb_glue_esp.c: * SPDX-FileCopyrightText: 2022-2023 Espressif Systems (Shanghai) CO LTD
+external/CherryUSB/port/dwc2/usb_dc_dwc2.c: * Copyright (c) 2022, sakumisu
+external/CherryUSB/port/dwc2/usb_dwc2_reg.h: * Copyright (c) 2022, sakumisu
+external/CherryUSB/port/dwc2/usb_hc_dwc2.c: * Copyright (c) 2022, sakumisu
+external/CherryUSB/port/dwc2/usb_glue_at.c: * Copyright (c) 2024, sakumisu
+external/CherryUSB/port/renesas/device/r_usb_device_cfg.h:* Copyright (c) 2020 - 2024 Renesas Electronics Corporation and/or its affiliates
+external/CherryUSB/port/renesas/device/r_usb_device_api.h: * Copyright (c) 2020 - 2024 Renesas Electronics Corporation and/or its affiliates
+external/CherryUSB/port/renesas/device/usb_dc_rensas.c: * Copyright (c) 2026, sakumisu
+external/CherryUSB/port/renesas/device/r_usb_api.h: * Copyright (c) 2020 - 2024 Renesas Electronics Corporation and/or its affiliates
+external/CherryUSB/port/renesas/device/r_usb_device_define.h: * Copyright (c) 2020 - 2024 Renesas Electronics Corporation and/or its affiliates
+external/CherryUSB/port/renesas/device/r_usb_device.c: * Copyright (c) 2020 - 2024 Renesas Electronics Corporation and/or its affiliates
+external/CherryUSB/port/renesas/device/r_usb_device.h: * Copyright (c) 2020 - 2024 Renesas Electronics Corporation and/or its affiliates
+external/CherryUSB/port/ch32/ch58x/usb_ch58x_usbfs_reg.h: * Copyright (c) 2022, sakumisu
+external/CherryUSB/port/ch32/ch58x/usb_ch585_usbhs_reg.h: * Copyright (c) 2024, sakumisu
+external/CherryUSB/port/ch32/ch58x/usb_ch58x_dc_usbfs.c: * Copyright (c) 2022, sakumisu
+external/CherryUSB/port/ch32/ch32fs/usb_dc_usbfs.c: * Copyright (c) 2022, sakumisu
+external/CherryUSB/port/ch32/ch32fs/usb_ch32_usbfs_reg.h: * Copyright (c) 2022, sakumisu
+external/CherryUSB/port/ch32/ch32hs/usb_dc_usbhs.c: * Copyright (c) 2022, sakumisu
+external/CherryUSB/port/ch32/ch32hs/usb_ch32_usbhs_reg.h: * Copyright (c) 2022, sakumisu
+external/CherryUSB/port/aic/usb_dc_aic_reg.h: * Copyright (c) 2022-2024, Artinchip Technology Co., Ltd
+external/CherryUSB/port/aic/usb_dc_aic_ll.c: * Copyright (c) 2022-2024, ArtInChip Technology Co., Ltd
+external/CherryUSB/port/aic/usb_dc_aic.c: * Copyright (c) 2023-2024, ArtInChip Technology Co., Ltd
+external/CherryUSB/port/musb/usb_glue_sunxi.c: * Copyright (c) 2024, sakumisu
+external/CherryUSB/port/musb/usb_musb_reg.h: * Copyright (c) 2022, sakumisu
+external/CherryUSB/port/musb/usb_hc_musb.c: * Copyright (c) 2022, sakumisu
+external/CherryUSB/port/musb/usb_glue_sifli.c: * Copyright (c) 2025, sakumisu
+external/CherryUSB/port/musb/usb_dc_musb.c: * Copyright (c) 2022, sakumisu
+external/CherryUSB/port/musb/usb_glue_ti.c: * Copyright (c) 2026, sakumisu
+external/CherryUSB/port/musb/usb_glue_ti.c: * Copyright (c) 2026, MDLZCOOL
+external/CherryUSB/port/musb/usb_glue_es.c: * Copyright (c) 2024, sakumisu
+external/CherryUSB/port/musb/usb_glue_bk.c: * Copyright (c) 2024, sakumisu
+external/CherryUSB/port/xhci/phytium/rt-thread/usb_glue_phytium_plat.c: * Copyright : (C) 2024 Phytium Information Technology, Inc.
+external/CherryUSB/port/xhci/phytium/rt-thread/usb_glue_phytium.c: * Copyright : (C) 2024 Phytium Information Technology, Inc.
+external/CherryUSB/port/xhci/phytium/rt-thread/usb_config.h: * Copyright : (C) 2024 Phytium Information Technology, Inc.
+external/CherryUSB/port/xhci/phytium/freertos/usb_glue_phytium_plat.c: * Copyright : (C) 2024 Phytium Information Technology, Inc.
+external/CherryUSB/port/xhci/phytium/freertos/usb_glue_phytium_pcie.c: * Copyright : (C) 2024 Phytium Information Technology, Inc.
+external/CherryUSB/port/xhci/phytium/freertos/usb_glue_phytium.c: * Copyright : (C) 2024 Phytium Information Technology, Inc.
+external/CherryUSB/port/xhci/phytium/freertos/usb_config.h: * Copyright : (C) 2024 Phytium Information Technology, Inc.
+external/CherryUSB/port/ehci/usb_hc_ehci.c: * Copyright (c) 2022, sakumisu
+external/CherryUSB/port/ehci/usb_glue_aic.c: * Copyright (c) 2022, Artinchip Technology Co., Ltd
+external/CherryUSB/port/ehci/usb_glue_bouffalo.c: * Copyright (c) 2024, sakumisu
+external/CherryUSB/port/ehci/usb_glue_t113.c: * Copyright (c) 2026, HakumenJean
+external/CherryUSB/port/ehci/usb_hc_ehci.h: * Copyright (c) 2022, sakumisu
+external/CherryUSB/port/ehci/usb_ehci_reg.h: * Copyright 2022 sakumisu
+external/CherryUSB/port/template/usb_hc.c: * Copyright (c) 2025, sakumisu
+external/CherryUSB/port/rp2040/usb_dc_rp2040.c: * Copyright (c) 2022, HaiMianBBao
+external/CherryUSB/port/rp2040/usb_dc_rp2040.c: * Copyright (c) 2025, sakumisu
+external/CherryUSB/port/rp2040/usb_hc_rp2040.c: * Copyright (c) 2025, sakumisu
+external/CherryUSB/core/usbh_core.c: * Copyright (c) 2022, sakumisu
+external/CherryUSB/core/usbotg_core.h: * Copyright (c) 2025, sakumisu
+external/CherryUSB/core/usbd_core.h: * Copyright (c) 2022, sakumisu
+external/CherryUSB/core/usbh_core.h: * Copyright (c) 2022, sakumisu
+external/CherryUSB/core/usbd_core.c: * Copyright (c) 2022, sakumisu
