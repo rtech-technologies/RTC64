@@ -5,12 +5,16 @@
 
 #include <stddef.h>
 #include <stdarg.h>
+#include "fatfs/ff.h"
 
 #define SEEK_SET 0
 #define SEEK_CUR 1
 #define SEEK_END 2
 
-typedef struct { int unused; } FILE;
+typedef struct {
+    FIL fil;
+    int is_open;
+} FILE;
 
 FILE* fopen(const char* filename, const char* mode);
 int fclose(FILE* stream);

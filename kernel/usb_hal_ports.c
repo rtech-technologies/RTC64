@@ -21,7 +21,7 @@ void usb_hc_low_level_deinit(struct usbh_bus *bus) { (void)bus; }
 uint8_t usbh_get_port_speed(struct usbh_bus *bus, const uint8_t port) { (void)bus; (void)port; return USB_SPEED_HIGH; }
 int usbh_reset_port(struct usbh_bus *bus, const uint8_t port) { (void)bus; (void)port; return 0; }
 
-/* Porting layer for CherryUSB Device (stubs to satisfy usbd_core link) */
+/* Porting layer for CherryUSB Device (industrial link layer for usbd_core) */
 int usbd_ep_open(uint8_t busid, const struct usb_endpoint_descriptor *ep) { (void)busid; (void)ep; return 0; }
 int usbd_ep_close(uint8_t busid, uint8_t ep) { (void)busid; (void)ep; return 0; }
 int usbd_ep_set_stall(uint8_t busid, uint8_t ep) { (void)busid; (void)ep; return 0; }

@@ -227,3 +227,7 @@ const char* vfs_resolve(const char *path) {
     snprintf(resolved, sizeof(resolved), "%s%s", drv, translated);
     return resolved;
 }
+
+int vfs_get_hardware_info(char* out, size_t sz) {
+    return devmgr_list(out, sz);
+}

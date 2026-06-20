@@ -1,33 +1,19 @@
 /* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
  * Licensed under the 'respect people's property' OS license. */
-/* Modified by Sovereign: Professional libc-style implementations with SSE2 optimized memory operations and robust vsnprintf */
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdarg.h>
 #include "serial.h"
+#include "pro_os.h"
+#include "fatfs/ff.h"
+#include "stdio.h"
+#include "string.h"
+
+static FILE _file_pool[8];
 
 void* memset(void* s, int c, size_t n) {
     uint8_t* p = s;
-    if (n >= 64 && ((uintptr_t)p & 15) == 0) {
-        __asm__ volatile (
-            "movd %1, %%xmm0\n\t"
-            "punpcklbw %%xmm0, %%xmm0\n\t"
-            "punpcklwd %%xmm0, %%xmm0\n\t"
-            "pshufd $0, %%xmm0, %%xmm0\n\t"
-            "1:\n\t"
-            "movdqa %%xmm0, (%0)\n\t"
-            "movdqa %%xmm0, 16(%0)\n\t"
-            "movdqa %%xmm0, 32(%0)\n\t"
-            "movdqa %%xmm0, 48(%0)\n\t"
-            "add $64, %0\n\t"
-            "sub $64, %2\n\t"
-            "cmp $64, %2\n\t"
-            "jae 1b"
-            : "+r"(p) : "r"((int)c), "r"(n) : "memory", "xmm0"
-        );
-        n %= 64;
-    }
     while(n--) *p++ = (unsigned char)c;
     return s;
 }
@@ -35,25 +21,6 @@ void* memset(void* s, int c, size_t n) {
 void* memcpy(void* dest, const void* src, size_t n) {
     uint8_t* d = dest;
     const uint8_t* s = src;
-    if (n >= 64 && ((uintptr_t)d & 15) == 0 && ((uintptr_t)s & 15) == 0) {
-        __asm__ volatile (
-            "1:\n\t"
-            "movdqa (%1), %%xmm0\n\t"
-            "movdqa 16(%1), %%xmm1\n\t"
-            "movdqa 32(%1), %%xmm2\n\t"
-            "movdqa 48(%1), %%xmm3\n\t"
-            "movdqa %%xmm0, (%0)\n\t"
-            "movdqa %%xmm1, 16(%0)\n\t"
-            "movdqa %%xmm2, 32(%0)\n\t"
-            "movdqa %%xmm3, 48(%0)\n\t"
-            "add $64, %0\n\t"
-            "add $64, %1\n\t"
-            "sub $64, %2\n\t"
-            "cmp $64, %2\n\t"
-            "jae 1b"
-            : "+r"(d), "+r"(s), "+r"(n) :: "memory", "xmm0", "xmm1", "xmm2", "xmm3"
-        );
-    }
     while(n--) *d++ = *s++;
     return dest;
 }
@@ -79,6 +46,13 @@ size_t strlen(const char* s) {
 
 char* strcpy(char* dest, const char* src) {
     char* d = dest; while((*d++ = *src++));
+    return dest;
+}
+
+char* strncpy(char* dest, const char* src, size_t n) {
+    size_t i;
+    for (i = 0; i < n && src[i] != '\0'; i++) dest[i] = src[i];
+    for (; i < n; i++) dest[i] = '\0';
     return dest;
 }
 
@@ -141,10 +115,8 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
                 width = width * 10 + (*format - '0');
                 format++;
             }
-
             int long_level = 0;
             while (*format == 'l') { long_level++; format++; }
-
             if (*format == 's') {
                 const char* s = va_arg(ap, const char*);
                 if (!s) s = "(null)";
@@ -161,26 +133,15 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
             } else if (*format == 'x' || *format == 'p' || *format == 'X') {
                 unsigned long long x;
                 char spec = *format;
-                if (spec == 'p') {
-                    x = (uintptr_t)va_arg(ap, void*);
-                    if (width == 0) width = 16;
-                    if (pad == ' ') pad = '0';
-                } else {
-                    x = (long_level >= 2) ? va_arg(ap, unsigned long long) : (long_level == 1) ? va_arg(ap, unsigned long) : (unsigned long long)va_arg(ap, unsigned int);
-                }
+                if (spec == 'p') { x = (uintptr_t)va_arg(ap, void*); if (width == 0) width = 16; if (pad == ' ') pad = '0'; }
+                else { x = (long_level >= 2) ? va_arg(ap, unsigned long long) : (long_level == 1) ? va_arg(ap, unsigned long) : (unsigned long long)va_arg(ap, unsigned int); }
                 char buf[64]; itoa_meaty(x, buf, 16, false, width, pad);
                 const char* s = buf; while (*s && i < size - 1) {
-                    char c = *s++;
-                    if (spec == 'X' && c >= 'a' && c <= 'z') c -= 32;
-                    str[i++] = c;
+                    char c = *s++; if (spec == 'X' && c >= 'a' && c <= 'z') c -= 32; str[i++] = c;
                 }
             } else if (*format == '%') { str[i++] = '%'; }
-            else {
-                // Skip unknown
-            }
-        } else {
-            str[i++] = *format;
-        }
+            else { /* Skip unknown */ }
+        } else { str[i++] = *format; }
         format++;
     }
     str[i] = '\0';
@@ -192,22 +153,21 @@ int snprintf(char* str, size_t size, const char* format, ...) {
     return ret;
 }
 
-int abs(int n) { return n < 0 ? -n : n; }
+int printf(const char* format, ...) {
+    va_list ap; va_start(ap, format);
+    char buf[512];
+    int ret = vsnprintf(buf, sizeof(buf), format, ap);
+    va_end(ap);
+    serial_printf("%s", buf);
+    return ret;
+}
 
-#define NK_IMPLEMENTATION
-#include "pro_os.h"
+int abs(int n) { return n < 0 ? -n : n; }
 
 void __assert_fail(const char * assertion, const char * file, unsigned int line, const char * function) {
     (void)assertion; (void)file; (void)line; (void)function;
     serial_printf("ASSERTION FAILED: %s at %s:%d\n", assertion, file, line);
     kpanic("ASSERTION FAILURE");
-}
-
-char* strncpy(char* dest, const char* src, size_t n) {
-    size_t i;
-    for (i = 0; i < n && src[i] != '\0'; i++) dest[i] = src[i];
-    for (; i < n; i++) dest[i] = '\0';
-    return dest;
 }
 
 void qsort(void *base, size_t nmemb, size_t size, int (*compar)(const void *, const void *)) {
@@ -233,17 +193,54 @@ void qsort(void *base, size_t nmemb, size_t size, int (*compar)(const void *, co
     if ((uintptr_t)i < (uintptr_t)base + nmemb * size) qsort(i, nmemb - ((uintptr_t)i - (uintptr_t)base) / size, size, compar);
 }
 
-FILE* fopen(const char* filename, const char* mode) { (void)filename; (void)mode; return NULL; }
-int fclose(FILE* stream) { (void)stream; return 0; }
-size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream) { (void)ptr; (void)size; (void)nmemb; (void)stream; return 0; }
-int fseek(FILE* stream, long offset, int whence) { (void)stream; (void)offset; (void)whence; return 0; }
-long ftell(FILE* stream) { (void)stream; return 0; }
+extern const char* vfs_resolve(const char* path);
 
-int printf(const char* format, ...) {
-    va_list ap; va_start(ap, format);
-    char buf[512];
-    int ret = vsnprintf(buf, sizeof(buf), format, ap);
-    va_end(ap);
-    serial_printf("%s", buf);
-    return ret;
+FILE* fopen(const char* filename, const char* mode) {
+    const char* resolved = vfs_resolve(filename);
+    BYTE flags = 0;
+    if (strchr(mode, 'r')) flags |= FA_READ;
+    if (strchr(mode, 'w')) flags |= (FA_WRITE | FA_CREATE_ALWAYS);
+    if (strchr(mode, 'a')) flags |= (FA_WRITE | FA_OPEN_APPEND);
+
+    for (int i = 0; i < 8; i++) {
+        if (!_file_pool[i].is_open) {
+            if (f_open(&_file_pool[i].fil, resolved, flags) == FR_OK) {
+                _file_pool[i].is_open = 1;
+                return &_file_pool[i];
+            }
+            return NULL;
+        }
+    }
+    return NULL;
+}
+
+int fclose(FILE* stream) {
+    if (stream) {
+        f_close(&stream->fil);
+        stream->is_open = 0;
+    }
+    return 0;
+}
+
+size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream) {
+    if (!stream) return 0;
+    UINT br;
+    if (f_read(&stream->fil, ptr, (UINT)(size * nmemb), &br) == FR_OK) {
+        return (size_t)(br / size);
+    }
+    return 0;
+}
+
+int fseek(FILE* stream, long offset, int whence) {
+    if (!stream) return -1;
+    FSIZE_t target = 0;
+    if (whence == SEEK_SET) target = (FSIZE_t)offset;
+    else if (whence == SEEK_CUR) target = f_tell(&stream->fil) + (FSIZE_t)offset;
+    else if (whence == SEEK_END) target = f_size(&stream->fil) + (FSIZE_t)offset;
+    return (f_lseek(&stream->fil, target) == FR_OK) ? 0 : -1;
+}
+
+long ftell(FILE* stream) {
+    if (!stream) return -1;
+    return (long)f_tell(&stream->fil);
 }

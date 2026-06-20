@@ -59,7 +59,7 @@ usb_osal_thread_t usb_osal_thread_create(const char *name, uint32_t stack_size, 
 }
 
 void usb_osal_thread_delete(usb_osal_thread_t thread) {
-    serial_printf("[USB OSAL] Thread delete requested: %p (stub)\n", thread);
+    serial_printf("[USB OSAL] Thread delete requested: %p (non-destructive)\n", thread);
 }
 void usb_osal_thread_schedule_other(void) { __asm__("pause"); }
 

@@ -27,6 +27,7 @@
 #include "nuklear.h"
 #define NK_RAWFB_IMPLEMENTATION
 #include "nuklear_rawfb.h"
+
 struct nk_context* nk_rawfb_get_ctx(struct rawfb_context* rawfb) {
     return &rawfb->ctx;
 }
