@@ -7810,6 +7810,7 @@ nk_murmur_hash(const void * key, int len, nk_hash seed)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 #pragma GCC diagnostic ignored "-Wunused-function"
+static char*
 nk_file_load(const char* path, nk_size* siz, const struct nk_allocator *alloc)
 {
     char *buf;
