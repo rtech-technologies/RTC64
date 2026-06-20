@@ -109,21 +109,7 @@ isr_common:
     movw %ds, %ax
     pushq %rax
 
-    /*
-     * STACK LAYOUT AT THIS POINT (All qwords):
-     * [FXSAVE (512 bytes)] - will be here
-     * Segments (4)
-     * CRs (3)
-     * GPRs (15)
-     * interrupt_number (1)
-     * error_code (1)
-     * RIP, CS, RFLAGS, RSP, SS (5)
-     * Total = 512/8 + 4 + 3 + 15 + 1 + 1 + 5 = 64 + 29 = 93 qwords.
-     * 93 qwords = 744 bytes.
-     * To align to 16 bytes, we need an even number of qwords.
-     * We add 1 qword of padding to make it 94 qwords (752 bytes).
-     */
-    pushq $0 /* Padding for 16-byte alignment of fxsave_region */
+    pushq $0 /* Padding for 16-byte alignment */
 
     subq $512, %rsp
     fxsave (%rsp)
@@ -132,7 +118,9 @@ isr_common:
     call exception_handler
 
     fxrstor (%rsp)
-    addq $520, %rsp /* 512 + 8 (padding) */
+    addq $512, %rsp
+
+    addq $8, %rsp /* Remove padding */
 
     popq %rax
     movw %ax, %ds
@@ -202,7 +190,7 @@ irq_common:
     movw %ds, %ax
     pushq %rax
 
-    pushq $0 /* Padding for 16-byte alignment */
+    pushq $0 /* Padding */
 
     subq $512, %rsp
     fxsave (%rsp)
@@ -216,7 +204,9 @@ irq_common:
     movq %rax, %rsp
 
     fxrstor (%rsp)
-    addq $520, %rsp /* 512 + 8 */
+    addq $512, %rsp
+
+    addq $8, %rsp /* Remove padding */
 
     popq %rax
     movw %ax, %ds

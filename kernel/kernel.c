@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
+#include <stdio.h>
 #include "pro_os.h"
 #include "limine.h"
 #include "app_ui.h"
@@ -136,8 +137,7 @@ void kernel_main(void) {
     scheduler_init();
 
     /* PHASE 1: Kernel Initialization */
-    serial_printf("[PHASE 1] Kernel Initialization. Enabling STI.\n");
-    __asm__ volatile("sti");
+    serial_printf("[PHASE 1] Kernel Initialization. Spawning SMSS.\n");
 
     /* PHASE 2: Namespace Initialization */
     serial_printf("[PHASE 2] Establishing VFS and System Namespace.\n");
@@ -154,8 +154,13 @@ void kernel_main(void) {
     serial_printf("[PHASE 5] Spawning Session Manager (smss.exe)...\n");
     system_shell_init();
     scheduler_add_task("System Shell", (void*)system_shell_task, NULL, 1, 1);
+
+    /* MEATY: Final unmask and STI enables preemption for the first time */
     apic_timer_unmask();
     scheduler_add_task("SMSS", session_manager_task, NULL, 1, 1);
+
+    serial_printf("[PHASE 1] Enabling STI. Multitasking active.\n");
+    __asm__ volatile("sti");
 
     while (1) { scheduler_run(); __asm__ volatile("hlt"); }
 }

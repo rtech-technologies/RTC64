@@ -53,7 +53,18 @@ void system_shell_init(void);
 void system_shell_task(void* arg);
 void comprec_task(void* arg);
 void session_manager_task(void* arg);
-struct cpu_state { uint8_t fxsave_region[512]; uint64_t padding; uint64_t ds, es, fs, gs; uint64_t cr4, cr3, cr2; uint64_t r15, r14, r13, r12, r11, r10, r9, r8; uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax; uint64_t interrupt_number, error_code; uint64_t rip, cs, rflags, rsp, ss; } __attribute__((aligned(16)));
+
+struct cpu_state {
+    uint8_t fxsave_region[512];
+    uint64_t padding;
+    uint64_t ds, es, fs, gs;
+    uint64_t cr4, cr3, cr2;
+    uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
+    uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
+    uint64_t interrupt_number, error_code;
+    uint64_t rip, cs, rflags, rsp, ss;
+} __attribute__((aligned(16)));
+
 void timer_handler(struct cpu_state* state);
 void irq_install_handler(int irq, void (*handler)(struct cpu_state*));
 void hal_malloc_init(void* mem, size_t bytes);
@@ -82,11 +93,10 @@ int vfs_mkdir(const char* path);
 int vfs_write(const char* path, const char* content);
 int vfs_get_mounts(char* out, size_t sz);
 int devmgr_list(char* out, size_t sz);
+int vfs_get_hardware_info(char* out, size_t sz);
 void vfs_init(void);
 void vfs_refresh_mounts(void);
 const char* i18n_translate(const char* key);
 extern uint64_t hhdm_offset;
 extern volatile struct limine_framebuffer_request framebuffer_request;
 #endif
-
-int vfs_get_hardware_info(char* out, size_t sz);

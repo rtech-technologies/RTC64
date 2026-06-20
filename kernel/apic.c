@@ -32,9 +32,16 @@ void apic_eoi(void) {
 }
 
 void apic_init(void) {
+    /* Step 1: Secure Spurious Vector and Software Enable */
     apic_write(APIC_SVR, apic_read(APIC_SVR) | 0x1FF);
+
+    /* Step 2: Calibrate Divider (Divide by 16) */
     apic_write(APIC_TDCR, 0x03);
-    apic_write(APIC_TMR, 32 | 0x20000);
+
+    /* Step 3: Configure Timer (Vector 32, Periodic mode, start MASKED) */
+    apic_write(APIC_TMR, 32 | 0x20000 | 0x10000);
+
+    /* Step 4: Set Initial Count */
     apic_write(APIC_TICR, 1000000);
 }
 
@@ -43,17 +50,14 @@ uint64_t hal_get_uptime_ms(void) {
 }
 
 void timer_handler(struct cpu_state* state) {
+    (void)state;
     apic_eoi();
     g_ticks++;
-
-    /* Preemptive context switch is handled by isr_stubs.s common IRQ path
-       The scheduler_switch returns the new stack pointer to isr_stubs.s */
-    if (state->rip == 0) {
-        serial_printf("[APIC] Unexpected architectural state in timer.\n");
-    }
 }
 
 void apic_timer_unmask(void) {
-    serial_printf("[APIC] Unmasking Local APIC Timer.\n");
-    apic_write(APIC_TMR, 32 | 0x20000); /* Unmask (ensure bit 16 is 0) */
+    serial_printf("[APIC] Final check: Unmasking Local APIC Timer.\n");
+    uint32_t val = apic_read(APIC_TMR);
+    val &= ~0x10000; /* Clear Mask bit */
+    apic_write(APIC_TMR, val);
 }
