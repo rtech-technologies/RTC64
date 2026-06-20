@@ -6,6 +6,16 @@
 #include <stdarg.h>
 #include <string.h>
 #include <math.h>
+
+/* STB Truetype configuration to avoid undefined STBTT_acos */
+#define STBTT_acos acos
+#define STBTT_cos cos
+#define STBTT_sin sin
+#define STBTT_pow pow
+#define STBTT_sqrt sqrt
+#define STBTT_fmod fmod
+#define STBTT_fabs fabs
+
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_IO
 #define NK_INCLUDE_STANDARD_VARARGS

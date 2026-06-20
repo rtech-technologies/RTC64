@@ -113,3 +113,46 @@ double cos(double x) {
     }
     return res;
 }
+
+double atan(double x) {
+    int neg = 0;
+    if (x < 0) { neg = 1; x = -x; }
+    int invert = 0;
+    if (x > 1.0) { invert = 1; x = 1.0 / x; }
+
+    double res = 0, term = x;
+    double x2 = x * x;
+    for (int i = 1; i <= 39; i += 2) {
+        res += term / i;
+        term *= -x2;
+    }
+
+    if (invert) res = PI_2 - res;
+    if (neg) res = -res;
+    return res;
+}
+
+double atan2(double y, double x) {
+    if (x > 0) return atan(y / x);
+    if (x < 0 && y >= 0) return atan(y / x) + PI;
+    if (x < 0 && y < 0) return atan(y / x) - PI;
+    if (x == 0 && y > 0) return PI_2;
+    if (x == 0 && y < 0) return -PI_2;
+    return 0;
+}
+
+double asin(double x) {
+    if (x > 1.0 || x < -1.0) return 0;
+    return atan2(x, sqrt(1.0 - x * x));
+}
+
+double acos(double x) {
+    if (x > 1.0 || x < -1.0) return 0;
+    return PI_2 - asin(x);
+}
+
+double fmod(double x, double y) {
+    if (y == 0) return 0;
+    double res = x - (double)((long long)(x / y)) * y;
+    return res;
+}

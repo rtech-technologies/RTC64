@@ -202,3 +202,48 @@ void __assert_fail(const char * assertion, const char * file, unsigned int line,
     serial_printf("ASSERTION FAILED: %s at %s:%d\n", assertion, file, line);
     kpanic("ASSERTION FAILURE");
 }
+
+char* strncpy(char* dest, const char* src, size_t n) {
+    size_t i;
+    for (i = 0; i < n && src[i] != '\0'; i++) dest[i] = src[i];
+    for (; i < n; i++) dest[i] = '\0';
+    return dest;
+}
+
+void qsort(void *base, size_t nmemb, size_t size, int (*compar)(const void *, const void *)) {
+    if (nmemb < 2) return;
+    char *pivot = (char *)base + (nmemb / 2) * size;
+    char *i = (char *)base;
+    char *j = (char *)base + (nmemb - 1) * size;
+    while (i <= j) {
+        while (compar(i, pivot) < 0) i += size;
+        while (compar(j, pivot) > 0) j -= size;
+        if (i <= j) {
+            char tmp[size];
+            memcpy(tmp, i, size);
+            memcpy(i, j, size);
+            memcpy(j, tmp, size);
+            if (pivot == i) pivot = j;
+            else if (pivot == j) pivot = i;
+            i += size;
+            j -= size;
+        }
+    }
+    if ((uintptr_t)j > (uintptr_t)base) qsort(base, ((uintptr_t)j - (uintptr_t)base) / size + 1, size, compar);
+    if ((uintptr_t)i < (uintptr_t)base + nmemb * size) qsort(i, nmemb - ((uintptr_t)i - (uintptr_t)base) / size, size, compar);
+}
+
+FILE* fopen(const char* filename, const char* mode) { (void)filename; (void)mode; return NULL; }
+int fclose(FILE* stream) { (void)stream; return 0; }
+size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream) { (void)ptr; (void)size; (void)nmemb; (void)stream; return 0; }
+int fseek(FILE* stream, long offset, int whence) { (void)stream; (void)offset; (void)whence; return 0; }
+long ftell(FILE* stream) { (void)stream; return 0; }
+
+int printf(const char* format, ...) {
+    va_list ap; va_start(ap, format);
+    char buf[512];
+    int ret = vsnprintf(buf, sizeof(buf), format, ap);
+    va_end(ap);
+    serial_printf("%s", buf);
+    return ret;
+}

@@ -52,3 +52,8 @@ void timer_handler(struct cpu_state* state) {
         serial_printf("[APIC] Unexpected architectural state in timer.\n");
     }
 }
+
+void apic_timer_unmask(void) {
+    serial_printf("[APIC] Unmasking Local APIC Timer.\n");
+    apic_write(APIC_TMR, 32 | 0x20000); /* Unmask (ensure bit 16 is 0) */
+}
