@@ -3,14 +3,21 @@
 #define RSL_IMPLEMENTATION
 #include "rsl.h"
 
-void user_app_entry(void* arg) {
+void system_init_task(void* arg) {
     (void)arg;
-    rsl_printf("RSL Executive Environment Initialized.\n");
-    rsl_printf("System Uptime: %llu ms\n", rsl_uptime());
+    rsl_printf("[OS] Initializing high-power userland environment...\n");
 
-    char buf[1024];
-    rsl_mounts(buf, sizeof(buf));
-    rsl_printf("Executive Mounts:\n%s\n", buf);
+    /* VFS Verification and Genesis */
+    rsl_printf("[OS] Checking system partition integrity...\n");
+    rsl_mkdir("/mnt/disk0/system");
+    rsl_write("/mnt/disk0/system/registry.bin", "SOVEREIGN_V1");
+
+    char buf[256];
+    if (rsl_cat("/mnt/disk0/system/registry.bin", buf, sizeof(buf)) == 0) {
+        rsl_printf("[OS] System Registry Loaded: %s\n", buf);
+    }
+
+    rsl_printf("[OS] Application Session Genesis complete.\n");
 
     while(1) {
         rsl_yield();
@@ -18,6 +25,7 @@ void user_app_entry(void* arg) {
 }
 
 int main(void) {
-    rsl_spawn("UserSession", user_app_entry, NULL);
+    /* entry point called by kernel SMSS */
+    rsl_spawn("UserGenesis", system_init_task, NULL);
     return 0;
 }

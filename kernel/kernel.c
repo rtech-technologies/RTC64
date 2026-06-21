@@ -22,6 +22,8 @@ struct limine_framebuffer *primary_fb;
 struct app_state os_app;
 
 extern int main(void);
+extern void debug_shell_init(void);
+extern void debug_shell_task(void* arg);
 
 static float font_get_width(nk_handle handle, float height, const char *text, int len) {
     (void)handle; (void)height; (void)text; return (float)len * 8.0f;
@@ -97,7 +99,7 @@ void session_manager_task(void* arg) {
     serial_printf("[PHASE 6] Starting core background services (SCM)...\n");
     scheduler_add_task("COMPREC", (void*)comprec_task, NULL, 1, 1);
 
-    /* Invoke Userland Entry */
+    /* Invoke Userland Entry (RSL logic) */
     main();
 
     /* PHASE 7: Environment Manager */
@@ -155,14 +157,15 @@ void kernel_main(void) {
 
     /* PHASE 4: Power & I/O Manager */
     serial_printf("[PHASE 4] Finalizing Storage Stacks and IRP Stability.\n");
-    hal_storage_init(); hal_storage_finish_init();
+    hal_storage_finish_init();
 
     /* PHASE 5: Session Manager (smss.exe) */
     serial_printf("[PHASE 5] Spawning Session Manager (smss.exe)...\n");
-    system_shell_init();
+    debug_shell_init();
 
-    scheduler_add_task("System Shell", (void*)system_shell_task, NULL, 1, 1);
-    scheduler_add_task("SMSS", (void*)session_manager_task, NULL, 1, 1);
+    /* The Debug Shell remains serial, while the Userland Shell is windowed */
+    scheduler_add_task("Debug Shell", (void*)debug_shell_task, NULL, 1, 1);
+    scheduler_add_task("SMSS", session_manager_task, NULL, 1, 1);
 
     serial_printf("[PHASE 1] Enabling STI. Multitasking active.\n");
     apic_timer_unmask();

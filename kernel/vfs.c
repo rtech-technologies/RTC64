@@ -1,6 +1,6 @@
 /* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
  * Licensed under the 'respect people's property' OS license. */
-/* Modified by Sovereign: Meaty VFS with deep path translation and binary file support */
+/* Modified by Sovereign: Meaty VFS with auto-format fallback and path translation */
 #include "pro_os.h"
 #include "hal.h"
 #include "fatfs/ff.h"
@@ -44,9 +44,23 @@ void vfs_refresh_mounts(void) {
         char drv_path[4];
         snprintf(drv_path, 4, "%d:", i);
 
+        serial_printf("[VFS] Attempting mount on %s...\n", drv_path);
         FRESULT res = f_mount(&m->fs, drv_path, 1);
-        m->mounted = (res == FR_OK);
 
+        if (res == FR_NO_FILESYSTEM) {
+            serial_printf("[VFS] No filesystem on %s. Attempting FAT32 format...\n", drv_path);
+            BYTE work[FF_MAX_SS];
+            MKFS_PARM opt = {FM_FAT32, 0, 0, 0, 0};
+            res = f_mkfs(drv_path, &opt, work, sizeof(work));
+            if (res == FR_OK) {
+                serial_printf("[VFS] Format successful. Retrying mount...\n");
+                res = f_mount(&m->fs, drv_path, 1);
+            } else {
+                serial_printf("[VFS] FATAL: Format failed with error %d\n", (int)res);
+            }
+        }
+
+        m->mounted = (res == FR_OK);
         if (m->mounted) {
             serial_printf("[VFS] Mounted disk %d (%s) at %s\n", i, dev->name, m->mount_point);
         } else {
@@ -141,7 +155,7 @@ void* vfs_read_file(const char* path, size_t* out_sz) {
         FSIZE_t sz = f_size(&fil);
         void* buf = malloc((size_t)sz);
         if (buf) {
-            f_read(&fil, buf, (UINT)sz, &br);
+            f_read(&fil, buf, (UINT)sz, &br) ;
             if (out_sz) *out_sz = (size_t)br;
         }
         f_close(&fil);
@@ -187,38 +201,6 @@ int vfs_get_mounts(char* out, size_t sz) {
     return 0;
 }
 
-extern int pci_get_device_count(void);
-extern int pci_get_device_info(int index, char* buf, size_t sz);
-
-int devmgr_list(char* out, size_t sz) {
-    if (!out) return -1;
-    int off = 0;
-
-    /* Storage Devices */
-    int count = hal_storage_get_device_count();
-    off += snprintf(out + off, sz - off, "--- Storage Devices ---\n");
-    for (int i = 0; i < count; i++) {
-        storage_device_t *dev = hal_storage_get_device(i);
-        int len = snprintf(out + off, sz - off, "[Disk %d] %s (%llu blocks)\n", i, dev->name, (unsigned long long)dev->total_blocks);
-        off += len; if (off >= (int)sz - 1) break;
-    }
-
-    /* PCI Devices */
-    if (off < (int)sz - 32) {
-        int pci_count = pci_get_device_count();
-        off += snprintf(out + off, sz - off, "\n--- PCI Hardware ---\n");
-        for (int i = 0; i < pci_count; i++) {
-            char pci_info[64];
-            pci_get_device_info(i, pci_info, sizeof(pci_info));
-            int len = snprintf(out + off, sz - off, "[PCI %d] %s\n", i, pci_info);
-            off += len; if (off >= (int)sz - 1) break;
-        }
-    }
-
-    if (off == 0) snprintf(out, sz, "No hardware detected.");
-    return 0;
-}
-
 const char* vfs_resolve(const char *path) {
     if (!path) return "/";
     static char resolved[256];
@@ -226,8 +208,4 @@ const char* vfs_resolve(const char *path) {
     const char *translated = vfs_translate(path, drv);
     snprintf(resolved, sizeof(resolved), "%s%s", drv, translated);
     return resolved;
-}
-
-int vfs_get_hardware_info(char* out, size_t sz) {
-    return devmgr_list(out, sz);
 }

@@ -1,9 +1,10 @@
-/* Modified by Sovereign: Meaty AHCI implementation with DMA Read and Write support and Logging
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
  * Licensed under the 'respect people's property' OS license. */
 #include "pro_os.h"
 #include <stdint.h>
 #include <string.h>
 #include "serial.h"
+#include "hal.h"
 
 #define AHCI_PORT_CMD      0x18
 #define AHCI_PORT_IS       0x10
@@ -17,7 +18,7 @@
 #define ATA_CMD_WRITE_DMA_EXT 0x35
 
 extern uint64_t hhdm_offset;
-extern void* pmm_alloc_low(void);
+static uint64_t ahci_base = 0;
 
 typedef struct {
     uint32_t dba, dbau, rsvd0, flags;
@@ -39,19 +40,10 @@ typedef struct {
     uint32_t rsvd[4];
 } ahci_cmd_header_t;
 
-static uint64_t ahci_base = 0;
+static storage_device_t g_ahci_devices[32];
 
-int ahci_init(uint64_t mmio) {
-    if (mmio == 0) return -1;
-    ahci_base = mmio + hhdm_offset;
-    serial_printf("[AHCI] Initializing ABAR at %p\n", ahci_base);
-    return 0;
-}
-
-static int ahci_io(int port, uint64_t lba, uint16_t count, void* buffer, int write) {
-    if (!ahci_base) return -1;
-    serial_printf("[AHCI] Port %d I/O: %s LBA=%llu, Count=%u, Buffer=%p\n", port, write ? "WRITE" : "READ", lba, count, buffer);
-
+static int ahci_io_wrapper(storage_device_t* dev, uint64_t lba, void* buffer, uint32_t count, int write) {
+    int port = (int)(uintptr_t)dev->priv;
     volatile uint8_t* pbase = (volatile uint8_t*)(ahci_base + 0x100 + (port * 0x80));
 
     /* 1. Wait for port to be idle */
@@ -70,21 +62,14 @@ static int ahci_io(int port, uint64_t lba, uint16_t count, void* buffer, int wri
 
     /* 4. Setup FIS */
     uint8_t* fis = cmd_table->cfis;
-    fis[0] = 0x27; // Register H2D
-    fis[1] = (1 << 7); // Command
+    fis[0] = 0x27; fis[1] = (1 << 7);
     fis[2] = write ? ATA_CMD_WRITE_DMA_EXT : ATA_CMD_READ_DMA_EXT;
-    fis[4] = (uint8_t)lba;
-    fis[5] = (uint8_t)(lba >> 8);
-    fis[6] = (uint8_t)(lba >> 16);
-    fis[7] = 0x40; // LBA mode
-    fis[8] = (uint8_t)(lba >> 24);
-    fis[9] = (uint8_t)(lba >> 32);
-    fis[10] = (uint8_t)(lba >> 40);
-    fis[12] = (uint8_t)count;
-    fis[13] = (uint8_t)(count >> 8);
+    fis[4] = (uint8_t)lba; fis[5] = (uint8_t)(lba >> 8); fis[6] = (uint8_t)(lba >> 16);
+    fis[7] = 0x40; fis[8] = (uint8_t)(lba >> 24); fis[9] = (uint8_t)(lba >> 32); fis[10] = (uint8_t)(lba >> 40);
+    fis[12] = (uint8_t)count; fis[13] = (uint8_t)(count >> 8);
 
-    /* 5. Setup PRDT */
-    cmd_table->prdt[0].dba = (uint32_t)(uintptr_t)buffer; // Assume physical address for now or mapped 1:1
+    /* 5. Setup PRDT (Direct mapping assumed for DMA below 4GB) */
+    cmd_table->prdt[0].dba = (uint32_t)(uintptr_t)buffer;
     cmd_table->prdt[0].dbau = (uint32_t)((uintptr_t)buffer >> 32);
     cmd_table->prdt[0].flags = (count * 512) - 1;
 
@@ -94,15 +79,41 @@ static int ahci_io(int port, uint64_t lba, uint16_t count, void* buffer, int wri
     /* 7. Wait for completion */
     timeout = 0;
     while ((*(volatile uint32_t*)(pbase + AHCI_PORT_CI) & 1) && timeout++ < 1000000) __asm__("pause");
-    if (timeout >= 1000000) { serial_printf("[AHCI] Timeout on command completion\n"); return -1; }
+    return (timeout < 1000000) ? 0 : -1;
+}
 
+static int ahci_read(storage_device_t* dev, uint64_t sector, void* buffer, uint32_t count) {
+    return ahci_io_wrapper(dev, sector, buffer, count, 0);
+}
+
+static int ahci_write(storage_device_t* dev, uint64_t sector, const void* buffer, uint32_t count) {
+    return ahci_io_wrapper(dev, sector, (void*)buffer, count, 1);
+}
+
+int ahci_init(uint64_t mmio) {
+    if (mmio == 0) return -1;
+    ahci_base = mmio + hhdm_offset;
+    serial_printf("[AHCI] Initializing ABAR at %p\n", (void*)ahci_base);
+
+    /* Discover implemented ports */
+    uint32_t pi = *(volatile uint32_t*)(ahci_base + 0x0C);
+    for (int i = 0; i < 32; i++) {
+        if (pi & (1 << i)) {
+            /* Basic check for SATA device presence */
+            uint32_t ssts = *(volatile uint32_t*)(ahci_base + 0x100 + (i * 0x80) + AHCI_PORT_SSTS);
+            if ((ssts & 0x0F) == 0x03) {
+                storage_device_t* dev = &g_ahci_devices[i];
+                dev->name = "Sovereign SATA Disk";
+                dev->type = STORAGE_TYPE_SATA;
+                dev->total_blocks = 1000000; /* Placeholder until IDENTIFY */
+                dev->block_size = 512;
+                dev->read = ahci_read;
+                dev->write = ahci_write;
+                dev->priv = (void*)(uintptr_t)i;
+                hal_storage_register_device(dev);
+                serial_printf("[AHCI] Registered SATA device on port %d\n", i);
+            }
+        }
+    }
     return 0;
-}
-
-int ahci_read(int port, uint64_t lba, uint16_t count, void* buffer) {
-    return ahci_io(port, lba, count, buffer, 0);
-}
-
-int ahci_write(int port, uint64_t lba, uint16_t count, void* buffer) {
-    return ahci_io(port, lba, count, buffer, 1);
 }

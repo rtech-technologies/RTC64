@@ -97,6 +97,7 @@ int vfs_get_hardware_info(char* out, size_t sz);
 void vfs_init(void);
 void vfs_refresh_mounts(void);
 const char* i18n_translate(const char* key);
+const char* vfs_resolve(const char *path);
 extern uint64_t hhdm_offset;
 extern volatile struct limine_framebuffer_request framebuffer_request;
 #endif
