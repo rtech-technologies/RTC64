@@ -7,7 +7,7 @@ CFLAGS = -Wall -Wextra -Werror -std=c11 -ffreestanding -fno-stack-protector \
          -isystem ./external/limine -isystem ./external/CherryUSB/common -isystem ./external/CherryUSB/core -isystem ./external/CherryUSB/class/msc -isystem ./external/CherryUSB/class/hid -isystem ./external/CherryUSB/class/hub \
          -include kernel/usb_config.h -DKERNEL_MODE -Wno-unused-function
 LDFLAGS = -nostdlib -static -m elf_x86_64 -z max-page-size=0x1000 -T kernel/linker.ld
-KERNEL_OBJS = kernel/kernel.o src/app_ui.o src/chell.o src/lab.o src/installer.o \
+KERNEL_OBJS = kernel/entry.o kernel/kernel.o src/app_ui.o src/chell.o src/lab.o src/installer.o \
               kernel/nuklear_kernel_impl.o kernel/stb_image_impl.o \
               src/nuklear_impl.o kernel/syscall.o kernel/sys_shell.o \
               kernel/usb_osal.o kernel/usb_hal_ports.o kernel/storage.o kernel/input.o \

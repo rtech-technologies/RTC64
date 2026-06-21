@@ -14,6 +14,25 @@ static FILE _file_pool[8];
 
 void* memset(void* s, int c, size_t n) {
     uint8_t* p = s;
+    if (n >= 64 && ((uintptr_t)p & 15) == 0) {
+        __asm__ volatile (
+            "movd %k1, %%xmm0\n\t"
+            "punpcklbw %%xmm0, %%xmm0\n\t"
+            "punpcklwd %%xmm0, %%xmm0\n\t"
+            "pshufd $0, %%xmm0, %%xmm0\n\t"
+            "1:\n\t"
+            "movdqa %%xmm0, (%0)\n\t"
+            "movdqa %%xmm0, 16(%0)\n\t"
+            "movdqa %%xmm0, 32(%0)\n\t"
+            "movdqa %%xmm0, 48(%0)\n\t"
+            "add $64, %0\n\t"
+            "sub $64, %2\n\t"
+            "cmp $64, %2\n\t"
+            "jae 1b"
+            : "+r"(p) : "r"((int)c), "r"(n) : "memory", "xmm0"
+        );
+        n %= 64;
+    }
     while(n--) *p++ = (unsigned char)c;
     return s;
 }
@@ -21,6 +40,25 @@ void* memset(void* s, int c, size_t n) {
 void* memcpy(void* dest, const void* src, size_t n) {
     uint8_t* d = dest;
     const uint8_t* s = src;
+    if (n >= 64 && ((uintptr_t)d & 15) == 0 && ((uintptr_t)s & 15) == 0) {
+        __asm__ volatile (
+            "1:\n\t"
+            "movdqa (%1), %%xmm0\n\t"
+            "movdqa 16(%1), %%xmm1\n\t"
+            "movdqa 32(%1), %%xmm2\n\t"
+            "movdqa 48(%1), %%xmm3\n\t"
+            "movdqa %%xmm0, (%0)\n\t"
+            "movdqa %%xmm1, 16(%0)\n\t"
+            "movdqa %%xmm2, 32(%0)\n\t"
+            "movdqa %%xmm3, 48(%0)\n\t"
+            "add $64, %0\n\t"
+            "add $64, %1\n\t"
+            "sub $64, %2\n\t"
+            "cmp $64, %2\n\t"
+            "jae 1b"
+            : "+r"(d), "+r"(s), "+r"(n) :: "memory", "xmm0", "xmm1", "xmm2", "xmm3"
+        );
+    }
     while(n--) *d++ = *s++;
     return dest;
 }
@@ -46,6 +84,12 @@ size_t strlen(const char* s) {
 
 char* strcpy(char* dest, const char* src) {
     char* d = dest; while((*d++ = *src++));
+    return dest;
+}
+
+char* strcat(char* dest, const char* src) {
+    char* d = dest; while (*d) d++;
+    while((*d++ = *src++));
     return dest;
 }
 
@@ -95,7 +139,7 @@ static void reverse(char* s) {
     int i, j; for (i = 0, j = (int)strlen(s)-1; i<j; i++, j--) { char c = s[i]; s[i] = s[j]; s[j] = c; }
 }
 
-static void itoa_meaty(unsigned long long n, char* s, int base, bool neg, int width, char pad) {
+void itoa_meaty(unsigned long long n, char* s, int base, bool neg, int width, char pad) {
     int i = 0; const char *digits = "0123456789abcdef";
     do { s[i++] = digits[n % (unsigned long long)base]; } while ((n /= (unsigned long long)base) > 0);
     if (neg) s[i++] = '-';

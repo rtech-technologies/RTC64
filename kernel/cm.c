@@ -4,6 +4,7 @@
 #include "serial.h"
 
 void cm_orchestrate_drivers(void) {
-    serial_printf("[PHASE 0] Step 6: Orchestrating driver matrix...\n");
-    /* Register and initialize critical system drivers */
+    serial_printf("[PHASE 0] Step 6: Probing I/O Matrix and Driver Orchestration.\n");
+    /* MEATY: Driver binding and hardware topology mapping */
+    hal_usb_init();
 }

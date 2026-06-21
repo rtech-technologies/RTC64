@@ -1,6 +1,0 @@
-chmod +x build.sh
-./build.sh
-=== Baking Real Bare-Metal Environment ===
-Environment Armed. Ready for 'make'.
-mkdir -p src
-gcc -Wall -Wextra -Werror -std=c11 -ffreestanding -fno-stack-protector -fno-stack-check -fno-lto -fno-pic -m64 -march=x86-64 -mcmodel=kernel -mno-red-zone -fno-asynchronous-unwind-tables -I./include -isystem ./include -I./kernel -I./kernel/drivers -I./kernel/fatfs -isystem ./external/limine -isystem ./external/CherryUSB/common -isystem ./external/CherryUSB/core -isystem ./external/CherryUSB/class/msc -isystem ./external/CherryUSB/class/hid -isystem ./external/CherryUSB/class/hub -include kernel/usb_config.h -DKERNEL_MODE -Wno-unused-function -c src/nuklear_impl.c -o src/nuklear_impl.o

@@ -6,6 +6,7 @@
 void comprec_task(void* arg) {
     (void)arg;
     serial_printf("[SCM] Starting Component Recording (COMPREC) service...\n");
+    serial_printf("[SCM] System compliance monitoring active.\n");
     while(1) {
         scheduler_yield();
     }

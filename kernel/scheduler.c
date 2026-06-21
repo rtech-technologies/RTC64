@@ -23,92 +23,96 @@ static void kernel_idle_task(void* arg) {
         if (now - last_calc >= 1000) {
             uint64_t work_ticks = total_ticks - idle_ticks;
             if (total_ticks > 0) cpu_load = (int)((work_ticks * 100) / total_ticks);
-            scheduler_audit_stacks(); vfs_refresh_mounts();
+            scheduler_audit_stacks();
+
+            /* Critical Section Guard for global VFS operations */
+            __asm__ volatile("cli");
+            vfs_refresh_mounts();
+            __asm__ volatile("sti");
+
             idle_ticks = 0; total_ticks = 0; last_calc = now;
         }
-        __asm__("hlt");
+        __asm__ volatile("hlt");
     }
 }
 
 void scheduler_init(void) {
-    task_count = 0; current_task_idx = -1;
+    task_count = 0;
+    current_task_idx = -1;
+    for (int i = 0; i < MAX_TASKS; i++) {
+        tasks[i].state = TASK_DEAD;
+    }
     scheduler_add_task("Idle Task", kernel_idle_task, NULL, 0, 0);
 }
 
 int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32_t uaid, uint32_t upid) {
     int slot = -1;
     for (int i = 0; i < MAX_TASKS; i++) {
-        if (i < task_count && tasks[i].state == TASK_DEAD) { slot = i; break; }
+        if (tasks[i].state == TASK_DEAD) { slot = i; break; }
     }
-    if (slot == -1 && task_count < MAX_TASKS) slot = task_count++;
+    if (slot == -1) return -1;
+    if (slot >= task_count) task_count = slot + 1;
 
-    if (slot != -1) {
-        tasks[slot].id = slot; tasks[slot].uaid = uaid; tasks[slot].upid = upid;
-        strncpy(tasks[slot].name, name, 31); tasks[slot].state = TASK_RUNNING;
-        tasks[slot].entry = entry; tasks[slot].arg = arg;
+    tasks[slot].id = slot; tasks[slot].uaid = uaid; tasks[slot].upid = upid;
+    strncpy(tasks[slot].name, name, 31);
+    tasks[slot].name[31] = '\0'; /* Mandatory termination safety */
+    tasks[slot].state = TASK_RUNNING;
+    tasks[slot].entry = entry; tasks[slot].arg = arg;
 
-        uint64_t stack_top = (uint64_t)&task_stacks[slot][STACK_SIZE];
-        stack_top &= ~15;
-        uint64_t *stack = (uint64_t *)stack_top;
+    uint64_t stack_top = (uint64_t)&task_stacks[slot][STACK_SIZE];
+    stack_top &= ~15; /* 16-byte aligned point */
 
-        uint64_t current_cr3, current_cr4;
-        __asm__ volatile("mov %%cr3, %0" : "=r"(current_cr3));
-        __asm__ volatile("mov %%cr4, %0" : "=r"(current_cr4));
+    uint64_t current_cr3, current_cr4;
+    __asm__ volatile("mov %%cr3, %0" : "=r"(current_cr3));
+    __asm__ volatile("mov %%cr4, %0" : "=r"(current_cr4));
 
-        /* Order: iretq frame (SS, RSP, RFLAGS, CS, RIP) */
-        *(--stack) = 0x10;             /* SS */
-        *(--stack) = stack_top - 8;    /* RSP */
-        *(--stack) = 0x202;            /* RFLAGS (IF=1) */
-        *(--stack) = 0x08;             /* CS */
-        *(--stack) = (uint64_t)entry;  /* RIP */
+    uint64_t *p = (uint64_t *)stack_top;
 
-        /* error_code, interrupt_number */
-        *(--stack) = 0; *(--stack) = 0;
+    /* 1. iretq frame (SS, RSP, RFLAGS, CS, RIP) */
+    *(--p) = 0x10;             /* SS */
+    *(--p) = stack_top - 8;    /* Target RSP for the task: high stack point with ABI alignment */
+    *(--p) = 0x202;            /* RFLAGS (IF=1) */
+    *(--p) = 0x08;             /* CS */
+    *(--p) = (uint64_t)entry;  /* RIP */
 
-        /* GPRs (RAX...R15)
-         * Assembly pops in order: R15, R14, R13, R12, R11, R10, R9, R8, RBP, RDI, RSI, RDX, RCX, RBX, RAX
-         * So we push in reverse: RAX, RBX, RCX, RDX, RSI, RDI, RBP, R8, R9, R10, R11, R12, R13, R14, R15
-         */
-        *(--stack) = 0;             /* RAX */
-        *(--stack) = 0;             /* RBX */
-        *(--stack) = 0;             /* RCX */
-        *(--stack) = 0;             /* RDX */
-        *(--stack) = 0;             /* RSI */
-        *(--stack) = (uint64_t)arg;  /* RDI (arg for C entry) */
-        *(--stack) = 0;             /* RBP */
-        *(--stack) = 0;             /* R8 */
-        *(--stack) = 0;             /* R9 */
-        *(--stack) = 0;             /* R10 */
-        *(--stack) = 0;             /* R11 */
-        *(--stack) = 0;             /* R12 */
-        *(--stack) = 0;             /* R13 */
-        *(--stack) = 0;             /* R14 */
-        *(--stack) = 0;             /* R15 */
+    /* 2. error_code, interrupt_number */
+    *(--p) = 0; *(--p) = 0;
 
-        /* CRs (CR2, CR3, CR4) - Order: CR2, CR3, CR4 */
-        *(--stack) = 0;           /* CR2 */
-        *(--stack) = current_cr3; /* CR3 */
-        *(--stack) = current_cr4; /* CR4 */
+    /* 3. GPRs (RAX...R15)
+     * Pop order: R15...RAX. Push order here must match.
+     */
+    *(--p) = 0;             /* RAX */
+    *(--p) = 0;             /* RBX */
+    *(--p) = 0;             /* RCX */
+    *(--p) = 0;             /* RDX */
+    *(--p) = 0;             /* RSI */
+    *(--p) = (uint64_t)arg;  /* RDI (arg for entry) */
+    *(--p) = 0;             /* RBP */
+    for(int i=0; i<8; i++) *(--p) = 0; /* R8-R15 */
 
-        /* Segments (DS, ES, FS, GS) - Order: DS, ES, FS, GS */
-        *(--stack) = 0x10; /* DS */
-        *(--stack) = 0x10; /* ES */
-        *(--stack) = 0x10; /* FS */
-        *(--stack) = 0x10; /* GS */
+    /* 4. CRs (CR2, CR3, CR4) */
+    *(--p) = 0;           /* CR2 */
+    *(--p) = current_cr3; /* CR3 */
+    *(--p) = current_cr4; /* CR4 */
 
-        /* Padding for FXSAVE alignment */
-        *(--stack) = 0;
+    /* 5. Segments (DS, ES, FS, GS)
+     * Pop order: GS, FS, ES, DS. So push order here: DS, ES, FS, GS
+     */
+    *(--p) = 0x10; /* GS */
+    *(--p) = 0x10; /* FS */
+    *(--p) = 0x10; /* ES */
+    *(--p) = 0x10; /* DS */
 
-        /* FXSAVE Region (512 bytes) */
-        for(int i=0; i<64; i++) *(--stack) = 0;
-        uint32_t *mxcsr = (uint32_t *)((uint8_t *)stack + 24);
-        *mxcsr = 0x1F80;
+    *(--p) = 0; /* Padding for FXSAVE alignment */
 
-        *(uint64_t*)&task_stacks[slot][0] = STACK_CANARY;
-        task_rsps[slot] = (uint64_t)stack;
-        return slot;
-    }
-    return -1;
+    /* 6. FXSAVE Region (512 bytes) */
+    for(int i=0; i<64; i++) *(--p) = 0;
+    uint32_t *mxcsr = (uint32_t *)((uint8_t *)p + 24);
+    *mxcsr = 0x1F80;
+
+    *(uint64_t*)&task_stacks[slot][0] = STACK_CANARY;
+    task_rsps[slot] = (uint64_t)p; /* Restoration begins at the start of saved state */
+    return slot;
 }
 
 int scheduler_spawn(const char* name, void (*entry)(void*), void* arg) { return scheduler_add_task(name, entry, arg, next_uaid++, next_upid++); }
