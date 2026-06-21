@@ -12,3 +12,11 @@
 #define SYS_I18N_TRANSLATE  0x07
 
 #endif
+#define SYS_MALLOC          0x08
+#define SYS_FREE            0x09
+#define SYS_GET_UPTIME      0x0A
+#define SYS_GET_CPU_LOAD    0x0B
+#define SYS_SPAWN           0x0C
+#define SYS_YIELD           0x0D
+#define SYS_EXIT            0x0E
+#define SYS_SERIAL_WRITE    0x0F

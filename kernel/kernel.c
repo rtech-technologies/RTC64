@@ -10,7 +10,6 @@
 #include "nuklear_rawfb.h"
 #include "serial.h"
 
-// Repaired Limine configuration initialization macro structures
 __attribute__((used, section(".limine_requests"))) static volatile LIMINE_BASE_REVISION(3);
 __attribute__((used, section(".limine_requests"))) volatile struct limine_framebuffer_request framebuffer_request = { .id = LIMINE_FRAMEBUFFER_REQUEST, .revision = 0 };
 __attribute__((used, section(".limine_requests"))) static volatile struct limine_hhdm_request hhdm_request = { .id = LIMINE_HHDM_REQUEST, .revision = 0 };
@@ -21,6 +20,8 @@ __attribute__((used, section(".limine_requests_end"))) static volatile LIMINE_RE
 uint64_t hhdm_offset = 0;
 struct limine_framebuffer *primary_fb;
 struct app_state os_app;
+
+extern int main(void);
 
 static float font_get_width(nk_handle handle, float height, const char *text, int len) {
     (void)handle; (void)height; (void)text; return (float)len * 8.0f;
@@ -42,8 +43,6 @@ void environment_manager_entry(void* arg) {
 
     void* virt_fb_addr = (void*)((uint64_t)primary_fb->address + hhdm_offset);
     struct rawfb_pl pl = {4, 16, 8, 0, 24, 0, 0, 0, 0};
-
-    /* industrial fix: use kernel heap allocator (malloc is mapped to it) */
     struct rawfb_context* rawfb = nk_rawfb_init(virt_fb_addr, malloc(1024*1024), (unsigned int)primary_fb->width, (unsigned int)primary_fb->height, (unsigned int)primary_fb->pitch, pl);
     struct nk_context* ctx = (struct nk_context*)rawfb;
 
@@ -60,7 +59,6 @@ void environment_manager_entry(void* arg) {
         input_event_t ev;
         nk_input_begin(ctx);
 
-        /* Protection for shared event polling states */
         __asm__ volatile("cli");
         int has_event = hal_input_pop_event(&ev);
         __asm__ volatile("sti");
@@ -99,6 +97,9 @@ void session_manager_task(void* arg) {
     serial_printf("[PHASE 6] Starting core background services (SCM)...\n");
     scheduler_add_task("COMPREC", (void*)comprec_task, NULL, 1, 1);
 
+    /* Invoke Userland Entry */
+    main();
+
     /* PHASE 7: Environment Manager */
     serial_printf("[PHASE 7] Spawning User-mode Environment Manager...\n");
     scheduler_spawn("Environment Manager", environment_manager_entry, NULL);
@@ -107,7 +108,6 @@ void session_manager_task(void* arg) {
 }
 
 void kernel_main(void) {
-    /* REMOVED destructive inline __asm__ stack pointer overwrite */
     serial_init();
     serial_printf("[PHASE 0] Entering Bare-Metal Isolation.\n");
 
@@ -137,14 +137,14 @@ void kernel_main(void) {
 
     /* Step 6: Hardware Peripheral I/O Probe */
     serial_printf("[STEP 6] Probing I/O Matrix and Driver Orchestration.\n");
-    hal_input_init(); pci_scan(); cm_orchestrate_drivers();
+    hal_input_init(); cm_orchestrate_drivers();
 
     /* Step 7: Subsystem Threading */
     serial_printf("[STEP 7] Initializing Subsystem Threading (Scheduler).\n");
     scheduler_init();
 
     /* PHASE 1: Kernel Initialization */
-    serial_printf("[PHASE 1] Kernel Initialization. Spawning SMSS.\n");
+    serial_printf("[PHASE 1] Kernel Initialization.\n");
 
     /* PHASE 2: Namespace Initialization */
     serial_printf("[PHASE 2] Establishing VFS and System Namespace.\n");
@@ -161,9 +161,8 @@ void kernel_main(void) {
     serial_printf("[PHASE 5] Spawning Session Manager (smss.exe)...\n");
     system_shell_init();
 
-    /* Secure queueing: populate scheduler before interrupts enabled */
     scheduler_add_task("System Shell", (void*)system_shell_task, NULL, 1, 1);
-    scheduler_add_task("SMSS", session_manager_task, NULL, 1, 1);
+    scheduler_add_task("SMSS", (void*)session_manager_task, NULL, 1, 1);
 
     serial_printf("[PHASE 1] Enabling STI. Multitasking active.\n");
     apic_timer_unmask();
