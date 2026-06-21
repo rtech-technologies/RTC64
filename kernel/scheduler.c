@@ -70,7 +70,7 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
 
     /* 1. iretq frame (SS, RSP, RFLAGS, CS, RIP) */
     *(--p) = 0x10;             /* SS */
-    *(--p) = stack_top - 8;    /* Target RSP for the task: high stack point with ABI alignment */
+    *(--p) = stack_top;        /* Target RSP for the task: clean high point */
     *(--p) = 0x202;            /* RFLAGS (IF=1) */
     *(--p) = 0x08;             /* CS */
     *(--p) = (uint64_t)entry;  /* RIP */
@@ -96,7 +96,7 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
     *(--p) = current_cr4; /* CR4 */
 
     /* 5. Segments (DS, ES, FS, GS)
-     * Pop order: GS, FS, ES, DS. So push order here: DS, ES, FS, GS
+     * Pop order: DS, ES, FS, GS. So push order here: DS, ES, FS, GS
      */
     *(--p) = 0x10; /* GS */
     *(--p) = 0x10; /* FS */
@@ -126,7 +126,7 @@ uint64_t scheduler_switch(uint64_t current_rsp) {
 
     for (int i = 0; i < MAX_TASKS; i++) {
         current_task_idx = (current_task_idx + 1) % MAX_TASKS;
-        if (current_task_idx < task_count && tasks[current_task_idx].state == TASK_RUNNING) {
+        if (tasks[current_task_idx].state == TASK_RUNNING) {
             return task_rsps[current_task_idx];
         }
     }
@@ -136,7 +136,7 @@ uint64_t scheduler_switch(uint64_t current_rsp) {
 }
 
 void scheduler_yield(void) { __asm__ volatile("int $0x20"); }
-void scheduler_run(void) { __asm__ volatile("sti"); while(1) { __asm__("hlt"); } }
+void scheduler_run(void) { __asm__ volatile("sti"); while(1) { __asm__ volatile("hlt"); } }
 int scheduler_get_task_count(void) { return task_count; }
 task_t* scheduler_get_task(int index) { return (index >= 0 && index < MAX_TASKS) ? &tasks[index] : NULL; }
 int scheduler_get_current_task_idx(void) { return current_task_idx; }

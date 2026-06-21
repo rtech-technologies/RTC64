@@ -5,6 +5,15 @@
 
 void cm_orchestrate_drivers(void) {
     serial_printf("[PHASE 0] Step 6: Probing I/O Matrix and Driver Orchestration.\n");
-    /* MEATY: Driver binding and hardware topology mapping */
+
+    /* 1. Perform PCI hardware discovery */
+    pci_scan();
+
+    /* 2. Initialize secondary storage layer */
+    hal_storage_init();
+
+    /* 3. Prepare USB stack (drivers registered via PCI scan) */
     hal_usb_init();
+
+    serial_printf("[CM] Configuration Manager orchestration complete.\n");
 }

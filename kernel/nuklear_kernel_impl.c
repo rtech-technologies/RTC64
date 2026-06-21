@@ -16,7 +16,7 @@ void* memset(void* s, int c, size_t n) {
     uint8_t* p = s;
     if (n >= 64 && ((uintptr_t)p & 15) == 0) {
         __asm__ volatile (
-            "movd %k1, %%xmm0\n\t"
+            "movd %1, %%xmm0\n\t"
             "punpcklbw %%xmm0, %%xmm0\n\t"
             "punpcklwd %%xmm0, %%xmm0\n\t"
             "pshufd $0, %%xmm0, %%xmm0\n\t"
