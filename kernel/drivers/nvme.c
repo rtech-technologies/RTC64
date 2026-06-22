@@ -34,7 +34,7 @@ static int nvme_io_wrapper(storage_device_t* dev, uint64_t lba, void* buffer, ui
 
     nvme_cmd_t* cmd = &((nvme_cmd_t*)sq0_virt)[sq0_tail];
     memset(cmd, 0, sizeof(nvme_cmd_t));
-    cmd->cdw0 = write ? 0x01 : 0x02; /* Write or Read */
+    cmd->cdw0 = write ? 0x01 : 0x02;
     cmd->nsid = 1;
     cmd->dptr[0] = (uint32_t)(uintptr_t)buffer;
     cmd->dptr[1] = (uint32_t)((uintptr_t)buffer >> 32);
@@ -45,7 +45,6 @@ static int nvme_io_wrapper(storage_device_t* dev, uint64_t lba, void* buffer, ui
     sq0_tail = (sq0_tail + 1) % 64;
     *(volatile uint32_t*)(nvme_base + NVME_REG_SQ0TDBL) = sq0_tail;
 
-    /* Wait for completion */
     volatile uint32_t* cq = (volatile uint32_t*)cq0_virt;
     int timeout = 0;
     while (!(cq[cq0_head * 4 + 3] & 0x1) && timeout++ < 1000000) __asm__("pause");

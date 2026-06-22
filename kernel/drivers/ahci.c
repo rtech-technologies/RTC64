@@ -99,13 +99,12 @@ int ahci_init(uint64_t mmio) {
     uint32_t pi = *(volatile uint32_t*)(ahci_base + 0x0C);
     for (int i = 0; i < 32; i++) {
         if (pi & (1 << i)) {
-            /* Basic check for SATA device presence */
             uint32_t ssts = *(volatile uint32_t*)(ahci_base + 0x100 + (i * 0x80) + AHCI_PORT_SSTS);
             if ((ssts & 0x0F) == 0x03) {
                 storage_device_t* dev = &g_ahci_devices[i];
                 dev->name = "Sovereign SATA Disk";
                 dev->type = STORAGE_TYPE_SATA;
-                dev->total_blocks = 1000000; /* Placeholder until IDENTIFY */
+                dev->total_blocks = 1000000;
                 dev->block_size = 512;
                 dev->read = ahci_read;
                 dev->write = ahci_write;

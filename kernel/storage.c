@@ -1,6 +1,5 @@
 /* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
  * Licensed under the 'respect people's property' OS license. */
-/* Modified by Sovereign: Meaty Storage Implementation with MSC Lifecycle tracking */
 #include "pro_os.h"
 #include "hal.h"
 #include "usbh_core.h"
@@ -34,11 +33,7 @@ void usbh_msc_run(struct usbh_msc *msc_class) {
     usb_storage_t *usb = &g_usb_disks[g_usb_disk_count];
     usb->msc = msc_class;
 
-    usb->base.name = msc_class->hport->config.intf[0].devname;
-    if (!usb->base.name || !usb->base.name[0]) {
-        usb->base.name = "Genuine USB Disk";
-    }
-
+    usb->base.name = "Genuine USB Disk";
     usb->base.type = STORAGE_TYPE_USB;
     usb->base.total_blocks = msc_class->blocknum;
     usb->base.block_size = msc_class->blocksize;
@@ -52,7 +47,6 @@ void usbh_msc_run(struct usbh_msc *msc_class) {
         g_usb_disk_count++;
     }
 
-    extern void vfs_refresh_mounts(void);
     vfs_refresh_mounts();
 }
 

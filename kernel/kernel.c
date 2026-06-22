@@ -10,7 +10,7 @@
 #include "nuklear_rawfb.h"
 #include "serial.h"
 
-__attribute__((used, section(".limine_requests"))) static volatile LIMINE_BASE_REVISION(3);
+__attribute__((used, section(".limine_requests"))) static volatile uint64_t limine_base_revision[] = { 0xf9562b2d5c95a6c8, 0x6a7b384944536bdc, 3 };
 __attribute__((used, section(".limine_requests"))) volatile struct limine_framebuffer_request framebuffer_request = { .id = LIMINE_FRAMEBUFFER_REQUEST, .revision = 0 };
 __attribute__((used, section(".limine_requests"))) static volatile struct limine_hhdm_request hhdm_request = { .id = LIMINE_HHDM_REQUEST, .revision = 0 };
 __attribute__((used, section(".limine_requests"))) static volatile struct limine_memmap_request memmap_request = { .id = LIMINE_MEMMAP_REQUEST, .revision = 0 };
@@ -43,9 +43,16 @@ void environment_manager_entry(void* arg) {
     (void)arg;
     serial_printf("[PHASE 7] Environment Manager session pivot successful.\n");
 
-    void* virt_fb_addr = (void*)((uint64_t)primary_fb->address + hhdm_offset);
+    if (!primary_fb) kpanic("GRAPHICS_INITIALIZATION_FAILED");
+
+    /* Framebuffer address is virtual from Limine */
+    void* virt_fb_addr = (void*)primary_fb->address;
     struct rawfb_pl pl = {4, 16, 8, 0, 24, 0, 0, 0, 0};
-    struct rawfb_context* rawfb = nk_rawfb_init(virt_fb_addr, malloc(1024*1024), (unsigned int)primary_fb->width, (unsigned int)primary_fb->height, (unsigned int)primary_fb->pitch, pl);
+
+    void* nuklear_mem = malloc(1024*1024);
+    if (!nuklear_mem) kpanic("OUT_OF_MEMORY_FOR_GUI");
+
+    struct rawfb_context* rawfb = nk_rawfb_init(virt_fb_addr, nuklear_mem, (unsigned int)primary_fb->width, (unsigned int)primary_fb->height, (unsigned int)primary_fb->pitch, pl);
     struct nk_context* ctx = (struct nk_context*)rawfb;
 
     struct nk_user_font font;
@@ -163,7 +170,7 @@ void kernel_main(void) {
     serial_printf("[PHASE 5] Spawning Session Manager (smss.exe)...\n");
     debug_shell_init();
 
-    /* The Debug Shell remains serial, while the Userland Shell is windowed */
+    /* Secure queueing: populate scheduler before interrupts enabled */
     scheduler_add_task("Debug Shell", (void*)debug_shell_task, NULL, 1, 1);
     scheduler_add_task("SMSS", session_manager_task, NULL, 1, 1);
 

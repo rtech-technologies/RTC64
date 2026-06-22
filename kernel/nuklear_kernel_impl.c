@@ -199,7 +199,7 @@ int snprintf(char* str, size_t size, const char* format, ...) {
 
 int printf(const char* format, ...) {
     va_list ap; va_start(ap, format);
-    char buf[512];
+    char buf[1024];
     int ret = vsnprintf(buf, sizeof(buf), format, ap);
     va_end(ap);
     serial_printf("%s", buf);

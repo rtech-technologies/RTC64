@@ -78,9 +78,7 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
     /* 2. error_code, interrupt_number */
     *(--p) = 0; *(--p) = 0;
 
-    /* 3. GPRs (RAX...R15)
-     * Pop order: R15...RAX. Push order here must match.
-     */
+    /* 3. GPRs (RAX...R15) */
     *(--p) = 0;             /* RAX */
     *(--p) = 0;             /* RBX */
     *(--p) = 0;             /* RCX */
@@ -95,9 +93,7 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
     *(--p) = current_cr3; /* CR3 */
     *(--p) = current_cr4; /* CR4 */
 
-    /* 5. Segments (DS, ES, FS, GS)
-     * Pop order: DS, ES, FS, GS. So push order here: DS, ES, FS, GS
-     */
+    /* 5. Segments (DS, ES, FS, GS) */
     *(--p) = 0x10; /* GS */
     *(--p) = 0x10; /* FS */
     *(--p) = 0x10; /* ES */
@@ -115,9 +111,19 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
     return slot;
 }
 
-int scheduler_spawn(const char* name, void (*entry)(void*), void* arg) { return scheduler_add_task(name, entry, arg, next_uaid++, next_upid++); }
-int scheduler_fork(const char* name, void (*entry)(void*), void* arg) { return scheduler_add_task(name, entry, arg, scheduler_get_current_uaid(), next_upid++); }
-void scheduler_remove_task(int task_id) { if (task_id <= 0 || task_id >= MAX_TASKS) return; memset(&tasks[task_id], 0, sizeof(task_t)); tasks[task_id].state = TASK_DEAD; }
+int scheduler_spawn(const char* name, void (*entry)(void*), void* arg) {
+    return scheduler_add_task(name, entry, arg, next_uaid++, next_upid++);
+}
+
+int scheduler_fork(const char* name, void (*entry)(void*), void* arg) {
+    return scheduler_add_task(name, entry, arg, scheduler_get_current_uaid(), next_upid++);
+}
+
+void scheduler_remove_task(int task_id) {
+    if (task_id <= 0 || task_id >= MAX_TASKS) return;
+    memset(&tasks[task_id], 0, sizeof(task_t));
+    tasks[task_id].state = TASK_DEAD;
+}
 
 uint64_t scheduler_switch(uint64_t current_rsp) {
     total_ticks++; ctx_switches++;
@@ -144,4 +150,4 @@ uint32_t scheduler_get_current_uaid(void) { return (current_task_idx != -1) ? ta
 uint32_t scheduler_get_current_upid(void) { return (current_task_idx != -1) ? tasks[current_task_idx].upid : 0; }
 int scheduler_get_cpu_load(void) { return cpu_load; }
 uint64_t scheduler_get_ctx_switches(void) { return ctx_switches; }
-void scheduler_audit_stacks(void) { for (int i = 0; i < task_count; i++) { if (tasks[i].state != TASK_DEAD) { if (*(uint64_t*)&task_stacks[i][0] != STACK_CANARY) kpanic("STACK_BUFFER_OVERRUN"); } } }
+void scheduler_audit_stacks(void) { for (int i = 0; i < MAX_TASKS; i++) { if (tasks[i].state != TASK_DEAD) { if (*(uint64_t*)&task_stacks[i][0] != STACK_CANARY) kpanic("STACK_BUFFER_OVERRUN"); } } }
