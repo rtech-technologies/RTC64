@@ -12,6 +12,7 @@
 #include "external/tlsf.h"
 #include "external/tgx.h"
 #include "hal.h"
+
 void* memset(void* s, int c, size_t n);
 void* memcpy(void* dest, const void* src, size_t n);
 void* memmove(void* dest, const void* src, size_t n);
@@ -26,9 +27,11 @@ int strncmp(const char* s1, const char* s2, size_t n);
 char* strchr(const char* s, int c);
 int snprintf(char* str, size_t size, const char* format, ...);
 int vsnprintf(char* str, size_t size, const char* format, va_list ap);
+
 #define MAX_TASKS 16
 typedef enum { TASK_DEAD, TASK_RUNNING, TASK_SQUEEZED } task_state_t;
 typedef struct { int id; uint32_t uaid; uint32_t upid; char name[32]; task_state_t state; void (*entry)(void*); void *arg; } task_t;
+
 void scheduler_init(void);
 int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32_t uaid, uint32_t upid);
 int scheduler_spawn(const char* name, void (*entry)(void*), void* arg);
@@ -45,12 +48,14 @@ uint32_t scheduler_get_current_upid(void);
 int scheduler_get_cpu_load(void);
 void scheduler_audit_stacks(void);
 uint64_t scheduler_get_ctx_switches(void);
+
 typedef struct { bool can_network; bool can_storage; bool can_input; } app_permit_t;
 bool uac_check_permit(int app_id, const char *action);
 void uac_request_permit(int app_id, const char *action);
 void uac_set_permit(int app_id, bool net, bool storage);
-void system_shell_init(void);
-void system_shell_task(void* arg);
+
+void debug_shell_init(void);
+void debug_shell_task(void* arg);
 void comprec_task(void* arg);
 void session_manager_task(void* arg);
 
@@ -66,15 +71,19 @@ struct cpu_state {
 } __attribute__((aligned(16)));
 
 void timer_handler(struct cpu_state* state);
-void irq_install_handler(int irq, void (*handler)(struct cpu_state*));
+void irq_install_handler(int i, void (*handler)(struct cpu_state*));
+
 void hal_malloc_init(void* mem, size_t bytes);
 size_t hal_malloc_get_used(void);
 size_t hal_malloc_get_total(void);
 void* malloc(size_t size);
 void free(void* ptr);
 void* tlsf_get_global(void);
+
 void pmm_init(struct limine_memmap_response* map);
 void* pmm_alloc_blocks(size_t count);
+void* pmm_alloc_low(void);
+
 void gdt_init(void);
 void idt_init(void);
 void apic_init(void);
@@ -83,21 +92,39 @@ void cm_orchestrate_drivers(void);
 void init_sse(void);
 void kpanic(const char* message);
 void pci_scan(void);
+
 int nvme_init(uint64_t mmio);
 int ahci_init(uint64_t mmio);
 void xhci_init(uint64_t mmio);
 void ehci_init(uint64_t mmio);
+
+void hal_usb_init(void);
+void hal_usb_poll(void);
+
 int vfs_ls(const char* path, char* out, size_t sz);
 int vfs_cat(const char* path, char* out, size_t sz);
 int vfs_mkdir(const char* path);
 int vfs_write(const char* path, const char* content);
 int vfs_get_mounts(char* out, size_t sz);
 int devmgr_list(char* out, size_t sz);
-int vfs_get_hardware_info(char* out, size_t sz);
 void vfs_init(void);
 void vfs_refresh_mounts(void);
-const char* i18n_translate(const char* key);
 const char* vfs_resolve(const char *path);
+
+void serial_init(void);
+void serial_printf(const char* fmt, ...);
+void serial_write(const char* str);
+int serial_received(void);
+char serial_read(void);
+
+void vga_log(const char* str);
+void vga_disable_log(void);
+
+const char* i18n_translate(const char* key);
+
+int ramdisk_init(void);
+
 extern uint64_t hhdm_offset;
 extern volatile struct limine_framebuffer_request framebuffer_request;
+
 #endif
