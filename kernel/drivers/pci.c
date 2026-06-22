@@ -81,15 +81,15 @@ void pci_scan(void) {
                     ehci_mmio_base = mmio;
                     serial_printf("[PCI] EHCI Controller at BAR0: %p\n", mmio);
                     ehci_init(mmio);
-                } else if (base_class == 0x01 && sub_class == 0x08 && prog_if == 0x02) {
+                } else if (base_class == 0x01 && sub_class == 0x08) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 0);
                     nvme_mmio_base = mmio;
-                    serial_printf("[PCI] NVMe Controller at BAR0: %p\n", mmio);
+                    serial_printf("[PCI] NVMe Controller found (ProgIF: %02x) at BAR0: %p\n", prog_if, mmio);
                     nvme_init(mmio);
-                } else if (base_class == 0x01 && sub_class == 0x06 && prog_if == 0x01) {
+                } else if (base_class == 0x01 && sub_class == 0x06) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 5);
                     ahci_mmio_base = mmio;
-                    serial_printf("[PCI] AHCI Controller at BAR5: %p\n", mmio);
+                    serial_printf("[PCI] AHCI Controller found (ProgIF: %02x) at BAR5: %p\n", prog_if, mmio);
                     ahci_init(mmio);
                 }
 

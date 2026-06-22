@@ -74,7 +74,7 @@ static const uint8_t font8x8[128][8] = {
     ['Z'] = {0x7E, 0x06, 0x0C, 0x18, 0x30, 0x60, 0x7E, 0x00},
 };
 
-static void draw_glyph(int x, int y, char c, uint32_t color) {
+void draw_glyph(int x, int y, char c, uint32_t color) {
     if (!primary_fb) return;
     uint8_t *fb = (uint8_t*)primary_fb->address;
     const uint8_t *glyph = font8x8[(uint8_t)c];

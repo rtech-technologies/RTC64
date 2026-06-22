@@ -1,4 +1,6 @@
 /* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
+ * Licensed under the 'respect people's property' OS license. */
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
  * Licensed under the 'respect people' property' OS license. */
 #ifndef STDLIB_H
 #define STDLIB_H
