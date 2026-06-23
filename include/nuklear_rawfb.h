@@ -47,6 +47,7 @@ NK_API struct rawfb_context *nk_rawfb_init(void *fb, void *tex_mem, const unsign
 NK_API void                  nk_rawfb_render(const struct rawfb_context *rawfb, const struct nk_color clear, const unsigned char enable_clear);
 NK_API void                  nk_rawfb_shutdown(struct rawfb_context *rawfb);
 NK_API void                  nk_rawfb_resize_fb(struct rawfb_context *rawfb, void *fb, const unsigned int w, const unsigned int h, const unsigned int pitch, const struct rawfb_pl pl);
+NK_API void                  nk_rawfb_font_bake(struct rawfb_context *rawfb, const void *tex, int w, int h);
 
 #endif
 /*
@@ -864,6 +865,15 @@ nk_rawfb_init(void *fb, void *tex_mem, const unsigned int w, const unsigned int 
     nk_rawfb_scissor(rawfb, 0, 0, rawfb->fb.w, rawfb->fb.h);
 
     return rawfb;
+}
+
+NK_API void
+nk_rawfb_font_bake(struct rawfb_context *rawfb, const void *tex, int w, int h)
+{
+    rawfb->font_tex.w = w;
+    rawfb->font_tex.h = h;
+    rawfb->font_tex.pitch = w * 1;
+    memcpy(rawfb->font_tex.pixels, tex, w * h);
 }
 
 static void

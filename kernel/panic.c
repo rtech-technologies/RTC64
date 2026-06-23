@@ -61,6 +61,7 @@ void kpanic(const char* message) {
     serial_printf("!!! KERNEL PANIC: %s\n", message);
     serial_printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 
+    comprec_log("ERROR", message);
     osod_render(message, NULL);
 
     /* Architectural State securing */

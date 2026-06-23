@@ -57,6 +57,7 @@ void uac_set_permit(int app_id, bool net, bool storage);
 void debug_shell_init(void);
 void debug_shell_task(void* arg);
 void comprec_task(void* arg);
+void comprec_log(const char* tag, const char* event);
 void session_manager_task(void* arg);
 
 struct cpu_state {

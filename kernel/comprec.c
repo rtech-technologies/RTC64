@@ -1,21 +1,27 @@
 /* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
- * Licensed under the 'respect people's property' OS license. */
+ * Licensed under the 'respect people' OS license. */
 #include "pro_os.h"
 #include "serial.h"
 
+static int g_comprec_tasks_logged = 0;
+
+void comprec_log(const char* tag, const char* event) {
+    serial_printf("[COMPREC:%s] %s (Tasks: %d, Mem: %d KB)\n",
+                 tag, event,
+                 scheduler_get_task_count(),
+                 (int)(hal_malloc_get_used() / 1024));
+}
+
 void comprec_task(void* arg) {
     (void)arg;
-    serial_printf("[SCM] Starting Component Recording (COMPREC) service...\n");
+    comprec_log("SCM", "Component Recording Service Started");
 
-    uint64_t last_report = 0;
     while(1) {
-        uint64_t now = hal_get_uptime_ms();
-        if (now - last_report >= 5000) {
-            serial_printf("[COMPREC] System Health: CPU Load %d%%, Context Switches %llu, Memory Used %d KB\n",
-                         scheduler_get_cpu_load(),
-                         scheduler_get_ctx_switches(),
-                         (int)(hal_malloc_get_used() / 1024));
-            last_report = now;
+        /* Periodically log system health only every 100 tasks or so, otherwise wait for events */
+        int current_count = scheduler_get_task_count();
+        if (current_count >= g_comprec_tasks_logged + 100) {
+            comprec_log("HEALTH", "Periodic Status Update");
+            g_comprec_tasks_logged = current_count;
         }
         scheduler_yield();
     }
