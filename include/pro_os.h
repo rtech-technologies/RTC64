@@ -83,6 +83,7 @@ void* tlsf_get_global(void);
 
 void pmm_init(struct limine_memmap_response* map);
 void* pmm_alloc_blocks(size_t count);
+void* pmm_alloc_blocks_low(size_t count);
 void* pmm_alloc_low(void);
 
 void gdt_init(void);

@@ -7,7 +7,6 @@
 #include "pro_os.h"
 #include "limine.h"
 #include "app_ui.h"
-#define NK_IMPLEMENTATION
 #include "nuklear.h"
 #include "nuklear_rawfb.h"
 #include "serial.h"
@@ -103,35 +102,40 @@ void environment_manager_entry(void* arg) {
     uint32_t height = (uint32_t)primary_fb->height;
     uint32_t fb_size = width * height * 4;
     uint32_t *shadow_fb = (uint32_t*)malloc(fb_size);
+    uint32_t *last_frame_fb = (uint32_t*)malloc(fb_size);
     memset(shadow_fb, 0, fb_size);
+    memset(last_frame_fb, 0, fb_size);
 
     struct rawfb_pl pl = {4, 16, 8, 0, 24, 0, 0, 0, 0};
     void* nuklear_mem = malloc(2*1024*1024);
     struct rawfb_context* rawfb = nk_rawfb_init(shadow_fb, nuklear_mem, width, height, width * 4, pl);
     struct nk_context* ctx = (struct nk_context*)rawfb;
 
-    /* Font Initialization and Baking */
+    /* Font Initialization and Baking (Industrial Quality) */
     struct nk_font_atlas atlas;
     nk_font_atlas_init_default(&atlas);
     nk_font_atlas_begin(&atlas);
-    struct nk_font *default_font = nk_font_atlas_add_default(&atlas, 13.0f, NULL);
+
+    /* Increase font size for legibility on high-res displays */
+    struct nk_font *default_font = nk_font_atlas_add_default(&atlas, 20.0f, NULL);
 
     const void *font_image;
     int font_width, font_height;
-    font_image = nk_font_atlas_bake(&atlas, &font_width, &font_height, NK_FONT_ATLAS_RGBA32);
+    /* Use ALPHA8 for rawfb compatibility to avoid hideous rendering */
+    font_image = nk_font_atlas_bake(&atlas, &font_width, &font_height, NK_FONT_ATLAS_ALPHA8);
     nk_rawfb_font_bake(rawfb, font_image, font_width, font_height);
 
-    nk_font_atlas_end(&atlas, nk_handle_id(0), NULL);
+    nk_font_atlas_end(&atlas, nk_handle_ptr(NULL), NULL);
     nk_style_set_font(ctx, &default_font->handle);
 
     ui_init_style(ctx);
     chell_init(&os_app);
 
     while (1) {
+        /* Consolidated USB Input Task */
         hal_usb_poll();
         input_event_t ev;
         nk_input_begin(ctx);
-
         while (hal_input_pop_event(&ev)) {
             if (ev.type == INPUT_TYPE_MOUSE) {
                 g_mouse_x += ev.mouse.x;
@@ -162,8 +166,18 @@ void environment_manager_entry(void* arg) {
         /* Draw Software Cursor */
         draw_software_cursor(shadow_fb, g_mouse_x, g_mouse_y, (int)width, (int)height);
 
-        /* Blit to physical framebuffer */
-        memcpy((void*)primary_fb->address, shadow_fb, fb_size);
+        /* Industrial Dirty Blitting Optimization */
+        uint64_t *dst = (uint64_t*)primary_fb->address;
+        uint64_t *src = (uint64_t*)shadow_fb;
+        uint64_t *last = (uint64_t*)last_frame_fb;
+        size_t qwords = fb_size / 8;
+
+        for (size_t i = 0; i < qwords; i++) {
+            if (src[i] != last[i]) {
+                dst[i] = src[i];
+                last[i] = src[i];
+            }
+        }
 
         scheduler_yield();
     }

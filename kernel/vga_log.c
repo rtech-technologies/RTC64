@@ -82,7 +82,7 @@ void draw_glyph(int x, int y, char c, uint32_t color) {
         if (y + gy >= (int)primary_fb->height) break;
         for (int gx = 0; gx < 8; gx++) {
             if (x + gx >= (int)primary_fb->width) break;
-            if (glyph[gy] & (1 << gx)) {
+            if (glyph[gy] & (0x80 >> gx)) {
                 uint32_t *pixel = (uint32_t*)(fb + (y + gy) * primary_fb->pitch + (x + gx) * 4);
                 *pixel = color;
             }
