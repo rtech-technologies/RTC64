@@ -48,13 +48,18 @@ void usbh_hid_callback(void *arg, int nbytes) {
 }
 
 void usbh_hid_run(struct usbh_hid *hid_class) {
-    serial_printf("[HID] Setting Boot Protocol and starting poll.\n");
+    serial_printf("[HID] Device connected. Setting Boot Protocol.\n");
     usbh_hid_set_protocol(hid_class, 0); /* Boot Protocol */
+    usbh_hid_set_idle(hid_class, 0, 0);   /* Indefinite reporting */
+
     uint32_t mps = USB_GET_MAXPACKETSIZE(hid_class->intin->wMaxPacketSize);
     void* phys_buf = pmm_alloc_blocks_low(1);
     uint8_t *buffer = (uint8_t*)((uint64_t)phys_buf + hhdm_offset);
+    memset(buffer, 0, mps);
+
     usbh_int_urb_fill(&hid_class->intin_urb, hid_class->hport, hid_class->intin, buffer, mps, 0, usbh_hid_callback, hid_class);
     usbh_submit_urb(&hid_class->intin_urb);
+    serial_printf("[HID] Interrupt poll started.\n");
 }
 
 void usbh_hid_stop(struct usbh_hid *hid_class) {
