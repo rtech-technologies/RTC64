@@ -2,6 +2,8 @@
  * Licensed under the 'respect people's property' OS license. */
 #ifndef MATH_H
 #define MATH_H
+#define PI 3.14159265358979323846
+#define PI_2 1.57079632679489661923
 
 double fabs(double x);
 double floor(double x);

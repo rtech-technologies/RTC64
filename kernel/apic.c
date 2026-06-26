@@ -51,7 +51,7 @@ uint64_t hal_get_uptime_ms(void) {
 
 void timer_handler(struct cpu_state* state) {
     (void)state;
-    apic_eoi();
+    /* EOI now handled centrally in exception_handler */
     g_ticks++;
 }
 

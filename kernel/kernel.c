@@ -166,17 +166,30 @@ void environment_manager_entry(void* arg) {
         /* Draw Software Cursor */
         draw_software_cursor(shadow_fb, g_mouse_x, g_mouse_y, (int)width, (int)height);
 
-        /* Industrial Dirty Blitting Optimization */
-        uint64_t *dst = (uint64_t*)primary_fb->address;
-        uint64_t *src = (uint64_t*)shadow_fb;
-        uint64_t *last = (uint64_t*)last_frame_fb;
-        size_t qwords = fb_size / 8;
+        /* SSE-Accelerated Industrial Dirty Blitting Optimization */
+        /* Compares and updates 16-byte blocks using XMM registers */
+        uint8_t *dst_ptr = (uint8_t*)primary_fb->address;
+        uint8_t *src_ptr = (uint8_t*)shadow_fb;
+        uint8_t *last_ptr = (uint8_t*)last_frame_fb;
+        size_t blocks = fb_size / 16;
 
-        for (size_t i = 0; i < qwords; i++) {
-            if (src[i] != last[i]) {
-                dst[i] = src[i];
-                last[i] = src[i];
-            }
+        for (size_t i = 0; i < blocks; i++) {
+            size_t offset = i * 16;
+            __asm__ volatile (
+                "movdqu (%0), %%xmm0\n\t"
+                "movdqu (%1), %%xmm1\n\t"
+                "pcmpeqb %%xmm1, %%xmm0\n\t"
+                "pmovmskb %%xmm0, %%eax\n\t"
+                "cmpl $0xFFFF, %%eax\n\t"
+                "je 1f\n\t"
+                "movdqu (%0), %%xmm0\n\t"
+                "movntdq %%xmm0, (%2)\n\t"
+                "movdqu %%xmm0, (%1)\n\t"
+                "1:"
+                :
+                : "r"(src_ptr + offset), "r"(last_ptr + offset), "r"(dst_ptr + offset)
+                : "xmm0", "xmm1", "eax", "memory"
+            );
         }
 
         scheduler_yield();

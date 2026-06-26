@@ -62,6 +62,7 @@ void session_manager_task(void* arg);
 
 struct cpu_state {
     uint8_t fxsave_region[512];
+
     uint64_t padding;
     uint64_t ds, es, fs, gs;
     uint64_t cr4, cr3, cr2;

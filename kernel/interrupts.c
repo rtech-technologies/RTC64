@@ -65,11 +65,14 @@ void irq_install_handler(int i, irq_handler_t handler) {
     irq_handlers[i] = handler;
 }
 
+extern void apic_eoi(void);
 void exception_handler(struct cpu_state *state) {
     if (state->interrupt_number >= 32) {
+        /* POWER: Centralized IRQ Acknowledgement */
         if (irq_handlers[state->interrupt_number]) {
             irq_handlers[state->interrupt_number](state);
         }
+        apic_eoi();
         return;
     }
     serial_printf("[INTERRUPT] Exception %d, Error: %p, RIP: %p\n",
