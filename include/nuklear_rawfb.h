@@ -899,13 +899,10 @@ nk_rawfb_stretch_image(const struct rawfb_image *dst,
                     continue;
             }
             col = nk_rawfb_img_getpixel(src, (int)xoff, (int) yoff);
-            if (col.r || col.g || col.b)
-            {
-                col.r = fg->r;
-                col.g = fg->g;
-                col.b = fg->b;
-            }
-            nk_rawfb_img_blendpixel(dst, i + (int)(dst_rect->x + 0.5f), j + (int)(dst_rect->y + 0.5f), col);
+            /* MEATY: Alpha blending for font quality */
+            struct nk_color final_col = *fg;
+            final_col.a = (unsigned char)((float)fg->a * ((float)col.r / 255.0f));
+            nk_rawfb_img_blendpixel(dst, i + (int)(dst_rect->x + 0.5f), j + (int)(dst_rect->y + 0.5f), final_col);
             xoff += xinc;
         }
         xoff = src_rect->x;

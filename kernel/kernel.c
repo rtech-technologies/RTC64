@@ -38,66 +38,16 @@ void init_sse(void) {
 }
 
 void init_pat(void) {
-    /* Set PAT0 to WB, PAT1 to WC */
-    uint64_t pat = 0x0000000000000106ULL; /* PAT0=WB (06), PAT1=WC (01) */
-    uint32_t low = (uint32_t)pat;
-    uint32_t high = (uint32_t)(pat >> 32);
+    uint64_t pat = 0x0000000000000106ULL;
+    uint32_t low = (uint32_t)pat, high = (uint32_t)(pat >> 32);
     __asm__ volatile("wrmsr" : : "c"(0x277), "a"(low), "d"(high));
 }
 
-static int g_mouse_x = 400;
-static int g_mouse_y = 300;
-
-const char cursor_arrow[12][12] = {
-    "X___________",
-    "XX__________",
-    "XXX_________",
-    "XXXX________",
-    "XXXXX_______",
-    "XXXXXX______",
-    "XXXXXXX_____",
-    "XXXXXXXX____",
-    "XXXXX_______",
-    "XX__XX______",
-    "X____XX_____",
-    "______XX____"
-};
-
-void draw_software_cursor(uint32_t *buffer, int mx, int my, int width, int height) {
-    /* Draw shadow/border */
-    for (int y = 0; y < 12; y++) {
-        for (int x = 0; x < 12; x++) {
-            if (cursor_arrow[y][x] == 'X') {
-                for (int dy = -1; dy <= 1; dy++) {
-                    for (int dx = -1; dx <= 1; dx++) {
-                        int nx = mx + x + dx;
-                        int ny = my + y + dy;
-                        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                            buffer[ny * width + nx] = 0xFF000000;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    /* Draw white arrow */
-    for (int y = 0; y < 12; y++) {
-        for (int x = 0; x < 12; x++) {
-            if (cursor_arrow[y][x] == 'X') {
-                if ((mx + x) >= 0 && (mx + x) < width && (my + y) >= 0 && (my + y) < height) {
-                    buffer[(my + y) * width + (mx + x)] = 0xFFFFFFFF;
-                }
-            }
-        }
-    }
-}
+static int g_mouse_x = 400, g_mouse_y = 300;
 
 void environment_manager_entry(void* arg) {
     (void)arg;
-    serial_printf("[PHASE 7] Environment Manager session pivot successful.\n");
-    comprec_log("WINDOW", "Graphical Environment Started");
     vga_disable_log();
-
     uint32_t width = (uint32_t)primary_fb->width;
     uint32_t height = (uint32_t)primary_fb->height;
     uint32_t fb_size = width * height * 4;
@@ -107,24 +57,16 @@ void environment_manager_entry(void* arg) {
     memset(last_frame_fb, 0, fb_size);
 
     struct rawfb_pl pl = {4, 16, 8, 0, 24, 0, 0, 0, 0};
-    void* nuklear_mem = malloc(2*1024*1024);
-    struct rawfb_context* rawfb = nk_rawfb_init(shadow_fb, nuklear_mem, width, height, width * 4, pl);
+    struct rawfb_context* rawfb = nk_rawfb_init(shadow_fb, malloc(2*1024*1024), width, height, width * 4, pl);
     struct nk_context* ctx = (struct nk_context*)rawfb;
 
-    /* Font Initialization and Baking (Industrial Quality) */
     struct nk_font_atlas atlas;
     nk_font_atlas_init_default(&atlas);
     nk_font_atlas_begin(&atlas);
-
-    /* Increase font size for legibility on high-res displays */
-    struct nk_font *default_font = nk_font_atlas_add_default(&atlas, 20.0f, NULL);
-
-    const void *font_image;
-    int font_width, font_height;
-    /* Use ALPHA8 for rawfb compatibility to avoid hideous rendering */
-    font_image = nk_font_atlas_bake(&atlas, &font_width, &font_height, NK_FONT_ATLAS_ALPHA8);
-    nk_rawfb_font_bake(rawfb, font_image, font_width, font_height);
-
+    struct nk_font *default_font = nk_font_atlas_add_default(&atlas, 18.0f, NULL);
+    int fw, fh;
+    const void *fimg = nk_font_atlas_bake(&atlas, &fw, &fh, NK_FONT_ATLAS_ALPHA8);
+    nk_rawfb_font_bake(rawfb, fimg, fw, fh);
     nk_font_atlas_end(&atlas, nk_handle_ptr(NULL), NULL);
     nk_style_set_font(ctx, &default_font->handle);
 
@@ -132,7 +74,6 @@ void environment_manager_entry(void* arg) {
     chell_init(&os_app);
 
     while (1) {
-        /* Consolidated USB Input Task */
         hal_usb_poll();
         input_event_t ev;
         nk_input_begin(ctx);
@@ -142,9 +83,8 @@ void environment_manager_entry(void* arg) {
                 g_mouse_y += ev.mouse.y;
                 if (g_mouse_x < 0) g_mouse_x = 0;
                 if (g_mouse_y < 0) g_mouse_y = 0;
-                if (g_mouse_x >= (int)width) g_mouse_x = width - 1;
-                if (g_mouse_y >= (int)height) g_mouse_y = height - 1;
-
+                if (g_mouse_x >= (int)width) g_mouse_x = (int)width - 1;
+                if (g_mouse_y >= (int)height) g_mouse_y = (int)height - 1;
                 nk_input_motion(ctx, (float)g_mouse_x, (float)g_mouse_y);
                 nk_input_button(ctx, NK_BUTTON_LEFT, g_mouse_x, g_mouse_y, (int)(ev.mouse.buttons & 1));
             } else if (ev.type == INPUT_TYPE_KEYBOARD) {
@@ -159,46 +99,24 @@ void environment_manager_entry(void* arg) {
             }
         }
         nk_input_end(ctx);
-
         ui_render(ctx, &os_app, (int)width, (int)height);
         nk_rawfb_render(rawfb, nk_rgba(30,30,30,255), 1);
 
-        /* Draw Software Cursor */
-        draw_software_cursor(shadow_fb, g_mouse_x, g_mouse_y, (int)width, (int)height);
-
-        /* SSE-Accelerated Industrial Dirty Blitting Optimization */
-        /* Compares and updates 16-byte blocks using XMM registers */
-        uint8_t *dst_ptr = (uint8_t*)primary_fb->address;
-        uint8_t *src_ptr = (uint8_t*)shadow_fb;
-        uint8_t *last_ptr = (uint8_t*)last_frame_fb;
-        size_t blocks = fb_size / 16;
-
-        for (size_t i = 0; i < blocks; i++) {
-            size_t offset = i * 16;
-            __asm__ volatile (
-                "movdqu (%0), %%xmm0\n\t"
-                "movdqu (%1), %%xmm1\n\t"
-                "pcmpeqb %%xmm1, %%xmm0\n\t"
-                "pmovmskb %%xmm0, %%eax\n\t"
-                "cmpl $0xFFFF, %%eax\n\t"
-                "je 1f\n\t"
-                "movdqu (%0), %%xmm0\n\t"
-                "movntdq %%xmm0, (%2)\n\t"
-                "movdqu %%xmm0, (%1)\n\t"
-                "1:"
-                :
-                : "r"(src_ptr + offset), "r"(last_ptr + offset), "r"(dst_ptr + offset)
-                : "xmm0", "xmm1", "eax", "memory"
-            );
+        uint64_t *dst = (uint64_t*)primary_fb->address;
+        uint64_t *src = (uint64_t*)shadow_fb;
+        uint64_t *last = (uint64_t*)last_frame_fb;
+        for (size_t i = 0; i < fb_size / 8; i++) {
+            if (src[i] != last[i]) {
+                dst[i] = src[i];
+                last[i] = src[i];
+            }
         }
-
         scheduler_yield();
     }
 }
 
 void session_manager_task(void* arg) {
     (void)arg;
-    serial_printf("[SMSS] Initializing Session 0...\n");
     memset(&os_app, 0, sizeof(os_app));
     os_app.current_state = STATE_DESKTOP;
     os_app.show_terminal = 1;
@@ -210,7 +128,6 @@ void session_manager_task(void* arg) {
 
 void kernel_main(void) {
     serial_init();
-    serial_printf("[PHASE 0] Entering Bare-Metal Isolation.\n");
     if (!framebuffer_request.response || !hhdm_request.response || !memmap_request.response) while(1) __asm__("hlt");
     hhdm_offset = hhdm_request.response->offset;
     primary_fb = framebuffer_request.response->framebuffers[0];
@@ -220,8 +137,10 @@ void kernel_main(void) {
     void* heap_phys = pmm_alloc_blocks(4096);
     hal_malloc_init((void*)((uint64_t)heap_phys + hhdm_offset), 4096 * 4096);
     gdt_init(); idt_init();
-    apic_init(); irq_install_handler(32, (void*)timer_handler);
-    hal_input_init(); cm_orchestrate_drivers();
+    apic_init();
+    irq_install_handler(32, (void*)timer_handler);
+    hal_input_init();
+    cm_orchestrate_drivers();
     scheduler_init();
     vfs_init(); vfs_refresh_mounts();
     hal_storage_finish_init();
