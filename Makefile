@@ -21,7 +21,7 @@ KERNEL_OBJS = kernel/entry.o kernel/kernel.o src/app_ui.o src/chell.o src/lab.o 
               kernel/fatfs/ff.o kernel/fatfs/ffunicode.o \
               kernel/drivers/pci.o kernel/drivers/xhci.o kernel/drivers/ehci.o \
               kernel/drivers/nvme.o kernel/drivers/ahci.o kernel/drivers/ramdisk.o \
-              kernel/drivers/rtc.o \
+              kernel/drivers/ps2.o kernel/drivers/rtc.o \
               external/CherryUSB/core/usbh_core.o \
               external/CherryUSB/class/msc/usbh_msc.o \
               external/CherryUSB/class/hid/usbh_hid.o \

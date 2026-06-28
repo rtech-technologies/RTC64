@@ -39,7 +39,7 @@ void ehci_init(uint64_t mmio) {
 
     /* 3. Power and Reset Ports */
     uint32_t hcsparams = *(volatile uint32_t*)(caps + EHCI_CAPS_HCSPARAMS);
-    uint32_t num_ports = hcsparams & 0x0F; if (num_ports == 0) num_ports = 1;; if (num_ports == 0) num_ports = 1;;
+    uint32_t num_ports = hcsparams & 0x0F;
     serial_printf("[EHCI] Found %d ports. Powering up...\n", num_ports);
     for (uint32_t i = 0; i < num_ports && i < 16; i++) {
         volatile uint32_t* portsc = &ops[EHCI_OPS_PORTSC_BASE/4 + i];

@@ -34,6 +34,11 @@ typedef enum {
     INPUT_TYPE_MOUSE
 } input_type_t;
 
+typedef enum {
+    INPUT_BUS_USB,
+    INPUT_BUS_PS2
+} input_bus_t;
+
 typedef struct {
     input_type_t type;
     union {
@@ -49,10 +54,26 @@ typedef struct {
     };
 } input_event_t;
 
+typedef struct {
+    char name[32];
+    input_type_t type;
+    input_bus_t bus;
+    bool connected;
+} input_device_info_t;
+
 void hal_input_init(void);
-void hal_input_poll(void);
 void hal_input_push_event(input_event_t ev);
 bool hal_input_pop_event(input_event_t *ev);
+void hal_input_get_mouse_abs(int *x, int *y);
+
+/* Device Registry */
+int hal_input_register_device(const char* name, input_type_t type, input_bus_t bus);
+void hal_input_set_device_status(int id, bool connected);
+int hal_input_get_device_count(void);
+bool hal_input_get_device_info(int index, input_device_info_t *info);
+
+/* PS/2 Driver */
+void hal_ps2_init(void);
 
 /* --- Storage System --- */
 typedef enum {
@@ -84,9 +105,10 @@ storage_device_t* hal_storage_get_device(int index);
 int hal_storage_read(storage_device_t* dev, uint64_t sector, void* buffer, uint32_t count);
 int hal_storage_write(storage_device_t* dev, uint64_t sector, const void* buffer, uint32_t count);
 
-int hal_nvme_init(uint64_t mmio);
-int hal_sata_init(uint64_t mmio);
-int ramdisk_init(void);
+int nvme_init(uint64_t mmio);
+int ahci_init(uint64_t mmio);
+void xhci_init(uint64_t mmio);
+void ehci_init(uint64_t mmio);
 
 /* --- USB System --- */
 void hal_usb_init(void);

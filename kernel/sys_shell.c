@@ -2,15 +2,13 @@
  * Licensed under the 'respect people's property' OS license. */
 #include "pro_os.h"
 #include "serial.h"
+#include "hal.h"
 #include <string.h>
 #include <stdio.h>
 
 #define SHELL_BUF_SIZE 256
 static char shell_buffer[SHELL_BUF_SIZE];
 static int shell_ptr = 0;
-
-extern int g_mouse_x;
-extern int g_mouse_y;
 
 void debug_shell_init(void) {
     serial_write("\n\nSovereign Debug Console (Serial)\n");
@@ -20,17 +18,30 @@ void debug_shell_init(void) {
 
 static void shell_execute(char* cmd) {
     if (strcmp(cmd, "help") == 0) {
-        serial_write("Debug Commands: tasks, uptime, cpu, panic, usb\n");
+        serial_write("Debug Commands: tasks, uptime, cpu, usb, input, panic\n");
     } else if (strcmp(cmd, "tasks") == 0) {
         serial_printf("Active Tasks: %d\n", scheduler_get_task_count());
     } else if (strcmp(cmd, "uptime") == 0) {
         serial_printf("Uptime: %llu ms\n", hal_get_uptime_ms());
     } else if (strcmp(cmd, "cpu") == 0) {
         serial_printf("CPU Load: %d%%\n", scheduler_get_cpu_load());
+    } else if (strcmp(cmd, "usb") == 0) {
+        int mx, my;
+        hal_input_get_mouse_abs(&mx, &my);
+        serial_printf("USB/PS2 Mouse Position: X=%d, Y=%d\n", mx, my);
+    } else if (strcmp(cmd, "input") == 0) {
+        int count = hal_input_get_device_count();
+        serial_printf("Input Devices: %d\n", count);
+        for (int i = 0; i < count; i++) {
+            input_device_info_t info;
+            if (hal_input_get_device_info(i, &info)) {
+                serial_printf(" [%d] %-16s | %s | %s\n", i, info.name,
+                    (info.bus == INPUT_BUS_USB ? "USB" : "PS2"),
+                    (info.connected ? "CONNECTED" : "DISCONNECTED"));
+            }
+        }
     } else if (strcmp(cmd, "panic") == 0) {
         kpanic("USER_REQUESTED_PANIC");
-    } else if (strcmp(cmd, "usb") == 0) {
-        serial_printf("Mouse Position: X=%d, Y=%d\n", g_mouse_x, g_mouse_y);
     } else if (strlen(cmd) > 0) {
         serial_printf("Unknown debug command: %s\n", cmd);
     }

@@ -59,9 +59,6 @@ void pci_scan(void) {
                 uint8_t sub_class = (class_rev >> 16) & 0xFF;
                 uint8_t prog_if = (class_rev >> 8) & 0xFF;
 
-                serial_printf("[PCI] Found: %02x:%02x:%d Vendor:%04x Device:%04x Class:%02x\n",
-                             bus, slot, func, vendor, device, base_class);
-
                 if (g_pci_count < MAX_PCI_DEVICES) {
                     g_pci_devices[g_pci_count].vendor = vendor;
                     g_pci_devices[g_pci_count].device = device;
@@ -71,26 +68,32 @@ void pci_scan(void) {
                     g_pci_count++;
                 }
 
-                if (base_class == 0x0C && sub_class == 0x03 && prog_if == 0x30) {
+                /* Class 0x0C = Serial Bus Controller, Subclass 0x03 = USB Controller */
+                if (base_class == 0x0C && sub_class == 0x03) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 0);
-                    xhci_mmio_base = mmio;
-                    serial_printf("[PCI] xHCI Controller at BAR0: %p\n", mmio);
-                    xhci_init(mmio);
-                } else if (base_class == 0x0C && sub_class == 0x03 && prog_if == 0x20) {
-                    uint64_t mmio = pci_get_bar(bus, slot, func, 0);
-                    ehci_mmio_base = mmio;
-                    serial_printf("[PCI] EHCI Controller at BAR0: %p\n", mmio);
-                    ehci_init(mmio);
-                } else if (base_class == 0x01 && sub_class == 0x08) {
-                    uint64_t mmio = pci_get_bar(bus, slot, func, 0);
-                    nvme_mmio_base = mmio;
-                    serial_printf("[PCI] NVMe Controller found (ProgIF: %02x) at BAR0: %p\n", prog_if, mmio);
-                    nvme_init(mmio);
-                } else if (base_class == 0x01 && sub_class == 0x06) {
-                    uint64_t mmio = pci_get_bar(bus, slot, func, 5);
-                    ahci_mmio_base = mmio;
-                    serial_printf("[PCI] AHCI Controller found (ProgIF: %02x) at BAR5: %p\n", prog_if, mmio);
-                    ahci_init(mmio);
+                    if (prog_if == 0x30) { /* xHCI */
+                        xhci_mmio_base = mmio;
+                        serial_printf("[PCI] Connecting xHCI Controller at %p\n", mmio);
+                        xhci_init(mmio);
+                    } else if (prog_if == 0x20) { /* EHCI */
+                        ehci_mmio_base = mmio;
+                        serial_printf("[PCI] Connecting EHCI Controller at %p\n", mmio);
+                        ehci_init(mmio);
+                    }
+                }
+                /* Class 0x01 = Mass Storage Controller */
+                else if (base_class == 0x01) {
+                    if (sub_class == 0x08) { /* NVMe */
+                        uint64_t mmio = pci_get_bar(bus, slot, func, 0);
+                        nvme_mmio_base = mmio;
+                        serial_printf("[PCI] Connecting NVMe Controller at %p\n", mmio);
+                        nvme_init(mmio);
+                    } else if (sub_class == 0x06) { /* AHCI */
+                        uint64_t mmio = pci_get_bar(bus, slot, func, 5);
+                        ahci_mmio_base = mmio;
+                        serial_printf("[PCI] Connecting AHCI Controller at %p\n", mmio);
+                        ahci_init(mmio);
+                    }
                 }
 
                 if (func == 0) {
