@@ -10,6 +10,7 @@ static uint64_t* pmm_bitmap = NULL;
 static uint64_t  pmm_total_pages = 0;
 static uint64_t  pmm_bitmap_size = 0;
 static uint64_t  pmm_last_alloc = 0;
+static spinlock_t pmm_lock = 0;
 
 void pmm_init(struct limine_memmap_response* map) {
     uint64_t top_address = 0;
@@ -42,6 +43,10 @@ void pmm_init(struct limine_memmap_response* map) {
         }
     }
 
+    if (!pmm_bitmap) {
+        kpanic("PMM: Failed to place bitmap - no suitable usable memory block found.");
+    }
+
     /* Mark usable pages as free in bitmap */
     for (uint64_t i = 0; i < map->entry_count; i++) {
         struct limine_memmap_entry* en = map->entries[i];
@@ -68,10 +73,12 @@ static bool pmm_is_used(uint64_t page) {
 }
 
 void* pmm_alloc(void) {
+    spin_lock(&pmm_lock);
     for (uint64_t i = pmm_last_alloc; i < pmm_total_pages; i++) {
         if (!pmm_is_used(i)) {
             pmm_mark_used(i);
             pmm_last_alloc = i;
+            spin_unlock(&pmm_lock);
             return (void*)(i * PAGE_SIZE);
         }
     }
@@ -80,22 +87,27 @@ void* pmm_alloc(void) {
         if (!pmm_is_used(i)) {
             pmm_mark_used(i);
             pmm_last_alloc = i;
+            spin_unlock(&pmm_lock);
             return (void*)(i * PAGE_SIZE);
         }
     }
+    spin_unlock(&pmm_lock);
     return NULL;
 }
 
 void* pmm_alloc_low(void) {
+    spin_lock(&pmm_lock);
     uint64_t max_page = 0x100000000ULL / PAGE_SIZE;
     if (max_page > pmm_total_pages) max_page = pmm_total_pages;
 
     for (uint64_t i = 0; i < max_page; i++) {
         if (!pmm_is_used(i)) {
             pmm_mark_used(i);
+            spin_unlock(&pmm_lock);
             return (void*)(i * PAGE_SIZE);
         }
     }
+    spin_unlock(&pmm_lock);
     return NULL;
 }
 
@@ -103,6 +115,7 @@ void* pmm_alloc_blocks(size_t count) {
     if (count == 0) return NULL;
     if (count == 1) return pmm_alloc();
 
+    spin_lock(&pmm_lock);
     for (uint64_t i = 0; i < pmm_total_pages - count; i++) {
         bool found = true;
         for (size_t j = 0; j < count; j++) {
@@ -114,14 +127,17 @@ void* pmm_alloc_blocks(size_t count) {
         }
         if (found) {
             for (size_t j = 0; j < count; j++) pmm_mark_used(i + j);
+            spin_unlock(&pmm_lock);
             return (void*)(i * PAGE_SIZE);
         }
     }
+    spin_unlock(&pmm_lock);
     return NULL;
 }
 
 void* pmm_alloc_blocks_low(size_t count) {
     if (count == 0) return NULL;
+    spin_lock(&pmm_lock);
     uint64_t max_page = 0x100000000ULL / PAGE_SIZE;
     if (max_page > pmm_total_pages) max_page = pmm_total_pages;
 
@@ -136,26 +152,32 @@ void* pmm_alloc_blocks_low(size_t count) {
         }
         if (found) {
             for (size_t j = 0; j < count; j++) pmm_mark_used(i + j);
+            spin_unlock(&pmm_lock);
             return (void*)(i * PAGE_SIZE);
         }
     }
+    spin_unlock(&pmm_lock);
     return NULL;
 }
 
 void pmm_free(void* addr) {
     if (!addr) return;
+    spin_lock(&pmm_lock);
     uint64_t page = (uint64_t)addr / PAGE_SIZE;
     if (page < pmm_total_pages) {
         pmm_mark_free(page);
     }
+    spin_unlock(&pmm_lock);
 }
 
 void pmm_free_blocks(void* addr, size_t count) {
     if (!addr) return;
+    spin_lock(&pmm_lock);
     uint64_t start_page = (uint64_t)addr / PAGE_SIZE;
     for (size_t i = 0; i < count; i++) {
         if (start_page + i < pmm_total_pages) {
             pmm_mark_free(start_page + i);
         }
     }
+    spin_unlock(&pmm_lock);
 }

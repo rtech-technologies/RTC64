@@ -145,6 +145,15 @@ void itoa_meaty(unsigned long long n, char* s, int base, bool neg, int width, ch
     if (neg) s[i++] = '-';
     while (i < width) s[i++] = pad;
     s[i] = '\0'; reverse(s);
+    /* Correct padding logic: if pad is '0', the '-' should be at the front */
+    if (neg && pad == '0' && width > 0) {
+        if (s[0] == '0') {
+            for (int j = 0; j < (int)strlen(s); j++) {
+                if (s[j] == '-') { s[j] = '0'; break; }
+            }
+            s[0] = '-';
+        }
+    }
 }
 
 int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
@@ -183,6 +192,9 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
                 const char* s = buf; while (*s && i < size - 1) {
                     char c = *s++; if (spec == 'X' && c >= 'a' && c <= 'z') c -= 32; str[i++] = c;
                 }
+            } else if (*format == 'c') {
+                char c = (char)va_arg(ap, int);
+                str[i++] = c;
             } else if (*format == '%') { str[i++] = '%'; }
             else { /* Skip unknown */ }
         } else { str[i++] = *format; }

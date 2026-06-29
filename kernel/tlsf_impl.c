@@ -172,6 +172,9 @@ void* tlsf_realloc(void* tlsf, void* ptr, size_t size) {
 
 /* MEATY: Metric Accessors */
 size_t hal_malloc_get_used(void) {
+    /* Metric accessors are inherently non-atomic but we use the global control.
+     * We don't lock here to avoid deadlock if called during malloc debug logs.
+     */
     tlsf_control_t* t = (tlsf_control_t*)tlsf_get_global();
     return t ? t->used_size : 0;
 }

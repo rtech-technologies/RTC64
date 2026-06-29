@@ -23,6 +23,7 @@ typedef struct {
 #define MAX_PCI_DEVICES 64
 static pci_device_info_t g_pci_devices[MAX_PCI_DEVICES];
 static int g_pci_count = 0;
+static spinlock_t g_pci_lock = 0;
 
 static uint32_t pci_read_config(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset) {
     uint32_t address = (uint32_t)((uint32_t)bus << 16) | ((uint32_t)slot << 11) |
@@ -41,6 +42,7 @@ uint64_t pci_get_bar(uint8_t bus, uint8_t slot, uint8_t func, uint8_t bar_index)
 }
 
 void pci_scan(void) {
+    spin_lock(&g_pci_lock);
     serial_printf("[PCI] Starting system hardware scan...\n");
     g_pci_count = 0;
     memset(g_pci_devices, 0, sizeof(g_pci_devices));
@@ -101,14 +103,20 @@ void pci_scan(void) {
         }
     }
     serial_printf("[PCI] Scan complete. Total devices: %d\n", g_pci_count);
+    spin_unlock(&g_pci_lock);
 }
 
 int pci_get_device_count(void) { return g_pci_count; }
 
 int pci_get_device_info(int index, char* buf, size_t sz) {
-    if (index < 0 || index >= g_pci_count) return -1;
+    spin_lock(&g_pci_lock);
+    if (index < 0 || index >= g_pci_count) {
+        spin_unlock(&g_pci_lock);
+        return -1;
+    }
     pci_device_info_t* d = &g_pci_devices[index];
     snprintf(buf, sz, "V:%04X D:%04X C:%02X S:%02X P:%02X",
              d->vendor, d->device, d->class_id, d->subclass, d->prog_if);
+    spin_unlock(&g_pci_lock);
     return 0;
 }

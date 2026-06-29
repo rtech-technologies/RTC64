@@ -120,4 +120,15 @@ void hal_usb_poll(void);
 void rtc_get_time(int *h, int *m, int *s);
 uint64_t hal_get_uptime_ms(void);
 
+/* --- Synchronization --- */
+typedef volatile int spinlock_t;
+static inline void spin_lock(spinlock_t *lock) {
+    while (__sync_lock_test_and_set(lock, 1)) {
+        __asm__ volatile("pause");
+    }
+}
+static inline void spin_unlock(spinlock_t *lock) {
+    __sync_lock_release(lock);
+}
+
 #endif
