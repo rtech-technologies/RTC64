@@ -75,6 +75,12 @@ irq 45
 irq 46
 irq 47
 
+.global isr_stub_128
+isr_stub_128:
+    pushq $0
+    pushq $128
+    jmp isr_common
+
 isr_common:
     pushq %rax
     pushq %rbx
@@ -154,7 +160,12 @@ isr_common:
     popq %rbx
     popq %rax
     addq $16, %rsp
-    iretq
+    /* ABI Integrity: Zero out scratch registers only if returning to user-space */
+    testq $3, 8(%rsp) /* Check CS selector on stack for CPL3 */
+    jz 1f
+    xorq %r11, %r11
+    xorq %rcx, %rcx
+1:  iretq
 
 irq_common:
     pushq %rax
@@ -240,7 +251,12 @@ irq_common:
     popq %rbx
     popq %rax
     addq $16, %rsp
-    iretq
+    /* ABI Integrity: Zero out scratch registers only if returning to user-space */
+    testq $3, 8(%rsp)
+    jz 1f
+    xorq %r11, %r11
+    xorq %rcx, %rcx
+1:  iretq
 
 .section .data
 .global isr_stub_table

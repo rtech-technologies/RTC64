@@ -11,6 +11,7 @@
 #define APIC_TMR   0x320
 #define APIC_TDCR  0x3E0
 #define APIC_TICR  0x380
+#define APIC_TCCR  0x390
 
 extern uint64_t hhdm_offset;
 extern uint64_t scheduler_switch(uint64_t current_rsp);
@@ -38,11 +39,25 @@ void apic_init(void) {
     /* Step 2: Calibrate Divider (Divide by 16) */
     apic_write(APIC_TDCR, 0x03);
 
-    /* Step 3: Configure Timer (Vector 32, Periodic mode, start MASKED) */
-    apic_write(APIC_TMR, 32 | 0x20000 | 0x10000);
+    /* Step 3: PIT-based Calibration for High-Power Precision */
+    /* Set PIT to one-shot mode, approx 10ms (1193182 / 100) */
+    outb(0x43, 0x30);
+    outb(0x40, 0x9B);
+    outb(0x40, 0x2E);
 
-    /* Step 4: Set Initial Count */
-    apic_write(APIC_TICR, 1000000);
+    apic_write(APIC_TICR, 0xFFFFFFFF);
+
+    /* Wait for PIT to finish */
+    while (1) {
+        outb(0x43, 0xE2);
+        if (inb(0x40) & 0x80) break;
+    }
+
+    uint32_t ticks_per_10ms = 0xFFFFFFFF - apic_read(APIC_TCCR);
+
+    /* Step 4: Configure Timer (Vector 32, Periodic mode, start MASKED) */
+    apic_write(APIC_TMR, 32 | 0x20000 | 0x10000);
+    apic_write(APIC_TICR, ticks_per_10ms);
 }
 
 uint64_t hal_get_uptime_ms(void) {
