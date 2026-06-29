@@ -115,6 +115,10 @@ void tlsf_free(void* tlsf_ptr, void* ptr) {
     tlsf_control_t* t = (tlsf_control_t*)tlsf_ptr;
     block_header_t* block = (block_header_t*)((uint8_t*)ptr - sizeof(block_header_t));
     size_t block_size = block->size & BLOCK_SIZE_MASK;
+
+    /* Industrial Scrubbing: Zero out memory before deallocation */
+    memset(ptr, 0, block_size);
+
     t->used_size -= (block_size + sizeof(block_header_t));
     block->size |= BLOCK_FREE_BIT;
 
@@ -168,6 +172,9 @@ void* tlsf_realloc(void* tlsf, void* ptr, size_t size) {
 
 /* MEATY: Metric Accessors */
 size_t hal_malloc_get_used(void) {
+    /* Metric accessors are inherently non-atomic but we use the global control.
+     * We don't lock here to avoid deadlock if called during malloc debug logs.
+     */
     tlsf_control_t* t = (tlsf_control_t*)tlsf_get_global();
     return t ? t->used_size : 0;
 }

@@ -12,6 +12,7 @@
 static input_event_t g_input_queue[INPUT_QUEUE_SIZE];
 static volatile int g_queue_head = 0;
 static volatile int g_queue_tail = 0;
+static spinlock_t g_input_lock = 0;
 
 static int g_mouse_abs_x = 0;
 static int g_mouse_abs_y = 0;
@@ -57,6 +58,7 @@ bool hal_input_get_device_info(int index, input_device_info_t *info) {
 }
 
 void hal_input_push_event(input_event_t ev) {
+    spin_lock(&g_input_lock);
     int next = (g_queue_head + 1) % INPUT_QUEUE_SIZE;
     if (next != g_queue_tail) {
         g_input_queue[g_queue_head] = ev;
@@ -66,12 +68,18 @@ void hal_input_push_event(input_event_t ev) {
         g_mouse_abs_x += ev.mouse.x;
         g_mouse_abs_y += ev.mouse.y;
     }
+    spin_unlock(&g_input_lock);
 }
 
 bool hal_input_pop_event(input_event_t *ev) {
-    if (g_queue_head == g_queue_tail) return false;
+    spin_lock(&g_input_lock);
+    if (g_queue_head == g_queue_tail) {
+        spin_unlock(&g_input_lock);
+        return false;
+    }
     *ev = g_input_queue[g_queue_tail];
     g_queue_tail = (g_queue_tail + 1) % INPUT_QUEUE_SIZE;
+    spin_unlock(&g_input_lock);
     return true;
 }
 

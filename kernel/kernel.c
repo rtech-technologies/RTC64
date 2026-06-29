@@ -26,6 +26,11 @@ volatile struct limine_module_request module_request = {
     .revision = 0
 };
 
+static volatile struct limine_memmap_request memmap_request = {
+    .id = LIMINE_MEMMAP_REQUEST,
+    .revision = 0
+};
+
 /* --- Global OS State --- */
 uint64_t hhdm_offset = 0;
 struct limine_framebuffer *primary_fb = NULL;
@@ -109,10 +114,16 @@ void kernel_main(void) {
     gdt_init();
     idt_init();
 
-    pmm_init(NULL);
-    hal_malloc_init(pmm_alloc_blocks(1024), 1024 * 4096);
+    if (memmap_request.response) {
+        pmm_init(memmap_request.response);
+    }
+
+    /* Industrial Heap Genesis: Allocate physical blocks and map to virtual HHDM space */
+    void* heap_phys = pmm_alloc_blocks(1024);
+    hal_malloc_init((void*)((uint64_t)heap_phys + hhdm_offset), 1024 * 4096);
 
     apic_init();
+    irq_install_handler(32, timer_handler);
     init_sse();
 
     scheduler_init();

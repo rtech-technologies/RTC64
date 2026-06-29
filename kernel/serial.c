@@ -6,6 +6,7 @@
 #include "hal.h"
 
 #define COM1 0x3F8
+static spinlock_t g_serial_lock = 0;
 
 void serial_init(void) {
     outb(COM1 + 1, 0x00);
@@ -31,12 +32,14 @@ void serial_write(const char* str) {
 }
 
 void serial_printf(const char* fmt, ...) {
-    char buf[512];
+    spin_lock(&g_serial_lock);
+    char buf[1024];
     va_list args;
     va_start(args, fmt);
     vsnprintf(buf, sizeof(buf), fmt, args);
     serial_write(buf);
     va_end(args);
+    spin_unlock(&g_serial_lock);
 }
 
 int serial_received(void) {

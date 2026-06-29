@@ -74,9 +74,12 @@ static const uint8_t font8x8[128][8] = {
     ['Z'] = {0x7E, 0x06, 0x0C, 0x18, 0x30, 0x60, 0x7E, 0x00},
 };
 
+extern uint64_t hhdm_offset;
+
 void draw_glyph(int x, int y, char c, uint32_t color) {
     if (!primary_fb) return;
-    uint8_t *fb = (uint8_t*)primary_fb->address;
+    /* Industrial Alignment: Always use HHDM-adjusted virtual address for direct framebuffer access */
+    uint8_t *fb = (uint8_t*)((uint64_t)primary_fb->address + hhdm_offset);
     const uint8_t *glyph = font8x8[(uint8_t)c];
     for (int gy = 0; gy < 8; gy++) {
         if (y + gy >= (int)primary_fb->height) break;
@@ -92,6 +95,7 @@ void draw_glyph(int x, int y, char c, uint32_t color) {
 
 void vga_log(const char* str) {
     if (!vga_enabled || !primary_fb) return;
+    uint8_t *fb_virt = (uint8_t*)((uint64_t)primary_fb->address + hhdm_offset);
     while (*str) {
         if (*str == '\n') {
             term_x = 0; term_y += 10;
@@ -105,7 +109,7 @@ void vga_log(const char* str) {
             }
         }
         if (term_y >= (int)primary_fb->height - 10) {
-            memset((void*)primary_fb->address, 0, primary_fb->height * primary_fb->pitch);
+            memset((void*)fb_virt, 0, primary_fb->height * primary_fb->pitch);
             term_x = 0; term_y = 0;
         }
         str++;
@@ -115,6 +119,7 @@ void vga_log(const char* str) {
 void vga_disable_log(void) {
     vga_enabled = 0;
     if (primary_fb) {
-        memset((void*)primary_fb->address, 0, primary_fb->height * primary_fb->pitch);
+        uint8_t *fb_virt = (uint8_t*)((uint64_t)primary_fb->address + hhdm_offset);
+        memset((void*)fb_virt, 0, primary_fb->height * primary_fb->pitch);
     }
 }

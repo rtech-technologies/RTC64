@@ -2,6 +2,7 @@
  * Licensed under the 'respect people's property' OS license. */
 /* Modified by Sovereign: Robust OSAL implementation for CherryUSB with interrupt-safe critical sections */
 #include "usb_osal.h"
+#include "pro_os.h"
 #include "hal.h"
 #include "external/tlsf.h"
 #include <string.h>
@@ -44,16 +45,14 @@ void usb_osal_leave_critical_section(size_t flag) {
     );
 }
 
-extern void scheduler_add_task(const char *name, void (*entry)(void));
-
 usb_osal_thread_t usb_osal_thread_create(const char *name, uint32_t stack_size, uint32_t priority, usb_thread_entry_t entry, void *argument) {
-    (void)stack_size; (void)priority; (void)argument;
+    (void)stack_size; (void)priority;
     serial_printf("[USB OSAL] Creating thread: %s\n", name);
     if (entry) {
         /* MEATY: Registering with kernel scheduler for true multitasking */
-        scheduler_add_task(name, (void (*)(void))entry);
+        int tid = scheduler_spawn(name, (void (*)(void*))entry, argument);
         /* In this freestanding implementation, we pass the task ID as thread handle */
-        return (usb_osal_thread_t)1;
+        return (usb_osal_thread_t)(uintptr_t)tid;
     }
     return (usb_osal_thread_t)NULL;
 }
@@ -89,11 +88,10 @@ int usb_osal_sem_take(usb_osal_sem_t sem, uint32_t timeout) {
     usb_sem_t *s = (usb_sem_t *)sem;
     if (!s) return -1;
 
-    uint32_t start_time = 0; // Simplified
+    uint64_t start_ms = hal_get_uptime_ms();
     while (s->count == 0) {
-        if (timeout != 0xFFFFFFFFU && start_time >= timeout) return -1;
-        __asm__("pause");
-        start_time++; // Dummy increment
+        if (timeout != 0xFFFFFFFFU && (hal_get_uptime_ms() - start_ms >= timeout)) return -1;
+        scheduler_yield();
     }
 
     size_t flags = usb_osal_enter_critical_section();
@@ -185,11 +183,10 @@ int usb_osal_mq_recv(usb_osal_mq_t mq, uintptr_t *addr, uint32_t timeout) {
     usb_mq_t *m = (usb_mq_t *)mq;
     if (!m || !addr) return -1;
     
-    uint32_t wait = 0;
+    uint64_t start_ms = hal_get_uptime_ms();
     while (m->head == m->tail) {
-        if (timeout != 0xFFFFFFFFU && wait >= timeout) return -1;
-        __asm__("pause");
-        wait++;
+        if (timeout != 0xFFFFFFFFU && (hal_get_uptime_ms() - start_ms >= timeout)) return -1;
+        scheduler_yield();
     }
     
     size_t flags = usb_osal_enter_critical_section();
@@ -226,9 +223,9 @@ void usb_osal_timer_stop(struct usb_osal_timer *timer) {
 }
 
 void usb_osal_msleep(uint32_t delay) {
-    /* MEATY: Calibrated delay loop for x86-64 */
-    for (uint32_t i = 0; i < delay; i++) {
-        for (volatile uint32_t j = 0; j < 1000000; j++) __asm__("pause");
+    uint64_t start_ms = hal_get_uptime_ms();
+    while (hal_get_uptime_ms() - start_ms < delay) {
+        scheduler_yield();
     }
 }
 
