@@ -44,3 +44,14 @@ This document serves as the master record of repairs, hardening, and non-stub lo
 - Implemented central Exception Handler for hardware-level events (Page Fault, GPF).
 - Added 'audit' and 'fault' debug commands to the serial console.
 - Standardized serial event logging for hardware hot-plugging.
+
+### Version 1.4 - Architecture Audit & Nuklear Native Graphics
+- Performed full system audit to resolve early boot Page Faults.
+- Hardened PMM with safety checks and explicit HHDM mapping.
+- Made all Limine requests global for reliable bootloader discovery.
+- Fully integrated Nuklear RawFB native rendering.
+- Implemented 2-phase boot rendering with RTECH logo.
+- Standardized vertical scroll wheel support.
+- Enabled native Nuklear cursor rendering.
+- Improved Panic Engine (OSOD) with early-boot serial fallback.
+- Verified 100% successful zero-warning build.
