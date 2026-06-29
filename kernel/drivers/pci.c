@@ -68,30 +68,27 @@ void pci_scan(void) {
                     g_pci_count++;
                 }
 
-                /* Class 0x0C = Serial Bus Controller, Subclass 0x03 = USB Controller */
                 if (base_class == 0x0C && sub_class == 0x03) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 0);
-                    if (prog_if == 0x30) { /* xHCI */
+                    if (prog_if == 0x30) {
                         xhci_mmio_base = mmio;
-                        serial_printf("[PCI] Connecting xHCI Controller at %p\n", mmio);
+                        serial_printf("[EVENT] CONNECT: xHCI Controller at %p\n", mmio);
                         xhci_init(mmio);
-                    } else if (prog_if == 0x20) { /* EHCI */
+                    } else if (prog_if == 0x20) {
                         ehci_mmio_base = mmio;
-                        serial_printf("[PCI] Connecting EHCI Controller at %p\n", mmio);
+                        serial_printf("[EVENT] CONNECT: EHCI Controller at %p\n", mmio);
                         ehci_init(mmio);
                     }
-                }
-                /* Class 0x01 = Mass Storage Controller */
-                else if (base_class == 0x01) {
-                    if (sub_class == 0x08) { /* NVMe */
+                } else if (base_class == 0x01) {
+                    if (sub_class == 0x08) {
                         uint64_t mmio = pci_get_bar(bus, slot, func, 0);
                         nvme_mmio_base = mmio;
-                        serial_printf("[PCI] Connecting NVMe Controller at %p\n", mmio);
+                        serial_printf("[EVENT] CONNECT: NVMe Controller at %p\n", mmio);
                         nvme_init(mmio);
-                    } else if (sub_class == 0x06) { /* AHCI */
+                    } else if (sub_class == 0x06) {
                         uint64_t mmio = pci_get_bar(bus, slot, func, 5);
                         ahci_mmio_base = mmio;
-                        serial_printf("[PCI] Connecting AHCI Controller at %p\n", mmio);
+                        serial_printf("[EVENT] CONNECT: AHCI Controller at %p\n", mmio);
                         ahci_init(mmio);
                     }
                 }
@@ -106,9 +103,7 @@ void pci_scan(void) {
     serial_printf("[PCI] Scan complete. Total devices: %d\n", g_pci_count);
 }
 
-int pci_get_device_count(void) {
-    return g_pci_count;
-}
+int pci_get_device_count(void) { return g_pci_count; }
 
 int pci_get_device_info(int index, char* buf, size_t sz) {
     if (index < 0 || index >= g_pci_count) return -1;

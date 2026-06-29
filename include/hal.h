@@ -74,6 +74,8 @@ bool hal_input_get_device_info(int index, input_device_info_t *info);
 
 /* PS/2 Driver */
 void hal_ps2_init(void);
+void ps2_poll_kbd(void);
+void ps2_poll_mouse(void);
 
 /* --- Storage System --- */
 typedef enum {

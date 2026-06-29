@@ -901,7 +901,7 @@ nk_rawfb_stretch_image(const struct rawfb_image *dst,
             col = nk_rawfb_img_getpixel(src, (int)xoff, (int) yoff);
             /* MEATY: Alpha blending for font quality */
             struct nk_color final_col = *fg;
-            final_col.a = (unsigned char)((float)fg->a * ((float)col.r / 255.0f));
+            final_col.a = (unsigned char)((float)fg->a * ((float)col.a / 255.0f));
             nk_rawfb_img_blendpixel(dst, i + (int)(dst_rect->x + 0.5f), j + (int)(dst_rect->y + 0.5f), final_col);
             xoff += xinc;
         }

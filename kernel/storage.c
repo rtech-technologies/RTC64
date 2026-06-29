@@ -33,7 +33,7 @@ void usbh_msc_run(struct usbh_msc *msc_class) {
     usb_storage_t *usb = &g_usb_disks[g_usb_disk_count];
     usb->msc = msc_class;
 
-    usb->base.name = "Genuine USB Disk";
+    usb->base.name = "USB Disk";
     usb->base.type = STORAGE_TYPE_USB;
     usb->base.total_blocks = msc_class->blocknum;
     usb->base.block_size = msc_class->blocksize;
@@ -41,7 +41,7 @@ void usbh_msc_run(struct usbh_msc *msc_class) {
     usb->base.write = usb_write_hw;
     usb->base.priv = usb;
 
-    serial_printf("[STORAGE] Registering USB Disk: %s (%d blocks)\n", usb->base.name, (int)usb->base.total_blocks);
+    serial_printf("[EVENT] CONNECT: USB Disk (%d blocks)\n", (int)usb->base.total_blocks);
 
     if (hal_storage_register_device(&usb->base) == 0) {
         g_usb_disk_count++;
@@ -51,7 +51,7 @@ void usbh_msc_run(struct usbh_msc *msc_class) {
 }
 
 void usbh_msc_stop(struct usbh_msc *msc_class) {
-    serial_printf("[STORAGE] USB Disk detached\n");
+    serial_printf("[EVENT] DISCONNECT: USB Disk\n");
     (void)msc_class;
 }
 
