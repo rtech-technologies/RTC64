@@ -4,53 +4,50 @@
 #include "hal.h"
 #include "serial.h"
 #include <string.h>
+#include <math.h>
+
+#define NK_INCLUDE_FIXED_TYPES
+#define NK_INCLUDE_STANDARD_IO
+#define NK_INCLUDE_STANDARD_VARARGS
+#define NK_INCLUDE_DEFAULT_ALLOCATOR
+#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+#define NK_INCLUDE_FONT_BAKING
+#define NK_INCLUDE_DEFAULT_FONT
 #include "nuklear.h"
 #include "nuklear_rawfb.h"
 #include "app_ui.h"
 
 NK_API struct nk_context* nk_rawfb_get_ctx(struct rawfb_context* rawfb);
 
-/* --- Limine Requests --- */
-static volatile struct limine_hhdm_request hhdm_req = {
-    .id = LIMINE_HHDM_REQUEST,
-    .revision = 0
-};
+static volatile struct limine_hhdm_request hhdm_req = { .id = LIMINE_HHDM_REQUEST, .revision = 0 };
+volatile struct limine_framebuffer_request framebuffer_request = { .id = LIMINE_FRAMEBUFFER_REQUEST, .revision = 0 };
+volatile struct limine_module_request module_request = { .id = LIMINE_MODULE_REQUEST, .revision = 0 };
 
-volatile struct limine_framebuffer_request framebuffer_request = {
-    .id = LIMINE_FRAMEBUFFER_REQUEST,
-    .revision = 0
-};
-
-volatile struct limine_module_request module_request = {
-    .id = LIMINE_MODULE_REQUEST,
-    .revision = 0
-};
-
-/* --- Global OS State --- */
 uint64_t hhdm_offset = 0;
 struct limine_framebuffer *primary_fb = NULL;
+static int g_boot_phase = 1;
 
-/* --- Executive Subsystems --- */
 void init_sse(void) {
     uint64_t cr0, cr4;
     __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
-    cr0 &= ~(1ULL << 2);
-    cr0 |= (1ULL << 1);
+    cr0 &= ~(1ULL << 2); cr0 |= (1ULL << 1);
     __asm__ volatile("mov %0, %%cr0" : : "r"(cr0));
-
     __asm__ volatile("mov %%cr4, %0" : "=r"(cr4));
     cr4 |= (3ULL << 9);
     __asm__ volatile("mov %0, %%cr4" : : "r"(cr4));
 }
 
+void draw_rtech_logo(struct nk_context *ctx, int screen_w, int screen_h) {
+    struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
+    struct nk_rect bounds = nk_rect((float)screen_w/2.0f - 100.0f, (float)screen_h/2.0f - 50.0f, 200.0f, 100.0f);
+    nk_fill_rect(canvas, bounds, 0, nk_rgb(0, 120, 215));
+    nk_draw_text(canvas, nk_rect(bounds.x + 40.0f, bounds.y + 35.0f, 120.0f, 30.0f), "R-TECH", 6,
+                ctx->style.font, nk_rgb(30, 30, 30), nk_rgb(255, 255, 255));
+}
+
 void environment_manager_entry(void* arg) {
     (void)arg;
-    serial_printf("[ENV] Environment Manager Started.\n");
-
-    if (!primary_fb) {
-        serial_printf("[ENV] FATAL: No Framebuffer.\n");
-        while(1) { scheduler_yield(); }
-    }
+    if (!primary_fb) while(1) scheduler_yield();
 
     struct rawfb_pl pl;
     pl.bytesPerPixel = primary_fb->bpp / 8;
@@ -65,70 +62,70 @@ void environment_manager_entry(void* arg) {
 
     void* font_tex_mem = malloc(2 * 1024 * 1024);
     struct rawfb_context *rawfb = nk_rawfb_init((void*)((uint64_t)primary_fb->address + hhdm_offset),
-                          font_tex_mem,
-                          (unsigned int)primary_fb->width, (unsigned int)primary_fb->height,
-                          (unsigned int)primary_fb->pitch, pl);
+                          font_tex_mem, (unsigned int)primary_fb->width, (unsigned int)primary_fb->height, (unsigned int)primary_fb->pitch, pl);
 
     struct nk_context *ctx = nk_rawfb_get_ctx(rawfb);
     ui_init_style(ctx);
+    nk_style_show_cursor(ctx);
 
     static struct app_state app;
     memset(&app, 0, sizeof(app));
     app.current_state = STATE_DESKTOP;
 
+    int mx, my;
+    uint64_t start_time = hal_get_uptime_ms();
+
     while(1) {
+        if (g_boot_phase == 1 && (hal_get_uptime_ms() - start_time) > 3000) g_boot_phase = 2;
+
         input_event_t ev;
         nk_input_begin(ctx);
         while (hal_input_pop_event(&ev)) {
             if (ev.type == INPUT_TYPE_MOUSE) {
-                nk_input_motion(ctx, (float)ev.mouse.x, (float)ev.mouse.y);
-                nk_input_button(ctx, NK_BUTTON_LEFT, ev.mouse.x, ev.mouse.y, (int)(ev.mouse.buttons & 1));
+                hal_input_get_mouse_abs(&mx, &my);
+                if (mx < 0) mx = 0;
+                if (mx >= (int)primary_fb->width) mx = (int)primary_fb->width - 1;
+                if (my < 0) my = 0;
+                if (my >= (int)primary_fb->height) my = (int)primary_fb->height - 1;
+
+                nk_input_motion(ctx, (float)mx, (float)my);
+                nk_input_button(ctx, NK_BUTTON_LEFT, mx, my, (ev.mouse.buttons & 1));
+                nk_input_button(ctx, NK_BUTTON_RIGHT, mx, my, (ev.mouse.buttons & 2));
+                if (ev.mouse.scroll != 0) nk_input_scroll(ctx, nk_vec2(0, (float)ev.mouse.scroll));
             }
         }
         nk_input_end(ctx);
 
-        ui_render(ctx, &app, (int)primary_fb->width, (int)primary_fb->height);
+        if (g_boot_phase == 1) {
+            if (nk_begin(ctx, "Boot", nk_rect(0, 0, (float)primary_fb->width, (float)primary_fb->height), NK_WINDOW_NO_SCROLLBAR)) {
+                draw_rtech_logo(ctx, (int)primary_fb->width, (int)primary_fb->height);
+            }
+            nk_end(ctx);
+        } else {
+            ui_render(ctx, &app, (int)primary_fb->width, (int)primary_fb->height);
+        }
 
-        nk_rawfb_render(rawfb, nk_rgb(30,30,30), 1);
+        nk_rawfb_render(rawfb, nk_rgb(20, 20, 20), 1);
         scheduler_yield();
     }
 }
 
 void kernel_main(void) {
     serial_init();
-    serial_printf("[BOOT] Phase 0: System Genesis\n");
-
-    if (hhdm_req.response) {
-        hhdm_offset = hhdm_req.response->offset;
-    }
-
-    if (framebuffer_request.response && framebuffer_request.response->framebuffer_count > 0) {
+    if (hhdm_req.response) hhdm_offset = hhdm_req.response->offset;
+    if (framebuffer_request.response && framebuffer_request.response->framebuffer_count > 0)
         primary_fb = framebuffer_request.response->framebuffers[0];
-    }
 
-    gdt_init();
-    idt_init();
-
+    gdt_init(); idt_init();
     pmm_init(NULL);
     hal_malloc_init(pmm_alloc_blocks(1024), 1024 * 4096);
-
-    apic_init();
-    init_sse();
-
+    apic_init(); init_sse();
     scheduler_init();
+    vfs_init(); hal_storage_init(); pci_scan(); hal_usb_init(); hal_ps2_init();
 
-    vfs_init();
-    hal_storage_init();
-    pci_scan();
-    hal_usb_init();
-    hal_ps2_init();
-
-    serial_printf("[BOOT] Spawning High-Priority Input Tasks...\n");
     scheduler_spawn("KBD", kbd_task, NULL);
     scheduler_spawn("MOUSE", mouse_task, NULL);
     scheduler_spawn("Compliance", comprec_task, NULL);
-
-    serial_printf("[BOOT] Final Handoff to Environment Manager...\n");
     scheduler_spawn("Environment Manager", environment_manager_entry, NULL);
 
     scheduler_run();

@@ -2,90 +2,69 @@
  * Licensed under the 'respect people's property' OS license. */
 #include "pro_os.h"
 #include "serial.h"
-#include <stddef.h>
 #include <string.h>
 
 extern struct limine_framebuffer *primary_fb;
-void draw_glyph(int x, int y, char c, uint32_t color);
+extern uint64_t hhdm_offset;
+extern void draw_glyph(int x, int y, char c, uint32_t color);
 
-static void draw_string(int x, int y, const char* str, uint32_t color) {
-    while (*str) {
-        draw_glyph(x, y, *str, color);
-        x += 8;
-        str++;
-    }
-}
-
-static void osod_render(const char* message, struct cpu_state *state) {
+static void osod_render(const char* msg, struct cpu_state *state) {
     if (!primary_fb) return;
+    uint32_t *fb = (uint32_t*)((uint64_t)primary_fb->address + hhdm_offset);
+    uint32_t orange = 0xFF4500;
 
-    /* Background: Orange (#FF4500) */
-    uint32_t *fb = (uint32_t*)primary_fb->address;
-    for (uint64_t i = 0; i < primary_fb->width * primary_fb->height; i++) {
-        fb[i] = 0xFFFF4500;
-    }
+    for (uint64_t i = 0; i < primary_fb->width * primary_fb->height; i++) fb[i] = orange;
 
-    int y = 50;
-    draw_string(50, y, "::::::::::::::::::::::::::::::::::::::::::::::::", 0xFFFFFFFF); y += 20;
-    draw_string(50, y, "::                                            ::", 0xFFFFFFFF); y += 20;
-    draw_string(50, y, "::       SOVEREIGN RTC64 CRITICAL ERROR       ::", 0xFFFFFFFF); y += 20;
-    draw_string(50, y, "::                                            ::", 0xFFFFFFFF); y += 20;
-    draw_string(50, y, "::::::::::::::::::::::::::::::::::::::::::::::::", 0xFFFFFFFF); y += 40;
+    int x = 20, y = 20;
+    const char *title = "!!! SOVEREIGN KERNEL PANIC !!!";
+    while (*title) { draw_glyph(x, y, *title++, 0xFFFFFF); x += 8; }
 
-    draw_string(50, y, "MESSAGE: ", 0xFFFFFFFF);
-    draw_string(130, y, message, 0xFFFFFF00); y += 40;
+    x = 20; y += 30;
+    while (*msg) { draw_glyph(x, y, *msg++, 0xFFFFFF); x += 8; }
 
     if (state) {
         char buf[128];
-        snprintf(buf, sizeof(buf), "EXCEPTION: %d  ERR: %016llx", (int)state->interrupt_number, (unsigned long long)state->error_code);
-        draw_string(50, y, buf, 0xFFFFFFFF); y += 20;
-        snprintf(buf, sizeof(buf), "RIP: %016llx  CS: %llx  FLG: %016llx", (unsigned long long)state->rip, (unsigned long long)state->cs, (unsigned long long)state->rflags);
-        draw_string(50, y, buf, 0xFFFFFFFF); y += 30;
+        y += 40; x = 20;
+        snprintf(buf, sizeof(buf), "RIP: %p  CS: %p  RFLAGS: %p", (void*)state->rip, (void*)state->cs, (void*)state->rflags);
+        const char *p = buf; while (*p) { draw_glyph(x, y, *p++, 0xFFFFFF); x += 8; }
 
-        snprintf(buf, sizeof(buf), "RAX: %016llx  RBX: %016llx", (unsigned long long)state->rax, (unsigned long long)state->rbx);
-        draw_string(50, y, buf, 0xFFFFFFFF); y += 20;
-        snprintf(buf, sizeof(buf), "RCX: %016llx  RDX: %016llx", (unsigned long long)state->rcx, (unsigned long long)state->rdx);
-        draw_string(50, y, buf, 0xFFFFFFFF); y += 20;
-        snprintf(buf, sizeof(buf), "RSI: %016llx  RDI: %016llx", (unsigned long long)state->rsi, (unsigned long long)state->rdi);
-        draw_string(50, y, buf, 0xFFFFFFFF); y += 20;
-        snprintf(buf, sizeof(buf), "RBP: %016llx  RSP: %016llx", (unsigned long long)state->rbp, (unsigned long long)state->rsp);
-        draw_string(50, y, buf, 0xFFFFFFFF); y += 40;
+        y += 20; x = 20;
+        snprintf(buf, sizeof(buf), "RAX: %p  RBX: %p  RCX: %p", (void*)state->rax, (void*)state->rbx, (void*)state->rcx);
+        p = buf; while (*p) { draw_glyph(x, y, *p++, 0xFFFFFF); x += 8; }
+
+        y += 20; x = 20;
+        snprintf(buf, sizeof(buf), "CR2: %p (Fault Address)", (void*)state->cr2);
+        p = buf; while (*p) { draw_glyph(x, y, *p++, 0xFFFFFF); x += 8; }
     }
-
-    draw_string(50, y, "THE SYSTEM HAS BEEN HALTED TO PREVENT DAMAGE.", 0xFFFFFFFF); y += 20;
-    draw_string(50, y, "PLEASE REBOOT YOUR MACHINE.", 0xFFFFFFFF);
 }
 
 void kpanic(const char* message) {
-    serial_printf("\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-    serial_printf("!!! KERNEL PANIC: %s\n", message);
-    serial_printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-
-    comprec_log("ERROR", message);
+    serial_printf("\n\n[FATAL] KERNEL PANIC: %s\n", message);
     osod_render(message, NULL);
-
-    /* Architectural State securing */
-    __asm__ volatile("cli");
-    serial_printf("ESTATE SECURED. EXECUTION HALTED SAFELY.\n");
-    while(1) { __asm__ volatile("hlt"); }
+    __asm__ volatile("cli; hlt");
 }
 
-void exception_handler_panic(struct cpu_state *state) {
-    serial_printf("\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-    serial_printf("!!! KERNEL PANIC: EXCEPTION #%d\n", (int)state->interrupt_number);
-    serial_printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-    serial_printf("RIP: %p  ERR: %016llx\n", (void*)state->rip, (unsigned long long)state->error_code);
-    serial_printf("RAX: %p  RBX: %p  RCX: %p\n", (void*)state->rax, (void*)state->rbx, (void*)state->rcx);
-    serial_printf("RDX: %p  RSI: %p  RDI: %p\n", (void*)state->rdx, (void*)state->rsi, (void*)state->rdi);
-    serial_printf("RBP: %p  RSP: %p  FLG: %016llx\n", (void*)state->rbp, (void*)state->rsp, (unsigned long long)state->rflags);
+void exception_handler(struct cpu_state *state) {
+    if (state->interrupt_number >= 32) {
+        extern void timer_handler(struct cpu_state*);
+        if (state->interrupt_number == 32) timer_handler(state);
+        extern void apic_eoi(void);
+        apic_eoi();
+        return;
+    }
 
-    osod_render("CPU EXCEPTION TRAP", state);
+    const char* exc_name = "CPU EXCEPTION";
+    if (state->interrupt_number == 14) exc_name = "PAGE FAULT";
+    else if (state->interrupt_number == 13) exc_name = "GENERAL PROTECTION FAULT";
+    else if (state->interrupt_number == 0) exc_name = "DIVIDE BY ZERO";
 
-    __asm__ volatile("cli");
-    while(1) { __asm__ volatile("hlt"); }
+    serial_printf("\n[EXCEPTION] %s (%d) at RIP: %p\n", exc_name, (int)state->interrupt_number, (void*)state->rip);
+    osod_render(exc_name, state);
+
+    /* Audit for page fault: trigger if unrecoverable or debug */
+    if (state->interrupt_number == 14) {
+        serial_printf("[AUDIT] Page Fault captured. CR2: %p\n", (void*)state->cr2);
+    }
+
+    while(1) { __asm__ volatile("cli; hlt"); }
 }
-
-void handler_divide_by_zero(void) { kpanic("DIVIDE_BY_ZERO"); }
-void handler_double_fault(void) { kpanic("DOUBLE_FAULT"); }
-void handler_general_protection_fault(void) { kpanic("GENERAL_PROTECTION_FAULT"); }
-void handler_page_fault(void) { kpanic("PAGE_FAULT"); }

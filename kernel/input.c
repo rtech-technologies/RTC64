@@ -13,13 +13,12 @@ static input_event_t g_input_queue[INPUT_QUEUE_SIZE];
 static volatile int g_queue_head = 0;
 static volatile int g_queue_tail = 0;
 
-static int g_mouse_abs_x = 0;
-static int g_mouse_abs_y = 0;
+static int g_mouse_abs_x = 400;
+static int g_mouse_abs_y = 300;
 
 #define MAX_INPUT_DEVICES 8
 static input_device_info_t g_input_devices[MAX_INPUT_DEVICES];
 static int g_input_dev_count = 0;
-
 static void* g_usb_hid_map[MAX_INPUT_DEVICES];
 static int g_usb_hid_id[MAX_INPUT_DEVICES];
 
@@ -65,6 +64,9 @@ void hal_input_push_event(input_event_t ev) {
     if (ev.type == INPUT_TYPE_MOUSE) {
         g_mouse_abs_x += ev.mouse.x;
         g_mouse_abs_y += ev.mouse.y;
+        if (g_mouse_abs_x < 0) g_mouse_abs_x = 0;
+        if (g_mouse_abs_y < 0) g_mouse_abs_y = 0;
+        /* Clamping happens in EM, but we keep basic tracking here */
     }
 }
 
@@ -77,29 +79,20 @@ bool hal_input_pop_event(input_event_t *ev) {
 
 void hal_input_init(void) {
     g_queue_head = 0; g_queue_tail = 0;
-    g_mouse_abs_x = 0; g_mouse_abs_y = 0;
+    g_mouse_abs_x = 400; g_mouse_abs_y = 300;
     g_input_dev_count = 0;
     memset(g_input_queue, 0, sizeof(g_input_queue));
     memset(g_input_devices, 0, sizeof(g_input_devices));
     memset(g_usb_hid_map, 0, sizeof(g_usb_hid_map));
 }
 
-/* Polling Tasks: Loop until something is returned, then yield */
 void kbd_task(void* arg) {
     (void)arg;
     serial_printf("[INPUT] KBD Task Started.\n");
     while(1) {
-        int old_head = g_queue_head;
-        /* Poll until we get a keyboard event */
-        while (g_queue_head == old_head) {
-            hal_usb_poll();
-            ps2_poll_kbd();
-            if (g_queue_head != old_head) {
-                /* Verify it was actually a keyboard event if needed, but for now we just return */
-                break;
-            }
-            scheduler_yield();
-        }
+        hal_usb_poll();
+        ps2_poll_kbd();
+        scheduler_yield();
     }
 }
 
@@ -107,26 +100,22 @@ void mouse_task(void* arg) {
     (void)arg;
     serial_printf("[INPUT] MOUSE Task Started.\n");
     while(1) {
-        int old_head = g_queue_head;
-        /* Poll until we get a mouse event */
-        while (g_queue_head == old_head) {
-            hal_usb_poll();
-            ps2_poll_mouse();
-            if (g_queue_head != old_head) break;
-            scheduler_yield();
-        }
+        hal_usb_poll();
+        ps2_poll_mouse();
+        scheduler_yield();
     }
 }
 
 void usbh_hid_callback(void *arg, int nbytes) {
     struct usbh_hid *hid_class = (struct usbh_hid *)arg;
     if (nbytes >= 3) {
-        uint8_t *data = (uint8_t*)hid_class->intin_urb.transfer_buffer;
+        uint8_t *report = (uint8_t*)hid_class->intin_urb.transfer_buffer;
         input_event_t ev;
         ev.type = INPUT_TYPE_MOUSE;
-        ev.mouse.x = (int8_t)data[1];
-        ev.mouse.y = (int8_t)data[2];
-        ev.mouse.buttons = data[0];
+        ev.mouse.buttons = report[0];
+        ev.mouse.x = (int8_t)report[1];
+        ev.mouse.y = (int8_t)report[2];
+        ev.mouse.scroll = (nbytes >= 4) ? (int8_t)report[3] : 0;
         hal_input_push_event(ev);
     }
     usbh_submit_urb(&hid_class->intin_urb);

@@ -32,3 +32,15 @@ This document serves as the master record of repairs, hardening, and non-stub lo
 
 ## 3. Final Quality Assurance
 - **Status:** 0 Errors, 0 Warnings under strict -Wall -Wextra.
+
+### Version 1.2 - Advanced Graphics and Input
+- Fully refactored graphics pipeline to use native Nuklear RawFB rendering.
+- Removed manual mouse blitting; Nuklear now natively handles the cursor overlay.
+- Hooked CherryUSB HID reports to Nuklear input pool, adding vertical scroll wheel support.
+- Implemented 2-phase boot rendering:
+  - Phase 1: High-fidelity "RTECH" logo centered on solid background with active mouse.
+  - Phase 2: Instant workspace deployment (Desktop).
+- Restored advanced Panic System (OSOD) with architectural register dumps.
+- Implemented central Exception Handler for hardware-level events (Page Fault, GPF).
+- Added 'audit' and 'fault' debug commands to the serial console.
+- Standardized serial event logging for hardware hot-plugging.

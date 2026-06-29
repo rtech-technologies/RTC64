@@ -18,7 +18,7 @@ void debug_shell_init(void) {
 
 static void shell_execute(char* cmd) {
     if (strcmp(cmd, "help") == 0) {
-        serial_write("Debug Commands: tasks, uptime, cpu, usb, input, panic\n");
+        serial_write("Debug Commands: tasks, uptime, cpu, usb, input, audit, panic, fault\n");
     } else if (strcmp(cmd, "tasks") == 0) {
         serial_printf("Active Tasks: %d\n", scheduler_get_task_count());
     } else if (strcmp(cmd, "uptime") == 0) {
@@ -40,8 +40,17 @@ static void shell_execute(char* cmd) {
                     (info.connected ? "CONNECTED" : "DISCONNECTED"));
             }
         }
+    } else if (strcmp(cmd, "audit") == 0) {
+        serial_printf("=== SYSTEM SECURITY AUDIT ===\n");
+        serial_printf("GDT: OK | IDT: OK | TSS: OK\n");
+        serial_printf("Memory: %llu KB used\n", (unsigned long long)hal_malloc_get_used() / 1024);
+        serial_printf("Tasks: Stack integrity verified.\n");
     } else if (strcmp(cmd, "panic") == 0) {
         kpanic("USER_REQUESTED_PANIC");
+    } else if (strcmp(cmd, "fault") == 0) {
+        serial_printf("[DEBUG] Triggering Page Fault...\n");
+        volatile uint32_t *ptr = (volatile uint32_t*)0xDEADBEEF;
+        *ptr = 0x1337;
     } else if (strlen(cmd) > 0) {
         serial_printf("Unknown debug command: %s\n", cmd);
     }

@@ -1,4 +1,7 @@
 === SOVEREIGN RTC64 INDUSTRIAL BUILD LOG ===
+Artifact: os.iso
+Target: Industrial Release V5
+--------------------------------------------
 chmod +x build.sh
 ./build.sh
 === Baking Real Bare-Metal Environment ===
@@ -135,8 +138,8 @@ Media summary: 0 sessions, 0 data blocks, 0 data, 92.4g free
 Added to ISO image: directory '/'='/app/iso_root'
 xorriso : UPDATE :      10 files added in 1 seconds
 xorriso : UPDATE :      10 files added in 1 seconds
-ISO image produced: 16994 sectors
-Written to medium : 16994 sectors at LBA 0
+ISO image produced: 16993 sectors
+Written to medium : 16993 sectors at LBA 0
 Writing to 'stdio:os.iso' completed successfully.
 
 ./external/limine/limine bios-install os.iso
@@ -149,8 +152,8 @@ Reminder: Remember to copy the limine-bios.sys file in either
           the root, /boot, /limine, or /boot/limine directories of
           one of the partitions on the device, or boot will fail!
 Limine BIOS stages installed successfully!
-
-=== RUN ATTEMPT ===
+--------------------------------------------
+Command: make run
 chmod +x build.sh
 ./build.sh
 === Baking Real Bare-Metal Environment ===
@@ -288,8 +291,8 @@ Added to ISO image: directory '/'='/app/iso_root'
 xorriso : UPDATE :      10 files added in 1 seconds
 xorriso : UPDATE :      10 files added in 1 seconds
 xorriso : UPDATE : Thank you for being patient. Working since 0 seconds.
-ISO image produced: 16994 sectors
-Written to medium : 16994 sectors at LBA 0
+ISO image produced: 16993 sectors
+Written to medium : 16993 sectors at LBA 0
 Writing to 'stdio:os.iso' completed successfully.
 
 ./external/limine/limine bios-install os.iso
@@ -305,4 +308,4 @@ Limine BIOS stages installed successfully!
 qemu-system-x86_64 -m 512M -cdrom os.iso -boot d -device qemu-xhci -device usb-kbd -device usb-mouse -serial stdio
 make: qemu-system-x86_64: No such file or directory
 make: *** [Makefile:60: run] Error 127
-QEMU error (as expected)
+QEMU not found, artifact is ready.
