@@ -19,9 +19,10 @@
 
 NK_API struct nk_context* nk_rawfb_get_ctx(struct rawfb_context* rawfb);
 
-static volatile struct limine_hhdm_request hhdm_req = { .id = LIMINE_HHDM_REQUEST, .revision = 0 };
+volatile struct limine_hhdm_request hhdm_req = { .id = LIMINE_HHDM_REQUEST, .revision = 0 };
 volatile struct limine_framebuffer_request framebuffer_request = { .id = LIMINE_FRAMEBUFFER_REQUEST, .revision = 0 };
 volatile struct limine_module_request module_request = { .id = LIMINE_MODULE_REQUEST, .revision = 0 };
+volatile struct limine_memmap_request memmap_req = { .id = LIMINE_MEMMAP_REQUEST, .revision = 0 };
 
 uint64_t hhdm_offset = 0;
 struct limine_framebuffer *primary_fb = NULL;
@@ -61,9 +62,13 @@ void environment_manager_entry(void* arg) {
     pl.aloss = 8;
 
     void* font_tex_mem = malloc(2 * 1024 * 1024);
-    struct rawfb_context *rawfb = nk_rawfb_init((void*)((uint64_t)primary_fb->address + hhdm_offset),
+    if (!font_tex_mem) kpanic("FONT_ALLOC_FAILED");
+
+    /* Limine FB address is already virtual */
+    struct rawfb_context *rawfb = nk_rawfb_init((void*)primary_fb->address,
                           font_tex_mem, (unsigned int)primary_fb->width, (unsigned int)primary_fb->height, (unsigned int)primary_fb->pitch, pl);
 
+    if (!rawfb) kpanic("NK_RAWFB_INIT_FAULT");
     struct nk_context *ctx = nk_rawfb_get_ctx(rawfb);
     ui_init_style(ctx);
     nk_style_show_cursor(ctx);
@@ -112,16 +117,36 @@ void environment_manager_entry(void* arg) {
 
 void kernel_main(void) {
     serial_init();
+    serial_printf("[BOOT] Stage 0: Initialized.\n");
+
     if (hhdm_req.response) hhdm_offset = hhdm_req.response->offset;
     if (framebuffer_request.response && framebuffer_request.response->framebuffer_count > 0)
         primary_fb = framebuffer_request.response->framebuffers[0];
 
-    gdt_init(); idt_init();
-    pmm_init(NULL);
-    hal_malloc_init(pmm_alloc_blocks(1024), 1024 * 4096);
-    apic_init(); init_sse();
+    gdt_init();
+    idt_init();
+
+    if (memmap_req.response) {
+        pmm_init(memmap_req.response);
+    } else {
+        kpanic("MISSING_MEMMAP");
+    }
+
+    void* phys_heap = pmm_alloc_blocks(1024);
+    if (!phys_heap) kpanic("HEAP_GENESIS_FAULT");
+    void* virt_heap = (void*)((uint64_t)phys_heap + hhdm_offset);
+    hal_malloc_init(virt_heap, 1024 * 4096);
+
+    apic_init();
+    init_sse();
+
     scheduler_init();
-    vfs_init(); hal_storage_init(); pci_scan(); hal_usb_init(); hal_ps2_init();
+
+    vfs_init();
+    hal_storage_init();
+    pci_scan();
+    hal_usb_init();
+    hal_ps2_init();
 
     scheduler_spawn("KBD", kbd_task, NULL);
     scheduler_spawn("MOUSE", mouse_task, NULL);

@@ -55,3 +55,11 @@ This document serves as the master record of repairs, hardening, and non-stub lo
 - Enabled native Nuklear cursor rendering.
 - Improved Panic Engine (OSOD) with early-boot serial fallback.
 - Verified 100% successful zero-warning build.
+
+### Version 1.5 - Self-Contained Panic Engine
+- Decoupled the Panic Engine (OSOD) from the high-level OS graphics pipeline.
+- Implemented a self-contained minimal bitmap font in `kernel/panic.c`.
+- Added a recursion guard and `panic_lock` to prevent infinite Page Fault loops during exceptions.
+- Hardened register capture and hex formatting for architectural dumps.
+- Simplified OSOD rendering to use direct 32-bit framebuffer access with manual clipping.
+- Ensured all early-boot logs and exception messages are mirrored to COM1.
