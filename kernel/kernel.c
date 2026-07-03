@@ -68,9 +68,9 @@ void environment_manager_entry(void* arg) {
     void* font_tex_mem = malloc(2 * 1024 * 1024);
     if (!font_tex_mem) kpanic("FONT_ALLOC_FAILED");
 
-    /* Adjust Limine FB address using HHDM as per high-power technical requirements. */
-    void* fb_addr = (void*)(primary_fb->address + hhdm_offset);
-    serial_printf("[EM] FB Address: %p (Original: %p, HHDM: %p)\n", fb_addr, (void*)primary_fb->address, (void*)hhdm_offset);
+    /* Limine FB address is already virtual */
+    void* fb_addr = (void*)primary_fb->address;
+    serial_printf("[EM] FB Address: %p (Virtual)\n", fb_addr);
 
     struct rawfb_context *rawfb = nk_rawfb_init(fb_addr,
                           font_tex_mem, (unsigned int)primary_fb->width, (unsigned int)primary_fb->height, (unsigned int)primary_fb->pitch, pl);

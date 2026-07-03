@@ -130,8 +130,8 @@ uint64_t scheduler_switch(uint64_t current_rsp) {
     for (int i = 0; i < MAX_TASKS; i++) {
         current_task_idx = (current_task_idx + 1) % MAX_TASKS;
         if (tasks[current_task_idx].state == TASK_RUNNING) {
-            /* Avoid spamming logs for the idle task (id 0) */
-            if (current_task_idx != 0) serial_printf("[SCHED] Switching to task id=%d name=%s\n", current_task_idx, tasks[current_task_idx].name);
+            /* Log every switch for diagnostics */
+            serial_printf("[SCHED] Switching to task id=%d name=%s\n", current_task_idx, tasks[current_task_idx].name);
             return task_rsps[current_task_idx];
         }
     }
