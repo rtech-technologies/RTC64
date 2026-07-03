@@ -78,6 +78,7 @@ void environment_manager_entry(void* arg) {
     strncpy(app.username, "Administrator", sizeof(app.username) - 1);
     app.current_state = STATE_LOGIN;
     app.installed = 0;
+    strcpy(app.explorer_path, "/");
 
     int mx, my;
     uint64_t start_time = hal_get_uptime_ms();

@@ -64,7 +64,7 @@ static void ui_render_taskbar(struct nk_context *ctx, struct app_state *app, int
 static void ui_render_launcher(struct nk_context *ctx, struct app_state *app)
 {
     if (!app->show_launcher) return;
-    if (nk_begin(ctx, "App Launcher", nk_rect(20, 60, 420, 360), NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_TITLE)) {
+    if (nk_begin(ctx, "App Launcher", nk_rect(20, 60, 420, 420), NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_TITLE)) {
         nk_layout_row_dynamic(ctx, 24, 1);
         nk_label(ctx, "Applications", NK_TEXT_LEFT);
         nk_layout_row_dynamic(ctx, 72, 4);
@@ -73,24 +73,47 @@ static void ui_render_launcher(struct nk_context *ctx, struct app_state *app)
         if (nk_button_label(ctx, "Studio")) app->show_app_studio = 1;
         if (nk_button_label(ctx, "Diagnostics")) app->show_lab = 1;
         nk_layout_row_dynamic(ctx, 72, 4);
+        if (nk_button_label(ctx, "Tasks")) app->show_task_manager = 1;
+        if (nk_button_label(ctx, "Notepad")) app->show_notepad = 1;
         if (nk_button_label(ctx, "Settings")) app->show_settings = 1;
         if (nk_button_label(ctx, "Installer")) app->current_state = STATE_INSTALLER;
         if (nk_button_label(ctx, "Lock")) app->current_state = STATE_LOGIN;
+        nk_layout_row_dynamic(ctx, 72, 4);
         if (nk_button_label(ctx, "Close")) app->show_launcher = 0;
     }
     if (nk_window_is_closed(ctx, "App Launcher")) app->show_launcher = 0;
     nk_end(ctx);
 }
 
-static void ui_render_background(struct nk_context *ctx, int ww, int wh)
+static void ui_render_desktop_icon(struct nk_context *ctx, const char *name, float x, float y, int *toggle)
+{
+    struct nk_rect bounds = nk_rect(x, y, 80, 80);
+    if (nk_input_is_mouse_hovering_rect(&ctx->input, bounds)) {
+        struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
+        nk_fill_rect(canvas, bounds, 4, nk_rgba(255, 255, 255, 30));
+        if (nk_input_is_mouse_pressed(&ctx->input, NK_BUTTON_LEFT)) {
+            *toggle = 1;
+        }
+    }
+    struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
+    nk_fill_rect(canvas, nk_rect(x+20, y+10, 40, 40), 2, nk_rgb(0, 120, 215));
+    nk_draw_text(canvas, nk_rect(x, y+55, 80, 20), name, (int)strlen(name), ctx->style.font, nk_rgb(255, 255, 255), nk_rgba(0,0,0,0));
+}
+
+static void ui_render_background(struct nk_context *ctx, struct app_state *app, int ww, int wh)
 {
     struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
     nk_fill_rect(canvas, nk_rect(0, 0, (float)ww, (float)wh), 0, nk_rgba(10, 16, 28, 255));
     nk_fill_rect(canvas, nk_rect(26, 26, (float)ww - 52, (float)wh - 98), 0, nk_rgba(20, 50, 91, 210));
-    nk_fill_rect(canvas, nk_rect(36, 36, 300, 150), 6, nk_rgba(0, 120, 220, 180));
-    nk_fill_rect(canvas, nk_rect((float)ww - 336, 36, 300, 150), 6, nk_rgba(110, 160, 245, 160));
-    nk_draw_text(canvas, nk_rect(60, 56, 260, 40), "Sovereign RTC64", 13, ctx->style.font, nk_rgba(255,255,255,255), nk_rgba(0,0,0,0));
-    nk_draw_text(canvas, nk_rect(60, 102, 260, 24), "Modern scripts and desktop apps on legacy hardware.", 41, ctx->style.font, nk_rgba(220,220,220,255), nk_rgba(0,0,0,0));
+
+    /* Branding */
+    nk_draw_text(canvas, nk_rect(ww - 240, wh - 100, 200, 30), "Sovereign RTC64 Pro", 19, ctx->style.font, nk_rgba(255, 255, 255, 80), nk_rgba(0,0,0,0));
+
+    /* Desktop Icons */
+    ui_render_desktop_icon(ctx, "Terminal", 50, 50, &app->show_terminal);
+    ui_render_desktop_icon(ctx, "Files", 50, 150, &app->show_explorer);
+    ui_render_desktop_icon(ctx, "Diagnostics", 50, 250, &app->show_lab);
+    ui_render_desktop_icon(ctx, "Notepad", 50, 350, &app->show_notepad);
 }
 
 static void ui_render_system_panel(struct nk_context *ctx, struct app_state *app)
@@ -144,13 +167,71 @@ static void ui_render_files(struct nk_context *ctx, struct app_state *app)
     if (nk_begin(ctx, "Files", nk_rect(240, 140, 540, 420), NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE)) {
         nk_layout_row_dynamic(ctx, 26, 1);
         nk_label(ctx, "File Manager", NK_TEXT_LEFT);
-        nk_layout_row_dynamic(ctx, 24, 1);
-        nk_label_wrap(ctx, "Browse mounted volumes, inspect storage health, and manage system files from a native desktop view.");
-        nk_layout_row_dynamic(ctx, 34, 2);
-        if (nk_button_label(ctx, "Refresh")) { }
-        if (nk_button_label(ctx, "Open Root")) { }
-        nk_layout_row_dynamic(ctx, 220, 1);
-        nk_label_wrap(ctx, "Mounted storage will appear here when file drivers are active. This app is the foundation for a real file browser.");
+
+        nk_layout_row_template_begin(ctx, 30);
+        nk_layout_row_template_push_static(ctx, 40);
+        nk_layout_row_template_push_dynamic(ctx);
+        nk_layout_row_template_end(ctx);
+
+        if (nk_button_label(ctx, "Up")) {
+            char *last_slash = strrchr(app->explorer_path, '/');
+            if (last_slash && last_slash != app->explorer_path) {
+                *last_slash = '\0';
+            } else if (last_slash == app->explorer_path) {
+                app->explorer_path[1] = '\0';
+            }
+        }
+        nk_label(ctx, app->explorer_path, NK_TEXT_LEFT);
+
+        nk_layout_row_dynamic(ctx, 280, 1);
+        if (nk_group_begin(ctx, "FileView", NK_WINDOW_BORDER)) {
+            char list_buf[2048];
+            if (vfs_ls(app->explorer_path, list_buf, sizeof(list_buf)) == 0) {
+                char *line = list_buf;
+                char *next_line;
+                while (line && *line) {
+                    next_line = strchr(line, '\n');
+                    if (next_line) *next_line = '\0';
+
+                    if (strlen(line) > 6) {
+                        bool is_dir = (strncmp(line, "<DIR>", 5) == 0);
+                        const char *name = line + 6;
+
+                        nk_layout_row_dynamic(ctx, 24, 1);
+                        if (nk_button_label(ctx, line)) {
+                            if (is_dir) {
+                            if (app->explorer_path[strlen(app->explorer_path)-1] != '/') {
+                                strncat(app->explorer_path, "/", sizeof(app->explorer_path) - strlen(app->explorer_path) - 1);
+                            }
+                            strncat(app->explorer_path, name, sizeof(app->explorer_path) - strlen(app->explorer_path) - 1);
+                            } else {
+                            /* Open in Notepad */
+                            char full_path[256];
+                            snprintf(full_path, sizeof(full_path), "%s%s%s",
+                                     app->explorer_path,
+                                     (app->explorer_path[strlen(app->explorer_path)-1] == '/') ? "" : "/",
+                                     name);
+                            if (vfs_cat(full_path, app->notepad_buffer, sizeof(app->notepad_buffer)) == 0) {
+                                strncpy(app->notepad_file, full_path, sizeof(app->notepad_file)-1);
+                                app->show_notepad = 1;
+                            }
+                            }
+                        }
+                    }
+
+                    if (next_line) {
+                        *next_line = '\n';
+                        line = next_line + 1;
+                    } else {
+                        line = NULL;
+                    }
+                }
+            } else {
+                nk_layout_row_dynamic(ctx, 24, 1);
+                nk_label(ctx, "Failed to list directory.", NK_TEXT_LEFT);
+            }
+            nk_group_end(ctx);
+        }
     }
     if (nk_window_is_closed(ctx, "Files")) app->show_explorer = 0;
     nk_end(ctx);
@@ -172,13 +253,61 @@ static void ui_render_settings(struct nk_context *ctx, struct app_state *app)
     nk_end(ctx);
 }
 
+static void ui_render_task_manager(struct nk_context *ctx, struct app_state *app)
+{
+    if (!app->show_task_manager) return;
+    if (nk_begin(ctx, "Task Manager", nk_rect(400, 200, 500, 400), NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE)) {
+        nk_layout_row_dynamic(ctx, 30, 4);
+        nk_label(ctx, "ID", NK_TEXT_LEFT);
+        nk_label(ctx, "Name", NK_TEXT_LEFT);
+        nk_label(ctx, "UPID", NK_TEXT_LEFT);
+        nk_label(ctx, "Status", NK_TEXT_LEFT);
+
+        int count = scheduler_get_task_count();
+        for (int i = 0; i < count; i++) {
+            task_t* t = scheduler_get_task(i);
+            if (!t || t->state == TASK_DEAD) continue;
+            nk_layout_row_dynamic(ctx, 24, 4);
+            char id_buf[16]; snprintf(id_buf, sizeof(id_buf), "%d", t->id);
+            nk_label(ctx, id_buf, NK_TEXT_LEFT);
+            nk_label(ctx, t->name, NK_TEXT_LEFT);
+            char upid_buf[16]; snprintf(upid_buf, sizeof(upid_buf), "%u", t->upid);
+            nk_label(ctx, upid_buf, NK_TEXT_LEFT);
+            nk_label(ctx, t->state == TASK_RUNNING ? "RUNNING" : "WAIT", NK_TEXT_LEFT);
+        }
+    }
+    if (nk_window_is_closed(ctx, "Task Manager")) app->show_task_manager = 0;
+    nk_end(ctx);
+}
+
+static void ui_render_notepad(struct nk_context *ctx, struct app_state *app)
+{
+    if (!app->show_notepad) return;
+    if (nk_begin(ctx, "Notepad", nk_rect(300, 100, 600, 500), NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE)) {
+        nk_layout_row_dynamic(ctx, 24, 2);
+        nk_label(ctx, app->notepad_file[0] ? app->notepad_file : "Untitled", NK_TEXT_LEFT);
+        if (nk_button_label(ctx, "Save") && app->notepad_file[0]) {
+            vfs_write(app->notepad_file, app->notepad_buffer);
+        }
+
+        nk_layout_row_dynamic(ctx, 400, 1);
+        int len = (int)strlen(app->notepad_buffer);
+        nk_edit_string(ctx, NK_EDIT_MULTILINE, app->notepad_buffer, &len, sizeof(app->notepad_buffer)-1, nk_filter_default);
+        app->notepad_buffer[len] = '\0';
+    }
+    if (nk_window_is_closed(ctx, "Notepad")) app->show_notepad = 0;
+    nk_end(ctx);
+}
+
 static void ui_render_desktop(struct nk_context *ctx, struct app_state *app, int ww, int wh)
 {
-    ui_render_background(ctx, ww, wh);
+    ui_render_background(ctx, app, ww, wh);
     ui_render_taskbar(ctx, app, ww, wh);
     ui_render_launcher(ctx, app);
     ui_render_system_panel(ctx, app);
     ui_render_crash_reports(ctx, app);
+    ui_render_task_manager(ctx, app);
+    ui_render_notepad(ctx, app);
 
     if (app->show_terminal) chell_update(ctx, app);
     if (app->show_explorer) ui_render_files(ctx, app);

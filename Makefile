@@ -9,7 +9,8 @@ CFLAGS = -Wall -Wextra -Werror -std=c11 -ffreestanding -fno-stack-protector \
 LDFLAGS = -nostdlib -static -m elf_x86_64 -z max-page-size=0x1000 -T kernel/linker.ld
 KERNEL_OBJS = kernel/entry.o kernel/kernel.o src/app_ui.o src/chell.o src/lab.o src/installer.o \
               kernel/nuklear_kernel_impl.o kernel/stb_image_impl.o \
-              src/nuklear_impl.o kernel/syscall.o kernel/sys_shell.o \
+              src/nuklear_impl.o src/nk_software_renderer.o kernel/syscall.o kernel/sys_shell.o \
+              kernel/crash_notify.o \
               kernel/usb_osal.o kernel/usb_hal_ports.o kernel/storage.o kernel/input.o \
               kernel/app_loader.o kernel/usb_hal.o kernel/vfs.o kernel/scheduler.o \
               kernel/serial.o kernel/i18n.o kernel/uac_policy.o kernel/tgx_impl.o \
