@@ -1,3 +1,6 @@
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
+ * Licensed under the 'respect people's property' OS license. */
+#include "nuklear.h"
 #include "os_api.h"
 #include <string.h>
 #include "app_ui.h"

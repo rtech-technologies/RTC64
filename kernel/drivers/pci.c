@@ -1,7 +1,10 @@
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
+ * Licensed under the 'respect people's property' OS license. */
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
 #include "pro_os.h"
+#include "linux_compat.h"
 #include "hal.h"
 #include "serial.h"
 
@@ -22,7 +25,7 @@ typedef struct {
 static pci_device_info_t g_pci_devices[MAX_PCI_DEVICES];
 static int g_pci_count = 0;
 
-static uint32_t pci_read_config(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset) {
+uint32_t pci_read_config(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset) {
     uint32_t address = (uint32_t)((uint32_t)bus << 16) | ((uint32_t)slot << 11) |
                        ((uint32_t)func << 8) | (offset & 0xFC) | ((uint32_t)0x80000000);
     outl(0xCF8, address);
@@ -57,9 +60,6 @@ void pci_scan(void) {
                 uint8_t sub_class = (class_rev >> 16) & 0xFF;
                 uint8_t prog_if = (class_rev >> 8) & 0xFF;
 
-                serial_printf("[PCI] Found: %02x:%02x:%d Vendor:%04x Device:%04x Class:%02x\n",
-                             bus, slot, func, vendor, device, base_class);
-
                 if (g_pci_count < MAX_PCI_DEVICES) {
                     g_pci_devices[g_pci_count].vendor = vendor;
                     g_pci_devices[g_pci_count].device = device;
@@ -69,27 +69,37 @@ void pci_scan(void) {
                     g_pci_count++;
                 }
 
-                if (base_class == 0x0C && sub_class == 0x03 && prog_if == 0x30) {
+                if (base_class == 0x0C && sub_class == 0x03) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 0);
-                    xhci_mmio_base = mmio;
-                    serial_printf("[PCI] xHCI Controller at BAR0: %p\n", mmio);
-                    xhci_init(mmio);
-                } else if (base_class == 0x0C && sub_class == 0x03 && prog_if == 0x20) {
-                    uint64_t mmio = pci_get_bar(bus, slot, func, 0);
-                    ehci_mmio_base = mmio;
-                    serial_printf("[PCI] EHCI Controller at BAR0: %p\n", mmio);
-                    ehci_init(mmio);
-                } else if (base_class == 0x01 && sub_class == 0x08 && prog_if == 0x02) {
-                    uint64_t mmio = pci_get_bar(bus, slot, func, 0);
-                    nvme_mmio_base = mmio;
-                    serial_printf("[PCI] NVMe Controller at BAR0: %p\n", mmio);
-                    nvme_init(mmio);
-                } else if (base_class == 0x01 && sub_class == 0x06 && prog_if == 0x01) {
-                    uint64_t mmio = pci_get_bar(bus, slot, func, 5);
-                    ahci_mmio_base = mmio;
-                    serial_printf("[PCI] AHCI Controller at BAR5: %p\n", mmio);
-                    ahci_init(mmio);
+                    if (prog_if == 0x30) {
+                        xhci_mmio_base = mmio;
+                        serial_printf("[EVENT] CONNECT: xHCI Controller at %p\n", mmio);
+                        xhci_init(mmio);
+                    } else if (prog_if == 0x20) {
+                        ehci_mmio_base = mmio;
+                        serial_printf("[EVENT] CONNECT: EHCI Controller at %p\n", mmio);
+                        ehci_init(mmio);
+                    }
+                } else if (base_class == 0x01) {
+                    if (sub_class == 0x08) {
+                        uint64_t mmio = pci_get_bar(bus, slot, func, 0);
+                        nvme_mmio_base = mmio;
+                        serial_printf("[EVENT] CONNECT: NVMe Controller at %p\n", mmio);
+                        nvme_init(mmio);
+                    } else if (sub_class == 0x06) {
+                        uint64_t mmio = pci_get_bar(bus, slot, func, 5);
+                        ahci_mmio_base = mmio;
+                        serial_printf("[EVENT] CONNECT: AHCI Controller at %p\n", mmio);
+                        ahci_init(mmio);
+                    }
                 }
+
+                uint32_t subsystem = pci_read_config(bus, slot, func, 0x2C);
+                uint16_t subsystem_vendor = subsystem & 0xFFFF;
+                uint16_t subsystem_device = (subsystem >> 16) & 0xFFFF;
+                linux_compat_probe_pci_device((uint8_t)bus, (uint8_t)slot, (uint8_t)func,
+                                              vendor, device, subsystem_vendor, subsystem_device,
+                                              base_class, sub_class, prog_if);
 
                 if (func == 0) {
                     uint32_t header_type = pci_read_config(bus, slot, 0, 0x0C);
@@ -101,9 +111,7 @@ void pci_scan(void) {
     serial_printf("[PCI] Scan complete. Total devices: %d\n", g_pci_count);
 }
 
-int pci_get_device_count(void) {
-    return g_pci_count;
-}
+int pci_get_device_count(void) { return g_pci_count; }
 
 int pci_get_device_info(int index, char* buf, size_t sz) {
     if (index < 0 || index >= g_pci_count) return -1;

@@ -1,3 +1,5 @@
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
+ * Licensed under the 'respect people's property' OS license. */
 /* Modified by Sovereign: Meaty xHCI implementation with DCBAAP and Slot configuration and Logging */
 #include "pro_os.h"
 #include <stdint.h>
@@ -49,13 +51,20 @@ void xhci_init(uint64_t mmio) {
         ops64[XHCI_OPS_DCBAAP/8] = phys_dcbaa;
         
         /* 3. Configure Max Slots */
-        uint32_t max_slots = (ops[XHCI_OPS_CONFIG/4] >> 0) & 0xFF;
-        ops[XHCI_OPS_CONFIG/4] = (max_slots & 0xFF);
+        uint32_t hcsparams1 = ((uint32_t*)caps)[1]; /* HCSPARAMS1 is at offset 0x04 */
+        uint32_t max_slots = hcsparams1 & 0xFF;     /* Bits 0-7: MaxSlots */
+        if (max_slots == 0) max_slots = 32;
+
+        uint32_t config = ops[XHCI_OPS_CONFIG/4];
+        config &= ~0xFF;
+        config |= max_slots;
+        ops[XHCI_OPS_CONFIG/4] = config;
+
         serial_printf("[XHCI] Configured %d slots. DCBAAP set to Phys: %p\n", (int)max_slots, (void*)phys_dcbaa);
         
         /* 4. Run Controller */
         ops[XHCI_OPS_USBCMD/4] |= 1; /* RS=1 */
-        
+
         timeout = 0;
         while ((ops[XHCI_OPS_USBSTS/4] & 1) && timeout++ < 1000000) __asm__("pause");
         serial_printf("[XHCI] Controller running.\n");

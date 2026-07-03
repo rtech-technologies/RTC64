@@ -1,3 +1,5 @@
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
+ * Licensed under the 'respect people's property' OS license. */
 #ifndef OS_API_H
 #define OS_API_H
 
@@ -18,6 +20,10 @@ static inline int os_vfs_ls(const char* path, char* out, size_t sz) {
 
 static inline int os_vfs_cat(const char* path, char* out, size_t sz) {
     return syscall_dispatch(SYS_VFS_CAT, path, out, sz);
+}
+
+static inline int os_vfs_read(const char* path, void* buffer, size_t sz) {
+    return syscall_dispatch(SYS_VFS_READ, path, buffer, sz);
 }
 
 static inline int os_vfs_mkdir(const char* path) {

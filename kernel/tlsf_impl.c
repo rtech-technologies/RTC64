@@ -1,3 +1,5 @@
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
+ * Licensed under the 'respect people's property' OS license. */
 /* Modified by Sovereign: MEATY TLSF Implementation with Block Splitting, Coalescing and Metrics */
 #include <stddef.h>
 #include <stdint.h>

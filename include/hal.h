@@ -1,3 +1,5 @@
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
+ * Licensed under the 'respect people's property' OS license. */
 #ifndef HAL_H
 #define HAL_H
 
@@ -26,11 +28,46 @@ static inline uint32_t inl(uint16_t port) {
     return ret;
 }
 
+static inline void hal_outb(uint16_t port, uint8_t val) {
+    __asm__ volatile ( "outb %0, %1" : : "a"(val), "Nd"(port) );
+}
+
+static inline uint8_t hal_inb(uint16_t port) {
+    uint8_t ret;
+    __asm__ volatile ( "inb %1, %0" : "=a"(ret) : "Nd"(port) );
+    return ret;
+}
+
+static inline void hal_outl(uint16_t port, uint32_t val) {
+    __asm__ volatile ( "outl %0, %1" : : "a"(val), "Nd"(port) );
+}
+
+static inline uint32_t hal_inl(uint16_t port) {
+    uint32_t ret;
+    __asm__ volatile ( "inl %1, %0" : "=a"(ret) : "Nd"(port) );
+    return ret;
+}
+
+static inline void hal_outw(uint16_t port, uint16_t val) {
+    __asm__ volatile ( "outw %0, %1" : : "a"(val), "Nd"(port) );
+}
+
+static inline uint16_t hal_inw(uint16_t port) {
+    uint16_t ret;
+    __asm__ volatile ( "inw %1, %0" : "=a"(ret) : "Nd"(port) );
+    return ret;
+}
+
 /* --- Input System --- */
 typedef enum {
     INPUT_TYPE_KEYBOARD,
     INPUT_TYPE_MOUSE
 } input_type_t;
+
+typedef enum {
+    INPUT_BUS_USB,
+    INPUT_BUS_PS2
+} input_bus_t;
 
 typedef struct {
     input_type_t type;
@@ -47,10 +84,28 @@ typedef struct {
     };
 } input_event_t;
 
+typedef struct {
+    char name[32];
+    input_type_t type;
+    input_bus_t bus;
+    bool connected;
+} input_device_info_t;
+
 void hal_input_init(void);
-void hal_input_poll(void);
 void hal_input_push_event(input_event_t ev);
 bool hal_input_pop_event(input_event_t *ev);
+void hal_input_get_mouse_abs(int *x, int *y);
+
+/* Device Registry */
+int hal_input_register_device(const char* name, input_type_t type, input_bus_t bus);
+void hal_input_set_device_status(int id, bool connected);
+int hal_input_get_device_count(void);
+bool hal_input_get_device_info(int index, input_device_info_t *info);
+
+/* PS/2 Driver */
+void hal_ps2_init(void);
+void ps2_poll_kbd(void);
+void ps2_poll_mouse(void);
 
 /* --- Storage System --- */
 typedef enum {
@@ -82,9 +137,10 @@ storage_device_t* hal_storage_get_device(int index);
 int hal_storage_read(storage_device_t* dev, uint64_t sector, void* buffer, uint32_t count);
 int hal_storage_write(storage_device_t* dev, uint64_t sector, const void* buffer, uint32_t count);
 
-int hal_nvme_init(uint64_t mmio);
-int hal_sata_init(uint64_t mmio);
-int ramdisk_init(void);
+int nvme_init(uint64_t mmio);
+int ahci_init(uint64_t mmio);
+void xhci_init(uint64_t mmio);
+void ehci_init(uint64_t mmio);
 
 /* --- USB System --- */
 void hal_usb_init(void);

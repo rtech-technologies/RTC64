@@ -1,7 +1,8 @@
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
+ * Licensed under the 'respect people's property' OS license. */
 #include "pro_os.h"
 #include <stdint.h>
 
-/* Global TLSF control */
 static void* global_tlsf_control = NULL;
 
 void hal_malloc_init(void* mem, size_t bytes) {
@@ -14,7 +15,6 @@ void* tlsf_get_global(void) {
     return global_tlsf_control;
 }
 
-/* Redefine malloc etc to use global pool */
 void* malloc(size_t size) {
     return tlsf_malloc(global_tlsf_control, size);
 }

@@ -1,3 +1,5 @@
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
+ * Licensed under the 'respect people's property' OS license. */
 /* Modified by Sovereign: Meaty EHCI implementation with Port Power and Reset sequencing and Logging */
 #include "pro_os.h"
 #include <stdint.h>

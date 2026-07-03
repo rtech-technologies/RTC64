@@ -1,3 +1,5 @@
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
+ * Licensed under the 'respect people's property' OS license. */
 #include "pro_os.h"
 
 struct panic_framebuffer {
@@ -8,7 +10,7 @@ struct panic_framebuffer {
 };
 
 /* External from kernel.c */
-extern struct limine_framebuffer_request framebuffer_request;
+extern volatile struct limine_framebuffer_request framebuffer_request;
 
 struct panic_framebuffer* get_kernel_framebuffer(void) {
     if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {

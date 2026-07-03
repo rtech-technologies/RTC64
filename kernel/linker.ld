@@ -5,7 +5,7 @@ PHDRS
     data PT_LOAD FLAGS(6); /* R+W */
 }
 
-ENTRY(kernel_main)
+ENTRY(_start)
 
 SECTIONS
 {

@@ -1,3 +1,5 @@
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
+ * Licensed under the 'respect people's property' OS license. */
 /* Modified by Sovereign: Meaty Physical Memory Manager with Bitmap-based Page Allocation and Multi-block support */
 #include "pro_os.h"
 #include <string.h>

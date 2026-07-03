@@ -32,3 +32,34 @@ This document serves as the master record of repairs, hardening, and non-stub lo
 
 ## 3. Final Quality Assurance
 - **Status:** 0 Errors, 0 Warnings under strict -Wall -Wextra.
+
+### Version 1.2 - Advanced Graphics and Input
+- Fully refactored graphics pipeline to use native Nuklear RawFB rendering.
+- Removed manual mouse blitting; Nuklear now natively handles the cursor overlay.
+- Hooked CherryUSB HID reports to Nuklear input pool, adding vertical scroll wheel support.
+- Implemented 2-phase boot rendering:
+  - Phase 1: High-fidelity "RTECH" logo centered on solid background with active mouse.
+  - Phase 2: Instant workspace deployment (Desktop).
+- Restored advanced Panic System (OSOD) with architectural register dumps.
+- Implemented central Exception Handler for hardware-level events (Page Fault, GPF).
+- Added 'audit' and 'fault' debug commands to the serial console.
+- Standardized serial event logging for hardware hot-plugging.
+
+### Version 1.4 - Architecture Audit & Nuklear Native Graphics
+- Performed full system audit to resolve early boot Page Faults.
+- Hardened PMM with safety checks and explicit HHDM mapping.
+- Made all Limine requests global for reliable bootloader discovery.
+- Fully integrated Nuklear RawFB native rendering.
+- Implemented 2-phase boot rendering with RTECH logo.
+- Standardized vertical scroll wheel support.
+- Enabled native Nuklear cursor rendering.
+- Improved Panic Engine (OSOD) with early-boot serial fallback.
+- Verified 100% successful zero-warning build.
+
+### Version 1.5 - Self-Contained Panic Engine
+- Decoupled the Panic Engine (OSOD) from the high-level OS graphics pipeline.
+- Implemented a self-contained minimal bitmap font in `kernel/panic.c`.
+- Added a recursion guard and `panic_lock` to prevent infinite Page Fault loops during exceptions.
+- Hardened register capture and hex formatting for architectural dumps.
+- Simplified OSOD rendering to use direct 32-bit framebuffer access with manual clipping.
+- Ensured all early-boot logs and exception messages are mirrored to COM1.

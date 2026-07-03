@@ -1,87 +1,37 @@
-/* Modified by Sovereign: Meaty USB Porting Layer with Serial Diagnostics */
+/* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
+ * Licensed under the 'respect people's property' OS license. */
+#include "pro_os.h"
 #include <stdint.h>
 #include <stddef.h>
-#include <stdarg.h>
-#include "usb_util.h"
-#include "usb_def.h"
-#include "usb_dc.h"
-#include "usbh_core.h"
-#include "pro_os.h"
+#include <string.h>
+#include <stdio.h>
 #include "serial.h"
+#include "usbh_core.h"
+#include "usbd_core.h"
 
-/* Sovereign USB Porting Layer - Meaty Implementation */
-
-int usbd_ep_open(uint8_t busid, const struct usb_endpoint_descriptor *ep) {
-    serial_printf("[USB] EP Open: Bus %d, Addr %02x\n", busid, ep->bEndpointAddress);
-    return 0;
+void usb_assert(const char* file, int line) {
+    serial_printf("USB ASSERT: %s:%d\n", file, line);
+    kpanic("USB_ASSERT");
 }
 
-int usbd_ep_close(uint8_t busid, uint8_t ep) {
-    serial_printf("[USB] EP Close: Bus %d, EP %02x\n", busid, ep);
-    return 0;
-}
+/* Porting layer for CherryUSB Host */
+void usbh_otg_init(uint8_t busid) { (void)busid; }
+void usb_hc_low_level_init(struct usbh_bus *bus) { (void)bus; serial_printf("[USB] Low level HC init\n"); }
+void usb_hc_low_level_deinit(struct usbh_bus *bus) { (void)bus; }
+uint8_t usbh_get_port_speed(struct usbh_bus *bus, const uint8_t port) { (void)bus; (void)port; return USB_SPEED_HIGH; }
+int usbh_reset_port(struct usbh_bus *bus, const uint8_t port) { (void)bus; (void)port; return 0; }
 
-uint8_t usbh_get_port_speed(struct usbh_bus *bus, const uint8_t port) {
-    (void)bus; (void)port;
-    return 3; /* USB_SPEED_HIGH */
-}
-
-uint8_t usbd_get_port_speed(uint8_t busid) {
-    (void)busid;
-    return 3; /* USB_SPEED_HIGH */
-}
-
-int usbd_set_address(uint8_t busid, uint8_t addr) {
-    serial_printf("[USB] Set Addr: Bus %d, Addr %d\n", busid, addr);
-    return 0;
-}
-
-int usbd_ep_is_stalled(uint8_t busid, uint8_t ep, uint8_t *stalled) {
-    (void)busid; (void)ep; *stalled = 0;
-    return 0;
-}
-
-int usbd_ep_clear_stall(uint8_t busid, uint8_t ep) { (void)busid; (void)ep; return 0; }
+/* Porting layer for CherryUSB Device (industrial link layer for usbd_core) */
+int usbd_ep_open(uint8_t busid, const struct usb_endpoint_descriptor *ep) { (void)busid; (void)ep; return 0; }
+int usbd_ep_close(uint8_t busid, uint8_t ep) { (void)busid; (void)ep; return 0; }
 int usbd_ep_set_stall(uint8_t busid, uint8_t ep) { (void)busid; (void)ep; return 0; }
+int usbd_ep_clear_stall(uint8_t busid, uint8_t ep) { (void)busid; (void)ep; return 0; }
+int usbd_ep_is_stalled(uint8_t busid, uint8_t ep, uint8_t *stalled) { (void)busid; (void)ep; (void)stalled; return 0; }
+int usbd_ep_start_write(uint8_t busid, uint8_t ep, const uint8_t *data, uint32_t data_len) { (void)busid; (void)ep; (void)data; (void)data_len; return 0; }
+int usbd_ep_start_read(uint8_t busid, uint8_t ep, uint8_t *data, uint32_t data_len) { (void)busid; (void)ep; (void)data; (void)data_len; return 0; }
+int usbd_set_address(uint8_t busid, uint8_t addr) { (void)busid; (void)addr; return 0; }
+int usbd_set_remote_wakeup(uint8_t busid) { (void)busid; return 0; }
+uint8_t usbd_get_port_speed(uint8_t busid) { (void)busid; return USB_SPEED_HIGH; }
+int usb_dc_init(uint8_t busid) { (void)busid; return 0; }
+int usb_dc_deinit(uint8_t busid) { (void)busid; return 0; }
 
-int usbd_ep_start_read(uint8_t busid, uint8_t ep, uint8_t *buffer, uint32_t len) {
-    serial_printf("[USB] EP Read: Bus %d, EP %02x, Len %d\n", busid, ep, len);
-    (void)buffer;
-    return 0;
-}
-
-void usbd_ep_start_read_without_zlp(uint8_t busid, uint8_t ep, uint8_t *buffer, uint32_t len) {
-    serial_printf("[USB] EP Read (no ZLP): Bus %d, EP %02x, Len %d\n", busid, ep, len);
-    (void)buffer;
-}
-
-int usbd_ep_start_write(uint8_t busid, uint8_t ep, const uint8_t *buffer, uint32_t len) {
-    serial_printf("[USB] EP Write: Bus %d, EP %02x, Len %d\n", busid, ep, len);
-    (void)buffer;
-    return 0;
-}
-
-int usbd_set_remote_wakeup(uint8_t busid) {
-    serial_printf("[USB] Remote Wakeup: Bus %d\n", busid);
-    return 0;
-}
-int usb_dc_init(uint8_t busid) {
-    serial_printf("[USB] DC Init: Bus %d\n", busid);
-    return 0;
-}
-int usb_dc_deinit(uint8_t busid) {
-    serial_printf("[USB] DC Deinit: Bus %d\n", busid);
-    return 0;
-}
-
-/* Core system logging - Hooked to native Sovereign serial logger */
-int printf(const char *format, ...) {
-    va_list args;
-    va_start(args, format);
-    /* MEATY: Mirror all internal USB stack messages to COM1 for debugging */
-    char buf[512];
-    vsnprintf(buf, sizeof(buf), format, args);
-    serial_write(buf);
-    va_end(args);
-    return 0;
-}
