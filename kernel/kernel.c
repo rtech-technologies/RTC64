@@ -48,7 +48,11 @@ void draw_rtech_logo(struct nk_context *ctx, int screen_w, int screen_h) {
 
 void environment_manager_entry(void* arg) {
     (void)arg;
-    if (!primary_fb) while(1) scheduler_yield();
+    serial_printf("[EM] Environment Manager started.\n");
+    if (!primary_fb) {
+        serial_printf("[EM] Error: Primary framebuffer missing.\n");
+        while(1) scheduler_yield();
+    }
 
     struct rawfb_pl pl;
     pl.bytesPerPixel = primary_fb->bpp / 8;
@@ -64,8 +68,11 @@ void environment_manager_entry(void* arg) {
     void* font_tex_mem = malloc(2 * 1024 * 1024);
     if (!font_tex_mem) kpanic("FONT_ALLOC_FAILED");
 
-    /* Limine FB address is already virtual */
-    struct rawfb_context *rawfb = nk_rawfb_init((void*)primary_fb->address,
+    /* Adjust Limine FB address using HHDM as per high-power technical requirements. */
+    void* fb_addr = (void*)(primary_fb->address + hhdm_offset);
+    serial_printf("[EM] FB Address: %p (Original: %p, HHDM: %p)\n", fb_addr, (void*)primary_fb->address, (void*)hhdm_offset);
+
+    struct rawfb_context *rawfb = nk_rawfb_init(fb_addr,
                           font_tex_mem, (unsigned int)primary_fb->width, (unsigned int)primary_fb->height, (unsigned int)primary_fb->pitch, pl);
 
     if (!rawfb) kpanic("NK_RAWFB_INIT_FAULT");
@@ -154,6 +161,7 @@ void kernel_main(void) {
     pci_scan();
     hal_usb_init();
     hal_ps2_init();
+    vfs_refresh_mounts();
 
     scheduler_spawn("KBD", kbd_task, NULL);
     scheduler_spawn("MOUSE", mouse_task, NULL);

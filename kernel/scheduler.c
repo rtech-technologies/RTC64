@@ -18,17 +18,13 @@ static uint32_t next_uaid = 100, next_upid = 1000;
 
 static void kernel_idle_task(void* arg) {
     (void)arg; uint64_t last_calc = 0;
+    serial_printf("[SCHED] Idle task running.\n");
     while (1) {
         idle_ticks++; uint64_t now = hal_get_uptime_ms();
         if (now - last_calc >= 1000) {
             uint64_t work_ticks = total_ticks - idle_ticks;
             if (total_ticks > 0) cpu_load = (int)((work_ticks * 100) / total_ticks);
             scheduler_audit_stacks();
-
-            /* Critical Section Guard for global VFS operations */
-            __asm__ volatile("cli");
-            vfs_refresh_mounts();
-            __asm__ volatile("sti");
 
             idle_ticks = 0; total_ticks = 0; last_calc = now;
         }
@@ -145,7 +141,11 @@ uint64_t scheduler_switch(uint64_t current_rsp) {
 }
 
 void scheduler_yield(void) { __asm__ volatile("int $0x20"); }
-void scheduler_run(void) { __asm__ volatile("sti"); while(1) { __asm__ volatile("hlt"); } }
+void scheduler_run(void) {
+    apic_timer_unmask();
+    __asm__ volatile("sti");
+    while(1) { __asm__ volatile("hlt"); }
+}
 int scheduler_get_task_count(void) { return task_count; }
 task_t* scheduler_get_task(int index) { return (index >= 0 && index < MAX_TASKS) ? &tasks[index] : NULL; }
 int scheduler_get_current_task_idx(void) { return current_task_idx; }
