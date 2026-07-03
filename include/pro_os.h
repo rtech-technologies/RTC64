@@ -118,6 +118,7 @@ int vfs_ls(const char* path, char* out, size_t sz);
 int vfs_cat(const char* path, char* out, size_t sz);
 int vfs_read(const char* path, void* buffer, size_t sz);
 int vfs_mkdir(const char* path);
+int vfs_rm(const char* path);
 int vfs_write(const char* path, const char* content);
 int vfs_get_mounts(char* out, size_t sz);
 int devmgr_list(char* out, size_t sz);

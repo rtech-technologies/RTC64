@@ -197,7 +197,11 @@ static void ui_render_files(struct nk_context *ctx, struct app_state *app)
                         bool is_dir = (strncmp(line, "<DIR>", 5) == 0);
                         const char *name = line + 6;
 
-                        nk_layout_row_dynamic(ctx, 24, 1);
+                        nk_layout_row_template_begin(ctx, 24);
+                        nk_layout_row_template_push_dynamic(ctx);
+                        nk_layout_row_template_push_static(ctx, 60);
+                        nk_layout_row_template_end(ctx);
+
                         if (nk_button_label(ctx, line)) {
                             if (is_dir) {
                             if (app->explorer_path[strlen(app->explorer_path)-1] != '/') {
@@ -216,6 +220,14 @@ static void ui_render_files(struct nk_context *ctx, struct app_state *app)
                                 app->show_notepad = 1;
                             }
                             }
+                        }
+                        if (nk_button_label(ctx, "Delete")) {
+                            char full_path[256];
+                            snprintf(full_path, sizeof(full_path), "%s%s%s",
+                                     app->explorer_path,
+                                     (app->explorer_path[strlen(app->explorer_path)-1] == '/') ? "" : "/",
+                                     name);
+                            vfs_rm(full_path);
                         }
                     }
 

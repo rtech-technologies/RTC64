@@ -22,6 +22,7 @@ int syscall_dispatch(int num, const void* a1, void* a2, size_t a3) {
         case SYS_YIELD:       scheduler_yield(); return 0;
         case SYS_EXIT:        scheduler_remove_task(scheduler_get_current_task_idx()); scheduler_yield(); return 0;
         case SYS_SERIAL_WRITE: serial_write((const char*)a1); return 0;
+        case SYS_VFS_RM:      return vfs_rm((const char*)a1);
         default:
             serial_printf("[SYSCALL] Unknown syscall: %d\n", num);
             return -1;
