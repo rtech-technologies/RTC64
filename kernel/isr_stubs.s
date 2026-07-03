@@ -1,6 +1,7 @@
 /* Modified by Sovereign: High-performance ISR stubs with Preemptive Return and SSE/FPU State support */
 .extern exception_handler
 .extern scheduler_switch
+.extern syscall_dispatch
 
 .macro isr_no_err num
 .global isr_stub_\num
@@ -75,6 +76,12 @@ irq 45
 irq 46
 irq 47
 
+.global isr_stub_128
+isr_stub_128:
+    pushq $0
+    pushq $128
+    jmp syscall_common
+
 isr_common:
     pushq %rax
     pushq %rbx
@@ -121,6 +128,95 @@ isr_common:
     addq $512, %rsp
 
     addq $8, %rsp /* Remove padding */
+
+    popq %rax
+    movw %ax, %ds
+    popq %rax
+    movw %ax, %es
+    popq %rax
+    movw %ax, %fs
+    popq %rax
+    movw %ax, %gs
+
+    popq %rax
+    movq %rax, %cr4
+    popq %rax
+    movq %rax, %cr3
+    popq %rax
+    movq %rax, %cr2
+
+    popq %r15
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %r11
+    popq %r10
+    popq %r9
+    popq %r8
+    popq %rbp
+    popq %rdi
+    popq %rsi
+    popq %rdx
+    popq %rcx
+    popq %rbx
+    popq %rax
+    addq $16, %rsp
+    iretq
+
+syscall_common:
+    pushq %rax
+    pushq %rbx
+    pushq %rcx
+    pushq %rdx
+    pushq %rsi
+    pushq %rdi
+    pushq %rbp
+    pushq %r8
+    pushq %r9
+    pushq %r10
+    pushq %r11
+    pushq %r12
+    pushq %r13
+    pushq %r14
+    pushq %r15
+
+    movq %cr2, %rax
+    pushq %rax
+    movq %cr3, %rax
+    pushq %rax
+    movq %cr4, %rax
+    pushq %rax
+
+    xorq %rax, %rax
+    movw %gs, %ax
+    pushq %rax
+    movw %fs, %ax
+    pushq %rax
+    movw %es, %ax
+    pushq %rax
+    movw %ds, %ax
+    pushq %rax
+
+    pushq $0 /* Padding */
+
+    subq $512, %rsp
+    fxsave (%rsp)
+
+    /* x86-64 syscall convention: num in rax, args in rdi, rsi, rdx, r10, r8, r9 */
+    /* Our internal dispatch expects: num (int), a1 (void*), a2 (void*), a3 (size_t) */
+    /* Let's map rax -> edi, rdi -> rsi, rsi -> rdx, rdx -> rcx */
+    movq 0x278(%rsp), %rdi /* original rax */
+    movq 0x250(%rsp), %rsi /* original rdi */
+    movq 0x258(%rsp), %rdx /* original rsi */
+    movq 0x260(%rsp), %rcx /* original rdx */
+
+    call syscall_dispatch
+    /* rax now contains result */
+    movq %rax, 0x278(%rsp) /* Update saved rax with result */
+
+    fxrstor (%rsp)
+    addq $512, %rsp
+    addq $8, %rsp
 
     popq %rax
     movw %ax, %ds

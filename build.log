@@ -2,6 +2,15 @@ chmod +x build.sh
 ./build.sh
 === Baking Real Bare-Metal Environment ===
 Environment Armed. Ready for 'make'.
+make -C apps all
+make[1]: Entering directory '/app/apps'
+gcc -Wall -Wextra -Werror -std=c11 -ffreestanding -fno-stack-protector -fno-stack-check -fno-lto -fno-pic -m64 -march=x86-64 -I../include -I../kernel -DRSL_IMPLEMENTATION -x assembler-with-cpp -c crt0.s -o crt0.o
+gcc -Wall -Wextra -Werror -std=c11 -ffreestanding -fno-stack-protector -fno-stack-check -fno-lto -fno-pic -m64 -march=x86-64 -I../include -I../kernel -DRSL_IMPLEMENTATION -c shell.c -o shell.o
+gcc -Wall -Wextra -Werror -std=c11 -ffreestanding -fno-stack-protector -fno-stack-check -fno-lto -fno-pic -m64 -march=x86-64 -I../include -I../kernel -DRSL_IMPLEMENTATION -c user_rsl.c -o user_rsl.o
+ld -nostdlib -static -m elf_x86_64 -T app.ld crt0.o shell.o user_rsl.o -o shell.bin
+ld: warning: crt0.o: missing .note.GNU-stack section implies executable stack
+ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+make[1]: Leaving directory '/app/apps'
 mkdir -p kernel
 gcc -Wall -Wextra -Werror -std=c11 -ffreestanding -fno-stack-protector -fno-stack-check -fno-lto -fno-pic -m64 -march=x86-64 -mcmodel=kernel -mno-red-zone -fno-asynchronous-unwind-tables -I./include -isystem ./include -I./kernel -I./kernel/drivers -I./kernel/fatfs -isystem ./external/limine -isystem ./external/CherryUSB/common -isystem ./external/CherryUSB/core -isystem ./external/CherryUSB/class/msc -isystem ./external/CherryUSB/class/hid -isystem ./external/CherryUSB/class/hub -include kernel/usb_config.h -DKERNEL_MODE -Wno-unused-function -x assembler-with-cpp -c kernel/entry.s -o kernel/entry.o
 mkdir -p kernel

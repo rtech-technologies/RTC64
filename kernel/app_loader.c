@@ -1,8 +1,10 @@
 /* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
  * Licensed under the 'respect people's property' OS license. */
+#include "pro_os.h"
 #include "app_loader.h"
 #include "rsl.h"
 #include "nuklear.h"
+#include "serial.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -262,8 +264,39 @@ static bool parse_script(const char* script) {
     return true;
 }
 
+static void app_entry_stub(void* arg) {
+    void (*entry)() = (void (*)(void))arg;
+    entry();
+    rsl_exit(0);
+}
+
+int app_spawn_binary(const char* path) {
+    if (!path) return -1;
+    /* MEATY: Load flat binary to a fixed high memory address for demo.
+     * In a real OS we'd use a per-process page table and ELF loader. */
+    void* load_addr = pmm_alloc_blocks(16); // 64KB
+    if (!load_addr) return -1;
+    void* virt_addr = (void*)((uint64_t)load_addr + hhdm_offset);
+
+    int bytes = rsl_read(path, virt_addr, 16 * 4096);
+    if (bytes <= 0) {
+        /* free... */
+        return -1;
+    }
+
+    serial_printf("[LOADER] Loaded binary %s (%d bytes) at %p\n", path, bytes, virt_addr);
+
+    return scheduler_spawn(path, app_entry_stub, virt_addr);
+}
+
 int app_spawn_script(const char* script_path) {
     if (!script_path) return -1;
+
+    /* If it ends in .bin, try binary spawn */
+    if (app_strstr(script_path, ".bin")) {
+        return app_spawn_binary(script_path);
+    }
+
     char buffer[APP_LOADER_MAX_SCRIPT];
     int bytes = rsl_read(script_path, buffer, sizeof(buffer) - 1);
     if (bytes < 0) return -1;

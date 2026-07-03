@@ -31,7 +31,7 @@ KERNEL_OBJS = kernel/entry.o kernel/kernel.o src/app_ui.o src/chell.o src/lab.o 
               external/CherryUSB/class/hub/usbh_hub.o \
               external/CherryUSB/port/ehci/usb_hc_ehci.o
 .PHONY: all clean environment iso run
-all: environment kernel/kernel iso
+all: environment userland kernel/kernel iso
 environment:
 	chmod +x build.sh
 	./build.sh
@@ -61,5 +61,9 @@ iso: kernel/kernel
 	./external/limine/limine bios-install os.iso
 run: all
 	qemu-system-x86_64 -m 512M -cdrom os.iso -boot d -device qemu-xhci -device usb-kbd -device usb-mouse -serial stdio
+userland:
+	make -C apps all
+
 clean:
 	rm -rf $(KERNEL_OBJS) kernel/kernel kernel/ramdisk.img os.iso iso_root/
+	make -C apps clean

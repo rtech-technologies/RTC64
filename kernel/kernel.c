@@ -46,6 +46,8 @@ void draw_rtech_logo(struct nk_context *ctx, int screen_w, int screen_h) {
                 ctx->style.font, nk_rgb(30, 30, 30), nk_rgb(255, 255, 255));
 }
 
+static void* g_back_buffer = NULL;
+
 void environment_manager_entry(void* arg) {
     (void)arg;
     serial_printf("[EM] Environment Manager started.\n");
@@ -68,11 +70,15 @@ void environment_manager_entry(void* arg) {
     void* font_tex_mem = malloc(2 * 1024 * 1024);
     if (!font_tex_mem) kpanic("FONT_ALLOC_FAILED");
 
-    /* Limine FB address is already virtual */
-    void* fb_addr = (void*)primary_fb->address;
-    serial_printf("[EM] FB Address: %p (Virtual)\n", fb_addr);
+    /* Double Buffering: Allocate back buffer */
+    size_t fb_size = primary_fb->height * primary_fb->pitch;
+    g_back_buffer = malloc(fb_size);
+    if (!g_back_buffer) kpanic("BACK_BUFFER_ALLOC_FAILED");
 
-    struct rawfb_context *rawfb = nk_rawfb_init(fb_addr,
+    /* Limine FB address is virtual, but we render to backbuffer */
+    serial_printf("[EM] FB Address: %p (Virtual), BackBuffer: %p\n", (void*)primary_fb->address, g_back_buffer);
+
+    struct rawfb_context *rawfb = nk_rawfb_init(g_back_buffer,
                           font_tex_mem, (unsigned int)primary_fb->width, (unsigned int)primary_fb->height, (unsigned int)primary_fb->pitch, pl);
 
     if (!rawfb) kpanic("NK_RAWFB_INIT_FAULT");
@@ -121,6 +127,10 @@ void environment_manager_entry(void* arg) {
         }
 
         nk_rawfb_render(rawfb, nk_rgb(20, 20, 20), 1);
+
+        /* Flush back-buffer to primary framebuffer */
+        memcpy((void*)primary_fb->address, g_back_buffer, fb_size);
+
         scheduler_yield();
     }
 }

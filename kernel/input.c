@@ -62,11 +62,13 @@ void hal_input_push_event(input_event_t ev) {
         g_queue_head = next;
     }
     if (ev.type == INPUT_TYPE_MOUSE) {
+        /* Check if we have active USB mouse devices.
+         * PS/2 mouse is always registered first. If we have > 2 devices or a USB mouse,
+         * we might want to prioritize. For now, we allow both to contribute. */
         g_mouse_abs_x += ev.mouse.x;
         g_mouse_abs_y += ev.mouse.y;
         if (g_mouse_abs_x < 0) g_mouse_abs_x = 0;
         if (g_mouse_abs_y < 0) g_mouse_abs_y = 0;
-        /* Clamping happens in EM, but we keep basic tracking here */
     }
 }
 
