@@ -13,15 +13,22 @@ typedef enum {
 
 struct app_state {
     app_state_t current_state;
+    char username[32];
     char password[32];
+    int installed;
     int show_launcher;
     int show_terminal;
     int show_explorer;
     int show_settings;
+    int show_app_studio;
+    int show_script_app;
+    int show_lab;
     int show_uac;
     int cpu_usage;
     int perm_net;
     int perm_storage;
+    int show_crash_reports;
+    char last_crash_path[128];
 };
 
 void ui_init_style(struct nk_context *ctx);
@@ -34,5 +41,7 @@ void lab_init(void* s);
 void lab_update(struct nk_context* ctx, void* s);
 void installer_init(void* s);
 void installer_update(struct nk_context* ctx, void* s);
+void studio_init(void* s);
+void studio_update(struct nk_context* ctx, void* s);
 
 #endif

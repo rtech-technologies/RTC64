@@ -108,6 +108,7 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
 
     *(uint64_t*)&task_stacks[slot][0] = STACK_CANARY;
     task_rsps[slot] = (uint64_t)p; /* Restoration begins at the start of saved state */
+    serial_printf("[SCHED] Added task: %s id=%d\n", tasks[slot].name, slot);
     return slot;
 }
 
@@ -133,6 +134,8 @@ uint64_t scheduler_switch(uint64_t current_rsp) {
     for (int i = 0; i < MAX_TASKS; i++) {
         current_task_idx = (current_task_idx + 1) % MAX_TASKS;
         if (tasks[current_task_idx].state == TASK_RUNNING) {
+            /* Avoid spamming logs for the idle task (id 0) */
+            if (current_task_idx != 0) serial_printf("[SCHED] Switching to task id=%d name=%s\n", current_task_idx, tasks[current_task_idx].name);
             return task_rsps[current_task_idx];
         }
     }
@@ -151,3 +154,16 @@ uint32_t scheduler_get_current_upid(void) { return (current_task_idx != -1) ? ta
 int scheduler_get_cpu_load(void) { return cpu_load; }
 uint64_t scheduler_get_ctx_switches(void) { return ctx_switches; }
 void scheduler_audit_stacks(void) { for (int i = 0; i < MAX_TASKS; i++) { if (tasks[i].state != TASK_DEAD) { if (*(uint64_t*)&task_stacks[i][0] != STACK_CANARY) kpanic("STACK_BUFFER_OVERRUN"); } } }
+
+void task_crash_cleanup(void) {
+    int idx = scheduler_get_current_task_idx();
+    if (idx <= 0 || idx >= MAX_TASKS) {
+        /* Nothing sensible to do, fallback to panic */
+        kpanic("TASK_CRASH_CLEANUP_BAD_IDX");
+    }
+    task_t *t = scheduler_get_task(idx);
+    if (t) serial_printf("[TASK] Task %d (%s) crashed; removing and yielding.\n", idx, t->name);
+    scheduler_remove_task(idx);
+    scheduler_yield();
+    while (1) __asm__ volatile("hlt");
+}

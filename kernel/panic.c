@@ -136,11 +136,43 @@ void kpanic(const char* message) {
 
 extern void timer_handler(struct cpu_state*);
 extern void apic_eoi(void);
+extern void handle_registered_irq(unsigned int irq, struct cpu_state *state);
 
 void exception_handler(struct cpu_state *state) {
     if (state->interrupt_number >= 32) {
-        if (state->interrupt_number == 32) timer_handler(state);
+        if (state->interrupt_number == 32) {
+            timer_handler(state);
+        } else {
+            handle_registered_irq((unsigned int)state->interrupt_number, state);
+        }
         apic_eoi();
+        return;
+    }
+    /* If a regular task triggered this exception, try to contain it
+     * by redirecting execution to a cleanup routine that will remove
+     * the task and yield the CPU, instead of hard-panicking the kernel. */
+    int cur = scheduler_get_current_task_idx();
+    if (cur > 0) {
+        serial_printf("[TASK_FAULT] int=%llu err=%llu in task id=%d RIP=%p\n",
+                      state->interrupt_number, state->error_code, cur, (void*)state->rip);
+        /* Attempt to write a crash report to persistent storage for user inspection */
+        const char *crash_dir = "/crash_reports";
+        vfs_mkdir(crash_dir);
+        uint32_t upid = scheduler_get_current_upid();
+        uint64_t now = hal_get_uptime_ms();
+        char path[128];
+        snprintf(path, sizeof(path), "/crash_reports/crash_%u_%llu.txt", (unsigned)upid, (unsigned long long)now);
+        char report[1024];
+        int r = snprintf(report, sizeof(report),
+                         "Crash Report\nINT=%llu ERR=%llu TASK_ID=%d UPID=%u\nRIP=0x%llx CR2=0x%llx RSP=0x%llx RFLAGS=0x%llx\nRAX=0x%llx RBX=0x%llx RCX=0x%llx RDX=0x%llx RSI=0x%llx RDI=0x%llx\n",
+                         state->interrupt_number, state->error_code, cur, upid,
+                         (unsigned long long)state->rip, (unsigned long long)state->cr2, (unsigned long long)state->rsp, (unsigned long long)state->rflags,
+                         (unsigned long long)state->rax, (unsigned long long)state->rbx, (unsigned long long)state->rcx, (unsigned long long)state->rdx,
+                         (unsigned long long)state->rsi, (unsigned long long)state->rdi);
+        if (r > 0) vfs_write(path, report);
+        extern void set_last_crash_path(const char* path);
+        set_last_crash_path(path);
+        state->rip = (uint64_t)task_crash_cleanup;
         return;
     }
 
@@ -154,9 +186,8 @@ void exception_handler(struct cpu_state *state) {
     else if (state->interrupt_number == 13) name = "GPF";
     else if (state->interrupt_number == 0) name = "DIVIDE_BY_ZERO";
 
-    serial_write("\n\n[FATAL] ");
-    serial_write(name);
-    serial_write("\n");
+    serial_printf("\n\n[FATAL] %s (int=%llu err=%llu)\n", name, state->interrupt_number, state->error_code);
+    serial_printf("RIP=%p CR2=%p RSP=%p RFLAGS=%p\n", (void*)state->rip, (void*)state->cr2, (void*)state->rsp, (void*)state->rflags);
 
     draw_osod(name, state);
     while(1) __asm__ volatile("cli; hlt");

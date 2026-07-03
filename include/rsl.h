@@ -28,6 +28,7 @@ void  rsl_free(void* ptr);
 /* --- File System (Executive VFS) --- */
 int rsl_ls(const char* path, char* out, size_t sz);
 int rsl_cat(const char* path, char* out, size_t sz);
+int rsl_read(const char* path, void* buffer, size_t sz);
 int rsl_mkdir(const char* path);
 int rsl_write(const char* path, const char* content);
 int rsl_mounts(char* out, size_t sz);
@@ -66,6 +67,10 @@ int rsl_ls(const char* path, char* out, size_t sz) {
 
 int rsl_cat(const char* path, char* out, size_t sz) {
     return syscall_dispatch(SYS_VFS_CAT, path, out, sz);
+}
+
+int rsl_read(const char* path, void* buffer, size_t sz) {
+    return syscall_dispatch(SYS_VFS_READ, path, buffer, sz);
 }
 
 int rsl_mkdir(const char* path) {

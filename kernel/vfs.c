@@ -107,6 +107,19 @@ int vfs_cat(const char* path, char* out, size_t sz) {
     return -1;
 }
 
+int vfs_read(const char* path, void* buffer, size_t sz) {
+    FIL fil; UINT br;
+    char drv[8], fpath[256];
+    const char* sub = vfs_translate(path, drv);
+    snprintf(fpath, sizeof(fpath), "%s%s", drv, sub);
+    if (f_open(&fil, fpath, FA_READ) == FR_OK) {
+        f_read(&fil, buffer, sz, &br);
+        f_close(&fil);
+        return (int)br;
+    }
+    return -1;
+}
+
 int vfs_mkdir(const char* path) {
     char drv[8], fpath[256];
     const char* sub = vfs_translate(path, drv);

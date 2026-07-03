@@ -16,6 +16,7 @@ int syscall_dispatch(int num, const void* a1, void* a2, size_t a3) {
         case SYS_DEVMGR_LIST: return devmgr_list((char*)a1, a3);
         case SYS_FREE:        free((void*)a1); return 0;
         case SYS_GET_UPTIME:  *(uint64_t*)a2 = hal_get_uptime_ms(); return 0;
+        case SYS_VFS_READ:    return vfs_read((const char*)a1, (void*)a2, a3);
         case SYS_GET_CPU_LOAD: return scheduler_get_cpu_load();
         case SYS_SPAWN:       return scheduler_spawn((const char*)a1, (void (*)(void*))a2, (void*)a3);
         case SYS_YIELD:       scheduler_yield(); return 0;

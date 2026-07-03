@@ -2,8 +2,10 @@
  * Licensed under the 'respect people's property' OS license. */
 #include "nuklear.h"
 #include "rsl.h"
+#include <stdio.h>
 #include <string.h>
 #include "app_ui.h"
+#include "app_loader.h"
 
 void chell_init(void* s) {
     struct app_state* app = (struct app_state*)s;
@@ -47,6 +49,13 @@ void chell_update(struct nk_context* ctx, void* s) {
                 strcpy(output, "Userland Commands: ls <path>, cat <path>, mounts, hw, uptime, help, clear");
             } else if (strcmp(cmd, "clear") == 0) {
                 memset(output, 0, sizeof(output));
+            } else if (strncmp(cmd, "run ", 4) == 0) {
+                char* path = cmd + 4;
+                if (app_spawn_script(path) < 0) {
+                    snprintf(output, sizeof(output), "Failed to run app: %s\n", path);
+                } else {
+                    snprintf(output, sizeof(output), "Launched script: %s\n", path);
+                }
             } else if (strlen(cmd) > 0) {
                 rsl_printf("Userland Attempt: %s\n", cmd);
                 strcpy(output, "Command dispatched to executive log.");

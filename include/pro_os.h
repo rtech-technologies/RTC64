@@ -48,6 +48,7 @@ uint32_t scheduler_get_current_upid(void);
 int scheduler_get_cpu_load(void);
 void scheduler_audit_stacks(void);
 uint64_t scheduler_get_ctx_switches(void);
+void task_crash_cleanup(void);
 
 typedef struct { bool can_network; bool can_storage; bool can_input; } app_permit_t;
 bool uac_check_permit(int app_id, const char *action);
@@ -98,6 +99,10 @@ void cm_orchestrate_drivers(void);
 void init_sse(void);
 void kpanic(const char* message);
 void pci_scan(void);
+uint32_t pci_read_config(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset);
+uint64_t pci_get_bar(uint8_t bus, uint8_t slot, uint8_t func, uint8_t bar_index);
+int linux_compat_init(void);
+int virtio_net_linux_init(void);
 
 int nvme_init(uint64_t mmio);
 int ahci_init(uint64_t mmio);
@@ -109,6 +114,7 @@ void hal_usb_poll(void);
 
 int vfs_ls(const char* path, char* out, size_t sz);
 int vfs_cat(const char* path, char* out, size_t sz);
+int vfs_read(const char* path, void* buffer, size_t sz);
 int vfs_mkdir(const char* path);
 int vfs_write(const char* path, const char* content);
 int vfs_get_mounts(char* out, size_t sz);

@@ -75,7 +75,9 @@ void environment_manager_entry(void* arg) {
 
     static struct app_state app;
     memset(&app, 0, sizeof(app));
-    app.current_state = STATE_DESKTOP;
+    strncpy(app.username, "Administrator", sizeof(app.username) - 1);
+    app.current_state = STATE_LOGIN;
+    app.installed = 0;
 
     int mx, my;
     uint64_t start_time = hal_get_uptime_ms();
@@ -127,6 +129,9 @@ void kernel_main(void) {
     idt_init();
 
     if (memmap_req.response) {
+        /* Enable SSE early so low-level optimized routines may use XMM
+         * instructions during early boot (e.g., optimized memset/memcpy). */
+        init_sse();
         pmm_init(memmap_req.response);
     } else {
         kpanic("MISSING_MEMMAP");
@@ -138,12 +143,13 @@ void kernel_main(void) {
     hal_malloc_init(virt_heap, 1024 * 4096);
 
     apic_init();
-    init_sse();
 
     scheduler_init();
 
     vfs_init();
     hal_storage_init();
+    linux_compat_init();
+    virtio_net_linux_init();
     pci_scan();
     hal_usb_init();
     hal_ps2_init();

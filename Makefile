@@ -11,7 +11,7 @@ KERNEL_OBJS = kernel/entry.o kernel/kernel.o src/app_ui.o src/chell.o src/lab.o 
               kernel/nuklear_kernel_impl.o kernel/stb_image_impl.o \
               src/nuklear_impl.o kernel/syscall.o kernel/sys_shell.o \
               kernel/usb_osal.o kernel/usb_hal_ports.o kernel/storage.o kernel/input.o \
-              kernel/usb_hal.o kernel/vfs.o kernel/scheduler.o \
+              kernel/app_loader.o kernel/usb_hal.o kernel/vfs.o kernel/scheduler.o \
               kernel/serial.o kernel/i18n.o kernel/uac_policy.o kernel/tgx_impl.o \
               kernel/tlsf_impl.o kernel/math.o kernel/panic.o \
               kernel/gdt.o kernel/interrupts.o kernel/isr_stubs.o \
@@ -20,7 +20,9 @@ KERNEL_OBJS = kernel/entry.o kernel/kernel.o src/app_ui.o src/chell.o src/lab.o 
               kernel/diskio_impl.o kernel/ffsystem_impl.o \
               kernel/fatfs/ff.o kernel/fatfs/ffunicode.o \
               kernel/drivers/pci.o kernel/drivers/xhci.o kernel/drivers/ehci.o \
-              kernel/drivers/nvme.o kernel/drivers/ahci.o kernel/drivers/ramdisk.o \
+              kernel/drivers/virtio_net.o kernel/drivers/virtio_net_linux.o \
+              kernel/linux_compat.o kernel/linux_irq.o kernel/linux_pci_compat.o \
+              src/app_studio.o kernel/drivers/nvme.o kernel/drivers/ahci.o kernel/drivers/ramdisk.o \
               kernel/drivers/ps2.o kernel/drivers/rtc.o \
               external/CherryUSB/core/usbh_core.o \
               external/CherryUSB/class/msc/usbh_msc.o \

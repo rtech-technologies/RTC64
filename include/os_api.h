@@ -22,6 +22,10 @@ static inline int os_vfs_cat(const char* path, char* out, size_t sz) {
     return syscall_dispatch(SYS_VFS_CAT, path, out, sz);
 }
 
+static inline int os_vfs_read(const char* path, void* buffer, size_t sz) {
+    return syscall_dispatch(SYS_VFS_READ, path, buffer, sz);
+}
+
 static inline int os_vfs_mkdir(const char* path) {
     return syscall_dispatch(SYS_VFS_MKDIR, path, (void*)0, 0);
 }

@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "pro_os.h"
+#include "linux_compat.h"
 #include "hal.h"
 #include "serial.h"
 
@@ -24,7 +25,7 @@ typedef struct {
 static pci_device_info_t g_pci_devices[MAX_PCI_DEVICES];
 static int g_pci_count = 0;
 
-static uint32_t pci_read_config(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset) {
+uint32_t pci_read_config(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset) {
     uint32_t address = (uint32_t)((uint32_t)bus << 16) | ((uint32_t)slot << 11) |
                        ((uint32_t)func << 8) | (offset & 0xFC) | ((uint32_t)0x80000000);
     outl(0xCF8, address);
@@ -92,6 +93,13 @@ void pci_scan(void) {
                         ahci_init(mmio);
                     }
                 }
+
+                uint32_t subsystem = pci_read_config(bus, slot, func, 0x2C);
+                uint16_t subsystem_vendor = subsystem & 0xFFFF;
+                uint16_t subsystem_device = (subsystem >> 16) & 0xFFFF;
+                linux_compat_probe_pci_device((uint8_t)bus, (uint8_t)slot, (uint8_t)func,
+                                              vendor, device, subsystem_vendor, subsystem_device,
+                                              base_class, sub_class, prog_if);
 
                 if (func == 0) {
                     uint32_t header_type = pci_read_config(bus, slot, 0, 0x0C);
