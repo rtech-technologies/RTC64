@@ -32,7 +32,7 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap);
 
 #define MAX_TASKS 16
 typedef enum { TASK_DEAD, TASK_RUNNING, TASK_SQUEEZED } task_state_t;
-typedef struct { int id; uint32_t uaid; uint32_t upid; char name[32]; task_state_t state; void (*entry)(void*); void *arg; } task_t;
+typedef struct { int id; uint32_t uaid; uint32_t upid; char name[32]; task_state_t state; void (*entry)(void*); void *arg; uint64_t kernel_stack; } task_t;
 
 void scheduler_init(void);
 int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32_t uaid, uint32_t upid);
@@ -96,6 +96,7 @@ void* pmm_alloc_low(void);
 
 void gdt_init(void);
 void idt_init(void);
+void msr_init(void);
 void apic_init(void);
 void apic_timer_unmask(void);
 void cm_orchestrate_drivers(void);

@@ -54,6 +54,7 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
     tasks[slot].name[31] = '\0'; /* Mandatory termination safety */
     tasks[slot].state = TASK_RUNNING;
     tasks[slot].entry = entry; tasks[slot].arg = arg;
+    tasks[slot].kernel_stack = (uint64_t)&task_stacks[slot][STACK_SIZE];
 
     uint64_t stack_top = (uint64_t)&task_stacks[slot][STACK_SIZE];
     stack_top &= ~15; /* 16-byte aligned point */
@@ -138,7 +139,17 @@ uint64_t scheduler_switch(uint64_t current_rsp) {
         current_task_idx = (current_task_idx + 1) % MAX_TASKS;
         if (tasks[current_task_idx].state == TASK_RUNNING) {
             /* Log every switch for diagnostics */
-            serial_printf("[SCHED] Switching to task id=%d name=%s\n", current_task_idx, tasks[current_task_idx].name);
+            // serial_printf("[SCHED] Switching to task id=%d name=%s\n", current_task_idx, tasks[current_task_idx].name);
+
+            /* Update GS BASE with new task's kernel stack for syscall entry */
+            uint64_t kstack = tasks[current_task_idx].kernel_stack;
+            __asm__ volatile("mov %0, %%rdi\n\t"
+                             "mov $0xC0000102, %%ecx\n\t" /* Kernel GS Base */
+                             "mov %%rdi, %%rax\n\t"
+                             "shr $32, %%rdi\n\t"
+                             "mov %%rdi, %%rdx\n\t"
+                             "wrmsr" : : "r"(kstack) : "rax", "rdx", "rcx", "rdi");
+
             return task_rsps[current_task_idx];
         }
     }

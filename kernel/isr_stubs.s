@@ -76,6 +76,36 @@ irq 45
 irq 46
 irq 47
 
+.global syscall_entry
+syscall_entry:
+    /* At this point, GS_BASE points to the kernel stack of the current task.
+     * Kernel GS Base was set in scheduler_switch.
+     */
+    swapgs
+    /* Now GS:0 is the user RSP? No, we haven't saved it.
+     * Standard trick: use a per-cpu structure where GS:0 is scratch, GS:8 is kstack.
+     * But we have only one scratch (GS_BASE).
+     * Let's use the Kernel stack itself to save the user stack.
+     */
+    movq %rsp, %r11 /* Move user RSP to a scratch GPR (R11 is already clobbered by syscall) */
+    movq %gs:0, %rsp /* Switch to kernel stack */
+
+    /* Build a dummy interrupt frame so we can reuse syscall_common if we want,
+     * or just do a custom one. */
+    pushq $0x1B /* User SS */
+    pushq %r11  /* User RSP */
+    pushq %r11  /* User RFLAGS? No, syscall saves flags in R11. */
+    pushq $0x23 /* User CS */
+    pushq %rcx  /* User RIP (return address) */
+
+    pushq $0    /* Error code */
+    pushq $128  /* Vector */
+
+    /* Now we are on kernel stack, and have the return frame.
+     * Proceed to save registers.
+     */
+    jmp syscall_common
+
 .global isr_stub_128
 isr_stub_128:
     pushq $0
@@ -164,6 +194,7 @@ isr_common:
     iretq
 
 syscall_common:
+    /* Standard register save... */
     pushq %rax
     pushq %rbx
     pushq %rcx
@@ -248,9 +279,20 @@ syscall_common:
     popq %rdx
     popq %rcx
     popq %rbx
-    popq %rax
-    addq $16, %rsp
-    iretq
+
+    /* Returning from syscall...
+     * We need to restore RCX and R11 for sysretq.
+     * RCX: return RIP
+     * R11: return RFLAGS
+     * Our stack frame has: [Vector, Error, RIP, CS, RFLAGS, RSP, SS]
+     */
+    movq 0(%rsp), %rax /* Result in RAX (actually popq rax later) */
+    movq 16(%rsp), %rcx /* RIP */
+    movq 32(%rsp), %r11 /* RFLAGS */
+    movq 40(%rsp), %rsp /* RSP (User) */
+
+    swapgs
+    sysretq
 
 irq_common:
     pushq %rax

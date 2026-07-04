@@ -15,7 +15,7 @@ KERNEL_OBJS = kernel/entry.o kernel/kernel.o src/app_ui.o src/chell.o src/lab.o 
               kernel/app_loader.o kernel/usb_hal.o kernel/vfs.o kernel/scheduler.o \
               kernel/serial.o kernel/i18n.o kernel/uac_policy.o kernel/tgx_impl.o \
               kernel/tlsf_impl.o kernel/math.o kernel/panic.o \
-              kernel/gdt.o kernel/interrupts.o kernel/isr_stubs.o \
+              kernel/gdt.o kernel/msr.o kernel/interrupts.o kernel/isr_stubs.o \
               kernel/apic.o kernel/pmm.o kernel/comprec.o kernel/cm.o \
               kernel/malloc_glue.o kernel/vga_log.o kernel/storage_hal.o src/main.o kernel/panic_hal.o \
               kernel/diskio_impl.o kernel/ffsystem_impl.o \

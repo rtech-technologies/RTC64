@@ -145,6 +145,7 @@ void kernel_main(void) {
 
     gdt_init();
     idt_init();
+    msr_init();
 
     if (memmap_req.response) {
         /* Enable SSE early so low-level optimized routines may use XMM
