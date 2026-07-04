@@ -174,10 +174,10 @@ void kernel_main(void) {
     hal_ps2_init();
     vfs_refresh_mounts();
 
-    scheduler_spawn("KBD", kbd_task, NULL);
-    scheduler_spawn("MOUSE", mouse_task, NULL);
-    scheduler_spawn("Compliance", comprec_task, NULL);
-    scheduler_spawn("Environment Manager", environment_manager_entry, NULL);
+    scheduler_spawn_kernel("KBD", kbd_task, NULL);
+    scheduler_spawn_kernel("MOUSE", mouse_task, NULL);
+    scheduler_spawn_kernel("Compliance", comprec_task, NULL);
+    scheduler_spawn_kernel("Environment Manager", environment_manager_entry, NULL);
 
     scheduler_run();
 }

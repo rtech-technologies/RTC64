@@ -91,7 +91,7 @@ int usb_osal_sem_take(usb_osal_sem_t sem, uint32_t timeout) {
     uint32_t start_time = 0; // Simplified
     while (s->count == 0) {
         if (timeout != 0xFFFFFFFFU && start_time >= timeout) return -1;
-        __asm__("pause");
+        scheduler_yield();
         start_time++; // Dummy increment
     }
 
@@ -187,7 +187,7 @@ int usb_osal_mq_recv(usb_osal_mq_t mq, uintptr_t *addr, uint32_t timeout) {
     uint32_t wait = 0;
     while (m->head == m->tail) {
         if (timeout != 0xFFFFFFFFU && wait >= timeout) return -1;
-        __asm__("pause");
+        scheduler_yield();
         wait++;
     }
     
@@ -225,9 +225,9 @@ void usb_osal_timer_stop(struct usb_osal_timer *timer) {
 }
 
 void usb_osal_msleep(uint32_t delay) {
-    /* MEATY: Calibrated delay loop for x86-64 */
-    for (uint32_t i = 0; i < delay; i++) {
-        for (volatile uint32_t j = 0; j < 1000000; j++) __asm__("pause");
+    uint64_t start = hal_get_uptime_ms();
+    while (hal_get_uptime_ms() - start < delay) {
+        scheduler_yield();
     }
 }
 

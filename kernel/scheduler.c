@@ -16,6 +16,13 @@ static uint64_t idle_ticks = 0, total_ticks = 0, ctx_switches = 0;
 static int cpu_load = 0;
 static uint32_t next_uaid = 100, next_upid = 1000;
 
+struct cpu_local {
+    uint64_t kernel_stack;
+    uint64_t user_scratch;
+};
+
+static struct cpu_local g_cpu_local;
+
 static void kernel_idle_task(void* arg) {
     (void)arg; uint64_t last_calc = 0;
     serial_printf("[SCHED] Idle task running.\n");
@@ -33,6 +40,23 @@ static void kernel_idle_task(void* arg) {
 }
 
 void scheduler_init(void) {
+    /* Initialize Per-CPU GS Base */
+    uint64_t base = (uint64_t)&g_cpu_local;
+    __asm__ volatile("mov %0, %%rdi\n\t"
+                     "mov $0xC0000101, %%ecx\n\t" /* GS_BASE */
+                     "mov %%rdi, %%rax\n\t"
+                     "shr $32, %%rdi\n\t"
+                     "mov %%rdi, %%rdx\n\t"
+                     "wrmsr" : : "r"(base) : "rax", "rdx", "rcx", "rdi");
+
+    /* Set KERNEL_GS_BASE (swapped to GS_BASE on syscall/interrupt entry) */
+    __asm__ volatile("mov %0, %%rdi\n\t"
+                     "mov $0xC0000102, %%ecx\n\t" /* KERNEL_GS_BASE */
+                     "mov %%rdi, %%rax\n\t"
+                     "shr $32, %%rdi\n\t"
+                     "mov %%rdi, %%rdx\n\t"
+                     "wrmsr" : : "r"(base) : "rax", "rdx", "rcx", "rdi");
+
     task_count = 0;
     current_task_idx = -1;
     for (int i = 0; i < MAX_TASKS; i++) {
@@ -66,10 +90,17 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
     uint64_t *p = (uint64_t *)stack_top;
 
     /* 1. iretq frame (SS, RSP, RFLAGS, CS, RIP) */
-    *(--p) = 0x10;             /* SS */
-    *(--p) = stack_top;        /* Target RSP for the task: clean high point */
-    *(--p) = 0x202;            /* RFLAGS (IF=1) */
-    *(--p) = 0x08;             /* CS */
+    if (uaid == 0) {
+        *(--p) = 0x10;             /* Kernel SS */
+        *(--p) = stack_top;
+        *(--p) = 0x202;            /* RFLAGS (IF=1) */
+        *(--p) = 0x08;             /* Kernel CS */
+    } else {
+        *(--p) = 0x1B;             /* User SS (0x18 | 3) */
+        *(--p) = stack_top;
+        *(--p) = 0x202;            /* RFLAGS (IF=1) */
+        *(--p) = 0x23;             /* User CS (0x20 | 3) */
+    }
     *(--p) = (uint64_t)entry;  /* RIP */
 
     /* 2. error_code, interrupt_number */
@@ -113,6 +144,10 @@ int scheduler_spawn(const char* name, void (*entry)(void*), void* arg) {
     return scheduler_add_task(name, entry, arg, next_uaid++, next_upid++);
 }
 
+int scheduler_spawn_kernel(const char* name, void (*entry)(void*), void* arg) {
+    return scheduler_add_task(name, entry, arg, 0, 0);
+}
+
 int scheduler_fork(const char* name, void (*entry)(void*), void* arg) {
     return scheduler_add_task(name, entry, arg, scheduler_get_current_uaid(), next_upid++);
 }
@@ -138,17 +173,8 @@ uint64_t scheduler_switch(uint64_t current_rsp) {
     for (int i = 0; i < MAX_TASKS; i++) {
         current_task_idx = (current_task_idx + 1) % MAX_TASKS;
         if (tasks[current_task_idx].state == TASK_RUNNING) {
-            /* Log every switch for diagnostics */
-            // serial_printf("[SCHED] Switching to task id=%d name=%s\n", current_task_idx, tasks[current_task_idx].name);
-
-            /* Update GS BASE with new task's kernel stack for syscall entry */
-            uint64_t kstack = tasks[current_task_idx].kernel_stack;
-            __asm__ volatile("mov %0, %%rdi\n\t"
-                             "mov $0xC0000102, %%ecx\n\t" /* Kernel GS Base */
-                             "mov %%rdi, %%rax\n\t"
-                             "shr $32, %%rdi\n\t"
-                             "mov %%rdi, %%rdx\n\t"
-                             "wrmsr" : : "r"(kstack) : "rax", "rdx", "rcx", "rdi");
+            /* Update GS struct with new task's kernel stack for syscall entry */
+            g_cpu_local.kernel_stack = tasks[current_task_idx].kernel_stack;
 
             return task_rsps[current_task_idx];
         }

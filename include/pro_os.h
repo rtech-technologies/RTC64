@@ -37,6 +37,7 @@ typedef struct { int id; uint32_t uaid; uint32_t upid; char name[32]; task_state
 void scheduler_init(void);
 int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32_t uaid, uint32_t upid);
 int scheduler_spawn(const char* name, void (*entry)(void*), void* arg);
+int scheduler_spawn_kernel(const char* name, void (*entry)(void*), void* arg);
 int scheduler_fork(const char* name, void (*entry)(void*), void* arg);
 void scheduler_remove_task(int task_id);
 void scheduler_stop_all(void);
