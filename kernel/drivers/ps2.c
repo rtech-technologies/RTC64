@@ -32,8 +32,8 @@ static uint8_t ps2_read_data() {
 }
 
 void ps2_poll_kbd(void) {
-    if (inb(PS2_STATUS) & 1) {
-        uint8_t status = inb(PS2_STATUS);
+    uint8_t status = inb(PS2_STATUS);
+    if (status & 1) {
         if (!(status & 0x20)) { /* Not mouse data */
             uint8_t scancode = inb(PS2_DATA);
             input_event_t ev;
@@ -49,8 +49,8 @@ static uint8_t mouse_cycle = 0;
 static uint8_t mouse_byte[3];
 
 void ps2_poll_mouse(void) {
-    if (inb(PS2_STATUS) & 1) {
-        uint8_t status = inb(PS2_STATUS);
+    uint8_t status = inb(PS2_STATUS);
+    if (status & 1) {
         if (status & 0x20) { /* Mouse data */
             mouse_byte[mouse_cycle++] = inb(PS2_DATA);
             if (mouse_cycle == 3) {
