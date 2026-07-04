@@ -117,9 +117,16 @@ int scheduler_fork(const char* name, void (*entry)(void*), void* arg) {
 }
 
 void scheduler_remove_task(int task_id) {
-    if (task_id <= 0 || task_id >= MAX_TASKS) return;
+    if (task_id < 0 || task_id >= MAX_TASKS) return;
     memset(&tasks[task_id], 0, sizeof(task_t));
     tasks[task_id].state = TASK_DEAD;
+}
+
+void scheduler_stop_all(void) {
+    serial_write("[SCHED] Emergency Halt: Stopping all tasks.\n");
+    for (int i = 0; i < MAX_TASKS; i++) {
+        tasks[i].state = TASK_DEAD;
+    }
 }
 
 uint64_t scheduler_switch(uint64_t current_rsp) {

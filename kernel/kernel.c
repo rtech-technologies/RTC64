@@ -155,10 +155,10 @@ void kernel_main(void) {
         kpanic("MISSING_MEMMAP");
     }
 
-    void* phys_heap = pmm_alloc_blocks(1024);
+    void* phys_heap = pmm_alloc_blocks(8192); // 32MB Heap
     if (!phys_heap) kpanic("HEAP_GENESIS_FAULT");
     void* virt_heap = (void*)((uint64_t)phys_heap + hhdm_offset);
-    hal_malloc_init(virt_heap, 1024 * 4096);
+    hal_malloc_init(virt_heap, 8192 * 4096);
 
     apic_init();
 

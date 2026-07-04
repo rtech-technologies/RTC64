@@ -126,6 +126,8 @@ void kpanic(const char* message) {
         while(1) __asm__ volatile("cli; hlt");
     }
 
+    scheduler_stop_all();
+
     serial_write("\n\n[PANIC] ");
     serial_write(message);
     serial_write("\n");
@@ -189,6 +191,7 @@ void exception_handler(struct cpu_state *state) {
     serial_printf("\n\n[FATAL] %s (int=%llu err=%llu)\n", name, state->interrupt_number, state->error_code);
     serial_printf("RIP=%p CR2=%p RSP=%p RFLAGS=%p\n", (void*)state->rip, (void*)state->cr2, (void*)state->rsp, (void*)state->rflags);
 
+    scheduler_stop_all();
     draw_osod(name, state);
     while(1) __asm__ volatile("cli; hlt");
 }

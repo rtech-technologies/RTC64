@@ -39,6 +39,7 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
 int scheduler_spawn(const char* name, void (*entry)(void*), void* arg);
 int scheduler_fork(const char* name, void (*entry)(void*), void* arg);
 void scheduler_remove_task(int task_id);
+void scheduler_stop_all(void);
 uint64_t scheduler_switch(uint64_t current_rsp);
 void scheduler_yield(void);
 void scheduler_run(void);
