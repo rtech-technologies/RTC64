@@ -4,6 +4,6 @@ _start:
     call main
     movq %rax, %rdi
     /* Exit syscall */
-    movq $12, %rax /* SYS_EXIT */
-    int $0x80
+    movq $0x0E, %rax /* SYS_EXIT */
+    syscall
     hlt
