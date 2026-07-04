@@ -19,6 +19,6 @@
 #define SYS_EXIT            0x0E
 #define SYS_SERIAL_WRITE    0x0F
 #define SYS_VFS_READ        0x10
-#define SYS_VFS_RM          14
+#define SYS_VFS_RM          0x11
 
 #endif
