@@ -7,7 +7,7 @@ CFLAGS = -Wall -Wextra -Werror -std=c11 -ffreestanding -fno-stack-protector \
          -isystem ./external/limine -isystem ./external/CherryUSB/common -isystem ./external/CherryUSB/core -isystem ./external/CherryUSB/class/msc -isystem ./external/CherryUSB/class/hid -isystem ./external/CherryUSB/class/hub \
          -include kernel/usb_config.h -DKERNEL_MODE -Wno-unused-function
 LDFLAGS = -nostdlib -static -m elf_x86_64 -z max-page-size=0x1000 -T kernel/linker.ld
-KERNEL_OBJS = kernel/entry.o kernel/kernel.o src/app_ui.o src/chell.o src/lab.o src/installer.o \
+KERNEL_OBJS = kernel/entry.o kernel/kernel.o src/app_ui.o \
               kernel/nuklear_kernel_impl.o kernel/stb_image_impl.o \
               src/nuklear_impl.o src/nk_software_renderer.o kernel/syscall.o kernel/sys_shell.o \
               kernel/crash_notify.o \
@@ -23,7 +23,7 @@ KERNEL_OBJS = kernel/entry.o kernel/kernel.o src/app_ui.o src/chell.o src/lab.o 
               kernel/drivers/pci.o kernel/drivers/xhci.o kernel/drivers/ehci.o \
               kernel/drivers/virtio_net.o kernel/drivers/virtio_net_linux.o \
               kernel/linux_compat.o kernel/linux_irq.o kernel/linux_pci_compat.o \
-              src/app_studio.o kernel/drivers/nvme.o kernel/drivers/ahci.o kernel/drivers/ramdisk.o \
+              kernel/drivers/nvme.o kernel/drivers/ahci.o kernel/drivers/ramdisk.o \
               kernel/drivers/ps2.o kernel/drivers/rtc.o \
               external/CherryUSB/core/usbh_core.o \
               external/CherryUSB/class/msc/usbh_msc.o \

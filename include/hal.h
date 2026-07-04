@@ -95,6 +95,7 @@ void hal_input_init(void);
 void hal_input_push_event(input_event_t ev);
 bool hal_input_pop_event(input_event_t *ev);
 void hal_input_get_mouse_abs(int *x, int *y);
+void hal_input_set_mouse_abs(int x, int y);
 
 /* Device Registry */
 int hal_input_register_device(const char* name, input_type_t type, input_bus_t bus);

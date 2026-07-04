@@ -27,6 +27,11 @@ void hal_input_get_mouse_abs(int *x, int *y) {
     if (y) *y = g_mouse_abs_y;
 }
 
+void hal_input_set_mouse_abs(int x, int y) {
+    g_mouse_abs_x = x;
+    g_mouse_abs_y = y;
+}
+
 int hal_input_register_device(const char* name, input_type_t type, input_bus_t bus) {
     if (g_input_dev_count >= MAX_INPUT_DEVICES) return -1;
     int id = g_input_dev_count++;

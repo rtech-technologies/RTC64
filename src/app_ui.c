@@ -65,16 +65,17 @@ static void ui_render_launcher(struct nk_context *ctx, struct app_state *app)
 {
     if (!app->show_launcher) return;
     if (nk_begin(ctx, "App Launcher", nk_rect(20, 60, 420, 420), NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_TITLE)) {
+        extern int app_spawn_binary(const char* path);
         nk_layout_row_dynamic(ctx, 24, 1);
         nk_label(ctx, "Applications", NK_TEXT_LEFT);
         nk_layout_row_dynamic(ctx, 72, 4);
-        if (nk_button_label(ctx, "Terminal")) app->show_terminal = 1;
+        if (nk_button_label(ctx, "Terminal")) app_spawn_binary("/shell.bin");
         if (nk_button_label(ctx, "Files")) app->show_explorer = 1;
-        if (nk_button_label(ctx, "Studio")) app->show_app_studio = 1;
-        if (nk_button_label(ctx, "Diagnostics")) app->show_lab = 1;
+        if (nk_button_label(ctx, "Studio")) app_spawn_binary("/studio.bin");
+        if (nk_button_label(ctx, "Diagnostics")) app_spawn_binary("/lab.bin");
         nk_layout_row_dynamic(ctx, 72, 4);
         if (nk_button_label(ctx, "Tasks")) app->show_task_manager = 1;
-        if (nk_button_label(ctx, "Notepad")) app->show_notepad = 1;
+        if (nk_button_label(ctx, "Notepad")) app_spawn_binary("/notepad.bin");
         if (nk_button_label(ctx, "Settings")) app->show_settings = 1;
         if (nk_button_label(ctx, "Installer")) app->current_state = STATE_INSTALLER;
         if (nk_button_label(ctx, "Lock")) app->current_state = STATE_LOGIN;
@@ -85,14 +86,15 @@ static void ui_render_launcher(struct nk_context *ctx, struct app_state *app)
     nk_end(ctx);
 }
 
-static void ui_render_desktop_icon(struct nk_context *ctx, const char *name, float x, float y, int *toggle)
+static void ui_render_desktop_icon(struct nk_context *ctx, const char *name, float x, float y, const char* bin_path)
 {
     struct nk_rect bounds = nk_rect(x, y, 80, 80);
     if (nk_input_is_mouse_hovering_rect(&ctx->input, bounds)) {
         struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
         nk_fill_rect(canvas, bounds, 4, nk_rgba(255, 255, 255, 30));
         if (nk_input_is_mouse_pressed(&ctx->input, NK_BUTTON_LEFT)) {
-            *toggle = 1;
+            extern int app_spawn_binary(const char* path);
+            app_spawn_binary(bin_path);
         }
     }
     struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
@@ -102,6 +104,7 @@ static void ui_render_desktop_icon(struct nk_context *ctx, const char *name, flo
 
 static void ui_render_background(struct nk_context *ctx, struct app_state *app, int ww, int wh)
 {
+    (void)app;
     struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
     nk_fill_rect(canvas, nk_rect(0, 0, (float)ww, (float)wh), 0, nk_rgba(10, 16, 28, 255));
     nk_fill_rect(canvas, nk_rect(26, 26, (float)ww - 52, (float)wh - 98), 0, nk_rgba(20, 50, 91, 210));
@@ -110,10 +113,10 @@ static void ui_render_background(struct nk_context *ctx, struct app_state *app, 
     nk_draw_text(canvas, nk_rect(ww - 240, wh - 100, 200, 30), "Sovereign RTC64 Pro", 19, ctx->style.font, nk_rgba(255, 255, 255, 80), nk_rgba(0,0,0,0));
 
     /* Desktop Icons */
-    ui_render_desktop_icon(ctx, "Terminal", 50, 50, &app->show_terminal);
-    ui_render_desktop_icon(ctx, "Files", 50, 150, &app->show_explorer);
-    ui_render_desktop_icon(ctx, "Diagnostics", 50, 250, &app->show_lab);
-    ui_render_desktop_icon(ctx, "Notepad", 50, 350, &app->show_notepad);
+    ui_render_desktop_icon(ctx, "Terminal", 50, 50, "/shell.bin");
+    ui_render_desktop_icon(ctx, "Files", 50, 150, "/files.bin");
+    ui_render_desktop_icon(ctx, "Diagnostics", 50, 250, "/lab.bin");
+    ui_render_desktop_icon(ctx, "Notepad", 50, 350, "/notepad.bin");
 }
 
 static void ui_render_system_panel(struct nk_context *ctx, struct app_state *app)
@@ -319,14 +322,9 @@ static void ui_render_desktop(struct nk_context *ctx, struct app_state *app, int
     ui_render_system_panel(ctx, app);
     ui_render_crash_reports(ctx, app);
     ui_render_task_manager(ctx, app);
-    ui_render_notepad(ctx, app);
 
-    if (app->show_terminal) chell_update(ctx, app);
     if (app->show_explorer) ui_render_files(ctx, app);
     if (app->show_settings) ui_render_settings(ctx, app);
-    if (app->show_app_studio) studio_update(ctx, app);
-    if (app->show_script_app) app_loader_update(ctx, app);
-    if (app->show_lab) lab_update(ctx, app);
 }
 
 void ui_init_style(struct nk_context *ctx) {
