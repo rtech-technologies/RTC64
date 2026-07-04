@@ -1,6 +1,7 @@
 /* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
  * Licensed under the 'respect people's property' OS license. */
 /* Modified by Sovereign: Robust OSAL implementation for CherryUSB with interrupt-safe critical sections */
+#include "pro_os.h"
 #include "usb_osal.h"
 #include "hal.h"
 #include "external/tlsf.h"
@@ -44,16 +45,14 @@ void usb_osal_leave_critical_section(size_t flag) {
     );
 }
 
-extern void scheduler_add_task(const char *name, void (*entry)(void));
-
 usb_osal_thread_t usb_osal_thread_create(const char *name, uint32_t stack_size, uint32_t priority, usb_thread_entry_t entry, void *argument) {
-    (void)stack_size; (void)priority; (void)argument;
+    (void)stack_size; (void)priority;
     serial_printf("[USB OSAL] Creating thread: %s\n", name);
     if (entry) {
         /* MEATY: Registering with kernel scheduler for true multitasking */
-        scheduler_add_task(name, (void (*)(void))entry);
+        int tid = scheduler_spawn(name, (void (*)(void*))entry, argument);
         /* In this freestanding implementation, we pass the task ID as thread handle */
-        return (usb_osal_thread_t)1;
+        return (usb_osal_thread_t)(uintptr_t)tid;
     }
     return (usb_osal_thread_t)NULL;
 }
@@ -92,7 +91,7 @@ int usb_osal_sem_take(usb_osal_sem_t sem, uint32_t timeout) {
     uint32_t start_time = 0; // Simplified
     while (s->count == 0) {
         if (timeout != 0xFFFFFFFFU && start_time >= timeout) return -1;
-        __asm__("pause");
+        scheduler_yield();
         start_time++; // Dummy increment
     }
 
@@ -188,7 +187,7 @@ int usb_osal_mq_recv(usb_osal_mq_t mq, uintptr_t *addr, uint32_t timeout) {
     uint32_t wait = 0;
     while (m->head == m->tail) {
         if (timeout != 0xFFFFFFFFU && wait >= timeout) return -1;
-        __asm__("pause");
+        scheduler_yield();
         wait++;
     }
     
@@ -226,9 +225,9 @@ void usb_osal_timer_stop(struct usb_osal_timer *timer) {
 }
 
 void usb_osal_msleep(uint32_t delay) {
-    /* MEATY: Calibrated delay loop for x86-64 */
-    for (uint32_t i = 0; i < delay; i++) {
-        for (volatile uint32_t j = 0; j < 1000000; j++) __asm__("pause");
+    uint64_t start = hal_get_uptime_ms();
+    while (hal_get_uptime_ms() - start < delay) {
+        scheduler_yield();
     }
 }
 

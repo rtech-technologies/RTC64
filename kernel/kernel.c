@@ -46,9 +46,15 @@ void draw_rtech_logo(struct nk_context *ctx, int screen_w, int screen_h) {
                 ctx->style.font, nk_rgb(30, 30, 30), nk_rgb(255, 255, 255));
 }
 
+static void* g_back_buffer = NULL;
+
 void environment_manager_entry(void* arg) {
     (void)arg;
-    if (!primary_fb) while(1) scheduler_yield();
+    serial_printf("[EM] Environment Manager started.\n");
+    if (!primary_fb) {
+        serial_printf("[EM] Error: Primary framebuffer missing.\n");
+        while(1) scheduler_yield();
+    }
 
     struct rawfb_pl pl;
     pl.bytesPerPixel = primary_fb->bpp / 8;
@@ -64,8 +70,15 @@ void environment_manager_entry(void* arg) {
     void* font_tex_mem = malloc(2 * 1024 * 1024);
     if (!font_tex_mem) kpanic("FONT_ALLOC_FAILED");
 
-    /* Limine FB address is already virtual */
-    struct rawfb_context *rawfb = nk_rawfb_init((void*)primary_fb->address,
+    /* Double Buffering: Allocate back buffer */
+    size_t fb_size = primary_fb->height * primary_fb->pitch;
+    g_back_buffer = malloc(fb_size);
+    if (!g_back_buffer) kpanic("BACK_BUFFER_ALLOC_FAILED");
+
+    /* Limine FB address is virtual, but we render to backbuffer */
+    serial_printf("[EM] FB Address: %p (Virtual), BackBuffer: %p\n", (void*)primary_fb->address, g_back_buffer);
+
+    struct rawfb_context *rawfb = nk_rawfb_init(g_back_buffer,
                           font_tex_mem, (unsigned int)primary_fb->width, (unsigned int)primary_fb->height, (unsigned int)primary_fb->pitch, pl);
 
     if (!rawfb) kpanic("NK_RAWFB_INIT_FAULT");
@@ -78,6 +91,7 @@ void environment_manager_entry(void* arg) {
     strncpy(app.username, "Administrator", sizeof(app.username) - 1);
     app.current_state = STATE_LOGIN;
     app.installed = 0;
+    strcpy(app.explorer_path, "/");
 
     int mx, my;
     uint64_t start_time = hal_get_uptime_ms();
@@ -113,6 +127,10 @@ void environment_manager_entry(void* arg) {
         }
 
         nk_rawfb_render(rawfb, nk_rgb(20, 20, 20), 1);
+
+        /* Flush back-buffer to primary framebuffer */
+        memcpy((void*)primary_fb->address, g_back_buffer, fb_size);
+
         scheduler_yield();
     }
 }
@@ -127,6 +145,7 @@ void kernel_main(void) {
 
     gdt_init();
     idt_init();
+    msr_init();
 
     if (memmap_req.response) {
         /* Enable SSE early so low-level optimized routines may use XMM
@@ -137,10 +156,10 @@ void kernel_main(void) {
         kpanic("MISSING_MEMMAP");
     }
 
-    void* phys_heap = pmm_alloc_blocks(1024);
+    void* phys_heap = pmm_alloc_blocks(8192); // 32MB Heap
     if (!phys_heap) kpanic("HEAP_GENESIS_FAULT");
     void* virt_heap = (void*)((uint64_t)phys_heap + hhdm_offset);
-    hal_malloc_init(virt_heap, 1024 * 4096);
+    hal_malloc_init(virt_heap, 8192 * 4096);
 
     apic_init();
 
@@ -153,11 +172,12 @@ void kernel_main(void) {
     pci_scan();
     hal_usb_init();
     hal_ps2_init();
+    vfs_refresh_mounts();
 
-    scheduler_spawn("KBD", kbd_task, NULL);
-    scheduler_spawn("MOUSE", mouse_task, NULL);
-    scheduler_spawn("Compliance", comprec_task, NULL);
-    scheduler_spawn("Environment Manager", environment_manager_entry, NULL);
+    scheduler_spawn_kernel("KBD", kbd_task, NULL);
+    scheduler_spawn_kernel("MOUSE", mouse_task, NULL);
+    scheduler_spawn_kernel("Compliance", comprec_task, NULL);
+    scheduler_spawn_kernel("Environment Manager", environment_manager_entry, NULL);
 
     scheduler_run();
 }

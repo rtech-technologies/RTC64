@@ -29,10 +29,10 @@ void gdt_init(void) {
     gdt[1] = (gdt_entry_t){0, 0, 0, 0x9A, 0xAF, 0};
     /* Kernel Data 64: Access 0x92, Granularity 0xCF */
     gdt[2] = (gdt_entry_t){0, 0, 0, 0x92, 0xCF, 0};
-    /* User Code 64: Access 0xFA, Granularity 0xAF */
-    gdt[3] = (gdt_entry_t){0, 0, 0, 0xFA, 0xAF, 0};
-    /* User Data 64: Access 0xF2, Granularity 0xCF */
-    gdt[4] = (gdt_entry_t){0, 0, 0, 0xF2, 0xCF, 0};
+    /* User Data 64: Access 0xF2, Granularity 0xCF (Selector 0x18 + 3 = 0x1B) */
+    gdt[3] = (gdt_entry_t){0, 0, 0, 0xF2, 0xCF, 0};
+    /* User Code 64: Access 0xFA, Granularity 0xAF (Selector 0x20 + 3 = 0x23) */
+    gdt[4] = (gdt_entry_t){0, 0, 0, 0xFA, 0xAF, 0};
 
     gdt_ptr.limit = sizeof(gdt) - 1;
     gdt_ptr.base = (uint64_t)&gdt;

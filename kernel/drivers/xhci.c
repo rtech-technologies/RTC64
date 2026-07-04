@@ -62,7 +62,10 @@ void xhci_init(uint64_t mmio) {
 
         serial_printf("[XHCI] Configured %d slots. DCBAAP set to Phys: %p\n", (int)max_slots, (void*)phys_dcbaa);
         
-        /* 4. Run Controller */
+        /* 4. Disable interrupts for now to prevent storms */
+        ops[XHCI_OPS_USBCMD/4] &= ~(1 << 2); /* INTE = 0 */
+
+        /* 5. Run Controller */
         ops[XHCI_OPS_USBCMD/4] |= 1; /* RS=1 */
 
         timeout = 0;

@@ -29,6 +29,17 @@ struct app_state {
     int perm_storage;
     int show_crash_reports;
     char last_crash_path[128];
+
+    /* File Explorer state */
+    char explorer_path[256];
+
+    /* Task Manager state */
+    int show_task_manager;
+
+    /* Notepad state */
+    int show_notepad;
+    char notepad_buffer[4096];
+    char notepad_file[128];
 };
 
 void ui_init_style(struct nk_context *ctx);

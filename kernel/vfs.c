@@ -127,6 +127,13 @@ int vfs_mkdir(const char* path) {
     return (int)f_mkdir(fpath);
 }
 
+int vfs_rm(const char* path) {
+    char drv[8], fpath[256];
+    const char* sub = vfs_translate(path, drv);
+    snprintf(fpath, sizeof(fpath), "%s%s", drv, sub);
+    return (int)f_unlink(fpath);
+}
+
 int vfs_write(const char* path, const char* content) {
     FIL fil; UINT bw;
     char drv[8], fpath[256];

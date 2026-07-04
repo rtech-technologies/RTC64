@@ -22,21 +22,25 @@ size_t strlen(const char* s);
 char* strcpy(char* dest, const char* src);
 char* strncpy(char* dest, const char* src, size_t n);
 char* strcat(char* dest, const char* src);
+char* strncat(char* dest, const char* src, size_t n);
 int strcmp(const char* s1, const char* s2);
 int strncmp(const char* s1, const char* s2, size_t n);
 char* strchr(const char* s, int c);
+char* strrchr(const char* s, int c);
 int snprintf(char* str, size_t size, const char* format, ...);
 int vsnprintf(char* str, size_t size, const char* format, va_list ap);
 
 #define MAX_TASKS 16
 typedef enum { TASK_DEAD, TASK_RUNNING, TASK_SQUEEZED } task_state_t;
-typedef struct { int id; uint32_t uaid; uint32_t upid; char name[32]; task_state_t state; void (*entry)(void*); void *arg; } task_t;
+typedef struct { int id; uint32_t uaid; uint32_t upid; char name[32]; task_state_t state; void (*entry)(void*); void *arg; uint64_t kernel_stack; } task_t;
 
 void scheduler_init(void);
 int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32_t uaid, uint32_t upid);
 int scheduler_spawn(const char* name, void (*entry)(void*), void* arg);
+int scheduler_spawn_kernel(const char* name, void (*entry)(void*), void* arg);
 int scheduler_fork(const char* name, void (*entry)(void*), void* arg);
 void scheduler_remove_task(int task_id);
+void scheduler_stop_all(void);
 uint64_t scheduler_switch(uint64_t current_rsp);
 void scheduler_yield(void);
 void scheduler_run(void);
@@ -93,6 +97,7 @@ void* pmm_alloc_low(void);
 
 void gdt_init(void);
 void idt_init(void);
+void msr_init(void);
 void apic_init(void);
 void apic_timer_unmask(void);
 void cm_orchestrate_drivers(void);
@@ -116,6 +121,7 @@ int vfs_ls(const char* path, char* out, size_t sz);
 int vfs_cat(const char* path, char* out, size_t sz);
 int vfs_read(const char* path, void* buffer, size_t sz);
 int vfs_mkdir(const char* path);
+int vfs_rm(const char* path);
 int vfs_write(const char* path, const char* content);
 int vfs_get_mounts(char* out, size_t sz);
 int devmgr_list(char* out, size_t sz);

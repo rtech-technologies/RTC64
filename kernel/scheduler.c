@@ -16,19 +16,22 @@ static uint64_t idle_ticks = 0, total_ticks = 0, ctx_switches = 0;
 static int cpu_load = 0;
 static uint32_t next_uaid = 100, next_upid = 1000;
 
+struct cpu_local {
+    uint64_t kernel_stack;
+    uint64_t user_scratch;
+};
+
+static struct cpu_local g_cpu_local;
+
 static void kernel_idle_task(void* arg) {
     (void)arg; uint64_t last_calc = 0;
+    serial_printf("[SCHED] Idle task running.\n");
     while (1) {
         idle_ticks++; uint64_t now = hal_get_uptime_ms();
         if (now - last_calc >= 1000) {
             uint64_t work_ticks = total_ticks - idle_ticks;
             if (total_ticks > 0) cpu_load = (int)((work_ticks * 100) / total_ticks);
             scheduler_audit_stacks();
-
-            /* Critical Section Guard for global VFS operations */
-            __asm__ volatile("cli");
-            vfs_refresh_mounts();
-            __asm__ volatile("sti");
 
             idle_ticks = 0; total_ticks = 0; last_calc = now;
         }
@@ -37,6 +40,23 @@ static void kernel_idle_task(void* arg) {
 }
 
 void scheduler_init(void) {
+    /* Initialize Per-CPU GS Base */
+    uint64_t base = (uint64_t)&g_cpu_local;
+    __asm__ volatile("mov %0, %%rdi\n\t"
+                     "mov $0xC0000101, %%ecx\n\t" /* GS_BASE */
+                     "mov %%rdi, %%rax\n\t"
+                     "shr $32, %%rdi\n\t"
+                     "mov %%rdi, %%rdx\n\t"
+                     "wrmsr" : : "r"(base) : "rax", "rdx", "rcx", "rdi");
+
+    /* Set KERNEL_GS_BASE (swapped to GS_BASE on syscall/interrupt entry) */
+    __asm__ volatile("mov %0, %%rdi\n\t"
+                     "mov $0xC0000102, %%ecx\n\t" /* KERNEL_GS_BASE */
+                     "mov %%rdi, %%rax\n\t"
+                     "shr $32, %%rdi\n\t"
+                     "mov %%rdi, %%rdx\n\t"
+                     "wrmsr" : : "r"(base) : "rax", "rdx", "rcx", "rdi");
+
     task_count = 0;
     current_task_idx = -1;
     for (int i = 0; i < MAX_TASKS; i++) {
@@ -58,6 +78,7 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
     tasks[slot].name[31] = '\0'; /* Mandatory termination safety */
     tasks[slot].state = TASK_RUNNING;
     tasks[slot].entry = entry; tasks[slot].arg = arg;
+    tasks[slot].kernel_stack = (uint64_t)&task_stacks[slot][STACK_SIZE];
 
     uint64_t stack_top = (uint64_t)&task_stacks[slot][STACK_SIZE];
     stack_top &= ~15; /* 16-byte aligned point */
@@ -69,10 +90,17 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
     uint64_t *p = (uint64_t *)stack_top;
 
     /* 1. iretq frame (SS, RSP, RFLAGS, CS, RIP) */
-    *(--p) = 0x10;             /* SS */
-    *(--p) = stack_top;        /* Target RSP for the task: clean high point */
-    *(--p) = 0x202;            /* RFLAGS (IF=1) */
-    *(--p) = 0x08;             /* CS */
+    if (uaid == 0) {
+        *(--p) = 0x10;             /* Kernel SS */
+        *(--p) = stack_top;
+        *(--p) = 0x202;            /* RFLAGS (IF=1) */
+        *(--p) = 0x08;             /* Kernel CS */
+    } else {
+        *(--p) = 0x1B;             /* User SS (0x18 | 3) */
+        *(--p) = stack_top;
+        *(--p) = 0x202;            /* RFLAGS (IF=1) */
+        *(--p) = 0x23;             /* User CS (0x20 | 3) */
+    }
     *(--p) = (uint64_t)entry;  /* RIP */
 
     /* 2. error_code, interrupt_number */
@@ -116,14 +144,25 @@ int scheduler_spawn(const char* name, void (*entry)(void*), void* arg) {
     return scheduler_add_task(name, entry, arg, next_uaid++, next_upid++);
 }
 
+int scheduler_spawn_kernel(const char* name, void (*entry)(void*), void* arg) {
+    return scheduler_add_task(name, entry, arg, 0, 0);
+}
+
 int scheduler_fork(const char* name, void (*entry)(void*), void* arg) {
     return scheduler_add_task(name, entry, arg, scheduler_get_current_uaid(), next_upid++);
 }
 
 void scheduler_remove_task(int task_id) {
-    if (task_id <= 0 || task_id >= MAX_TASKS) return;
+    if (task_id < 0 || task_id >= MAX_TASKS) return;
     memset(&tasks[task_id], 0, sizeof(task_t));
     tasks[task_id].state = TASK_DEAD;
+}
+
+void scheduler_stop_all(void) {
+    serial_write("[SCHED] Emergency Halt: Stopping all tasks.\n");
+    for (int i = 0; i < MAX_TASKS; i++) {
+        tasks[i].state = TASK_DEAD;
+    }
 }
 
 uint64_t scheduler_switch(uint64_t current_rsp) {
@@ -134,8 +173,9 @@ uint64_t scheduler_switch(uint64_t current_rsp) {
     for (int i = 0; i < MAX_TASKS; i++) {
         current_task_idx = (current_task_idx + 1) % MAX_TASKS;
         if (tasks[current_task_idx].state == TASK_RUNNING) {
-            /* Avoid spamming logs for the idle task (id 0) */
-            if (current_task_idx != 0) serial_printf("[SCHED] Switching to task id=%d name=%s\n", current_task_idx, tasks[current_task_idx].name);
+            /* Update GS struct with new task's kernel stack for syscall entry */
+            g_cpu_local.kernel_stack = tasks[current_task_idx].kernel_stack;
+
             return task_rsps[current_task_idx];
         }
     }
@@ -145,7 +185,11 @@ uint64_t scheduler_switch(uint64_t current_rsp) {
 }
 
 void scheduler_yield(void) { __asm__ volatile("int $0x20"); }
-void scheduler_run(void) { __asm__ volatile("sti"); while(1) { __asm__ volatile("hlt"); } }
+void scheduler_run(void) {
+    apic_timer_unmask();
+    __asm__ volatile("sti");
+    while(1) { __asm__ volatile("hlt"); }
+}
 int scheduler_get_task_count(void) { return task_count; }
 task_t* scheduler_get_task(int index) { return (index >= 0 && index < MAX_TASKS) ? &tasks[index] : NULL; }
 int scheduler_get_current_task_idx(void) { return current_task_idx; }
