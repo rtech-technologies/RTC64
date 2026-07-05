@@ -35,15 +35,33 @@ struct app_state {
 
     /* Task Manager state */
     int show_task_manager;
+    int show_security_audit;
+    int min_security_audit;
 
     /* Notepad state */
     int show_notepad;
     char notepad_buffer[4096];
     char notepad_file[128];
+
+    /* Window states for Minimize functionality */
+    int min_launcher;
+    int min_explorer;
+    int min_settings;
+    int min_task_manager;
+    int min_notepad;
+    int min_crash_reports;
+    int min_system_panel;
+
+    /* Z-Order management */
+    char window_stack[16][32];
+    int window_stack_count;
 };
 
 void ui_init_style(struct nk_context *ctx);
 void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, int window_height);
+
+void ui_icon_init(void);
+struct nk_image ui_icon_load_svg(const char* name, const char* path, int w, int h);
 
 /* App modules */
 void chell_init(void* s);

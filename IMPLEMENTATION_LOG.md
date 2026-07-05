@@ -63,3 +63,14 @@ This document serves as the master record of repairs, hardening, and non-stub lo
 - Hardened register capture and hex formatting for architectural dumps.
 - Simplified OSOD rendering to use direct 32-bit framebuffer access with manual clipping.
 - Ensured all early-boot logs and exception messages are mirrored to COM1.
+
+### Version 1.6 - Industrial UX and Security Hardening
+- Resolved critical Boot Loop by correcting CS selector validation in ISR stubs.
+- Implemented Z-Order management for the window manager to handle focus overlapping correctly.
+- Added dynamic binary discovery in the App Launcher; scans /bin for new executables.
+- Integrated NanoSVG and NanoSVGRast for scalable high-fidelity icon support.
+- Developed Multi-step Installer Wizard with automatic boot-media detection.
+- Expanded freestanding math library and C string support (strstr, sscanf, strtoll).
+- Implemented Security Audit Tool connected to COMPREC executive logging service.
+- Added F1 boot-time rescue override to emergency serial shell.
+- Established rigorous build verification script for artifact and structure auditing.

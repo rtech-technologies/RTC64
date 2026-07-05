@@ -232,15 +232,15 @@ syscall_common:
 
     /* x86-64 syscall convention: num in rax, args in rdi, rsi, rdx, r10, r8, r9 */
     /* Our internal dispatch expects: num (int), a1 (void*), a2 (void*), a3 (size_t) */
-    /* Let's map rax -> edi, rdi -> rsi, rsi -> rdx, rdx -> rcx */
-    movq 0x278(%rsp), %rdi /* original rax */
-    movq 0x250(%rsp), %rsi /* original rdi */
-    movq 0x258(%rsp), %rdx /* original rsi */
-    movq 0x260(%rsp), %rcx /* original rdx */
+    /* Correct offsets for struct cpu_state: RAX=0x2B0, RDI=0x288, RSI=0x290, RDX=0x298 */
+    movq 0x2B0(%rsp), %rdi /* original rax */
+    movq 0x288(%rsp), %rsi /* original rdi */
+    movq 0x290(%rsp), %rdx /* original rsi */
+    movq 0x298(%rsp), %rcx /* original rdx */
 
     call syscall_dispatch
     /* rax now contains result */
-    movq %rax, 0x278(%rsp) /* Update saved rax with result */
+    movq %rax, 0x2B0(%rsp) /* Update saved rax with result */
 
     fxrstor (%rsp)
     addq $512, %rsp

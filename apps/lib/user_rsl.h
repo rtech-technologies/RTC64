@@ -5,19 +5,23 @@
 #include <stdint.h>
 
 /* These should match include/syscall_nums.h */
-#define SYS_VFS_LS          1
-#define SYS_VFS_CAT         2
-#define SYS_VFS_MKDIR       3
-#define SYS_VFS_WRITE       4
-#define SYS_VFS_MOUNTS      5
-#define SYS_DEVMGR_LIST     6
-#define SYS_MALLOC          7
-#define SYS_FREE            8
-#define SYS_GET_UPTIME      9
-#define SYS_I18N_TRANSLATE  10
-#define SYS_VFS_READ        11
-#define SYS_EXIT            12
-#define SYS_SERIAL_WRITE    13
+#define SYS_VFS_LS          0x01
+#define SYS_VFS_CAT         0x02
+#define SYS_VFS_MKDIR       0x03
+#define SYS_VFS_WRITE       0x04
+#define SYS_VFS_MOUNTS      0x05
+#define SYS_DEVMGR_LIST     0x06
+#define SYS_I18N_TRANSLATE  0x07
+#define SYS_MALLOC          0x08
+#define SYS_FREE            0x09
+#define SYS_GET_UPTIME      0x0A
+#define SYS_GET_CPU_LOAD    0x0B
+#define SYS_SPAWN           0x0C
+#define SYS_YIELD           0x0D
+#define SYS_EXIT            0x0E
+#define SYS_SERIAL_WRITE    0x0F
+#define SYS_VFS_READ        0x10
+#define SYS_VFS_RM          0x11
 
 static inline long syscall(long num, const void* a1, void* a2, size_t a3) {
     long ret;

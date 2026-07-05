@@ -8,6 +8,8 @@ CFLAGS = -Wall -Wextra -Werror -std=c11 -ffreestanding -fno-stack-protector \
          -include kernel/usb_config.h -DKERNEL_MODE -Wno-unused-function
 LDFLAGS = -nostdlib -static -m elf_x86_64 -z max-page-size=0x1000 -T kernel/linker.ld
 KERNEL_OBJS = kernel/entry.o kernel/kernel.o src/app_ui.o \
+              src/ui_icons.o \
+              kernel/nanosvg_impl.o \
               kernel/nuklear_kernel_impl.o kernel/stb_image_impl.o \
               src/nuklear_impl.o src/nk_software_renderer.o kernel/syscall.o kernel/sys_shell.o \
               kernel/crash_notify.o \

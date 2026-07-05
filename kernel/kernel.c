@@ -84,6 +84,7 @@ void environment_manager_entry(void* arg) {
     if (!rawfb) kpanic("NK_RAWFB_INIT_FAULT");
     struct nk_context *ctx = nk_rawfb_get_ctx(rawfb);
     ui_init_style(ctx);
+    ui_icon_init();
     nk_style_show_cursor(ctx);
 
     static struct app_state app;
@@ -135,6 +136,16 @@ void environment_manager_entry(void* arg) {
     }
 }
 
+void hal_get_screen_size(int *w, int *h) {
+    if (primary_fb) {
+        if (w) *w = (int)primary_fb->width;
+        if (h) *h = (int)primary_fb->height;
+    } else {
+        if (w) *w = 800;
+        if (h) *h = 600;
+    }
+}
+
 void kernel_main(void) {
     serial_init();
     serial_printf("[BOOT] Stage 0: Initialized.\n");
@@ -172,6 +183,12 @@ void kernel_main(void) {
     pci_scan();
     hal_usb_init();
     hal_ps2_init();
+    serial_printf("[BOOT] Checking for Rescue Mode (Hold F1)...\n");
+    /* Minimal probe: if F1 (0x3B) is pressed, drop to shell */
+    if (inb(0x60) == 0x3B) {
+        serial_printf("[RESCUE] Manual override detected! Launching Emergency Shell.\n");
+        debug_shell_task(NULL);
+    }
     vfs_refresh_mounts();
 
     scheduler_spawn_kernel("KBD", kbd_task, NULL);

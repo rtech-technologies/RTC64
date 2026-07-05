@@ -150,5 +150,6 @@ void hal_usb_poll(void);
 /* --- RTC System --- */
 void rtc_get_time(int *h, int *m, int *s);
 uint64_t hal_get_uptime_ms(void);
+void hal_get_screen_size(int *w, int *h);
 
 #endif

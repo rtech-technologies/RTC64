@@ -304,3 +304,15 @@ long ftell(FILE* stream) {
     if (!stream) return -1;
     return (long)f_tell(&stream->fil);
 }
+
+char* strstr(const char* haystack, const char* needle) {
+    if (!*needle) return (char*)haystack;
+    for (; *haystack; haystack++) {
+        if (*haystack == *needle) {
+            const char *h = haystack, *n = needle;
+            while (*h && *n && *h == *n) { h++; n++; }
+            if (!*n) return (char*)haystack;
+        }
+    }
+    return NULL;
+}

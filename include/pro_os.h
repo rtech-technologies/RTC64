@@ -11,6 +11,7 @@
 #include "external/stb_truetype.h"
 #include "external/tlsf.h"
 #include "external/tgx.h"
+#include "crash_notify.h"
 #include "hal.h"
 
 void* memset(void* s, int c, size_t n);
@@ -27,6 +28,7 @@ int strcmp(const char* s1, const char* s2);
 int strncmp(const char* s1, const char* s2, size_t n);
 char* strchr(const char* s, int c);
 char* strrchr(const char* s, int c);
+char* strstr(const char* haystack, const char* needle);
 int snprintf(char* str, size_t size, const char* format, ...);
 int vsnprintf(char* str, size_t size, const char* format, va_list ap);
 
@@ -66,6 +68,7 @@ void kbd_task(void* arg);
 void mouse_task(void* arg);
 void comprec_log(const char* tag, const char* event);
 void session_manager_task(void* arg);
+int comprec_get_logs(char* out, size_t sz);
 
 struct cpu_state {
     uint8_t fxsave_region[512];
