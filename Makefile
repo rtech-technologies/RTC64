@@ -20,6 +20,7 @@ KERNEL_OBJS = kernel/entry.o kernel/kernel.o src/app_ui.o \
               kernel/gdt.o kernel/msr.o kernel/interrupts.o kernel/isr_stubs.o \
               kernel/apic.o kernel/pmm.o kernel/comprec.o kernel/cm.o \
               kernel/malloc_glue.o kernel/vga_log.o kernel/storage_hal.o src/main.o kernel/panic_hal.o \
+              kernel/registry.o kernel/net.o \
               kernel/diskio_impl.o kernel/ffsystem_impl.o \
               kernel/fatfs/ff.o kernel/fatfs/ffunicode.o \
               kernel/drivers/pci.o kernel/drivers/xhci.o kernel/drivers/ehci.o \

@@ -20,5 +20,6 @@
 #define SYS_SERIAL_WRITE    0x0F
 #define SYS_VFS_READ        0x10
 #define SYS_VFS_RM          0x11
+#define SYS_NET_FETCH       0x12
 
 #endif

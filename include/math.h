@@ -18,6 +18,8 @@ double atan(double x);
 double atan2(double y, double x);
 double asin(double x);
 double acos(double x);
+float  acosf(float x);
+int    isnan(double x);
 double fmod(double x, double y);
 
 #endif

@@ -183,12 +183,6 @@ void kernel_main(void) {
     pci_scan();
     hal_usb_init();
     hal_ps2_init();
-    serial_printf("[BOOT] Checking for Rescue Mode (Hold F1)...\n");
-    /* Minimal probe: if F1 (0x3B) is pressed, drop to shell */
-    if (inb(0x60) == 0x3B) {
-        serial_printf("[RESCUE] Manual override detected! Launching Emergency Shell.\n");
-        debug_shell_task(NULL);
-    }
     vfs_refresh_mounts();
 
     scheduler_spawn_kernel("KBD", kbd_task, NULL);

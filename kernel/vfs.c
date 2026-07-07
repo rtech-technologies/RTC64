@@ -134,6 +134,18 @@ int vfs_rm(const char* path) {
     return (int)f_unlink(fpath);
 }
 
+int vfs_rename(const char* old_path, const char* new_path) {
+    char drv1[8], fpath1[256];
+    const char* sub1 = vfs_translate(old_path, drv1);
+    snprintf(fpath1, sizeof(fpath1), "%s%s", drv1, sub1);
+
+    char drv2[8], fpath2[256];
+    const char* sub2 = vfs_translate(new_path, drv2);
+    snprintf(fpath2, sizeof(fpath2), "%s%s", drv2, sub2);
+
+    return (int)f_rename(fpath1, fpath2);
+}
+
 int vfs_write(const char* path, const char* content) {
     FIL fil; UINT bw;
     char drv[8], fpath[256];

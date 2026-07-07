@@ -34,10 +34,24 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap);
 
 #define MAX_TASKS 16
 typedef enum { TASK_DEAD, TASK_RUNNING, TASK_SQUEEZED } task_state_t;
-typedef struct { int id; uint32_t uaid; uint32_t upid; char name[32]; task_state_t state; void (*entry)(void*); void *arg; uint64_t kernel_stack; } task_t;
+typedef struct {
+    int id;
+    uint32_t uaid;
+    uint32_t upid;
+    char name[32];
+    task_state_t state;
+    void (*entry)(void*);
+    void *arg;
+    uint64_t kernel_stack;
+    uint64_t user_base;
+    uint64_t user_size;
+    uint64_t stack_base;
+    uint64_t stack_size;
+} task_t;
 
 void scheduler_init(void);
 int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32_t uaid, uint32_t upid);
+int scheduler_add_task_bounded(const char *name, void (*entry)(void*), void *arg, uint32_t uaid, uint32_t upid, uint64_t base, uint64_t size);
 int scheduler_spawn(const char* name, void (*entry)(void*), void* arg);
 int scheduler_spawn_kernel(const char* name, void (*entry)(void*), void* arg);
 int scheduler_fork(const char* name, void (*entry)(void*), void* arg);
@@ -68,7 +82,6 @@ void kbd_task(void* arg);
 void mouse_task(void* arg);
 void comprec_log(const char* tag, const char* event);
 void session_manager_task(void* arg);
-int comprec_get_logs(char* out, size_t sz);
 
 struct cpu_state {
     uint8_t fxsave_region[512];
@@ -111,6 +124,7 @@ uint32_t pci_read_config(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset
 uint64_t pci_get_bar(uint8_t bus, uint8_t slot, uint8_t func, uint8_t bar_index);
 int linux_compat_init(void);
 int virtio_net_linux_init(void);
+int rsl_web_fetch(const char* url, char* out, size_t sz);
 
 int nvme_init(uint64_t mmio);
 int ahci_init(uint64_t mmio);
@@ -125,8 +139,15 @@ int vfs_cat(const char* path, char* out, size_t sz);
 int vfs_read(const char* path, void* buffer, size_t sz);
 int vfs_mkdir(const char* path);
 int vfs_rm(const char* path);
+int vfs_rename(const char* old_path, const char* new_path);
 int vfs_write(const char* path, const char* content);
 int vfs_get_mounts(char* out, size_t sz);
+
+/* Registry System */
+int  registry_set(const char* key, const char* value);
+const char* registry_get(const char* key);
+void registry_init(void);
+void registry_flush(void);
 int devmgr_list(char* out, size_t sz);
 void vfs_init(void);
 void vfs_refresh_mounts(void);

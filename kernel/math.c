@@ -176,6 +176,10 @@ int sscanf(const char *str, const char *format, ...) {
     return count;
 }
 
+float acosf(float x) {
+    return (float)acos((double)x);
+}
 
-float acosf(float x) { return (float)acos((double)x); }
-int isnan(double x) { return x != x; }
+int isnan(double x) {
+    return x != x;
+}
