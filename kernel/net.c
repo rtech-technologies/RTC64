@@ -24,7 +24,8 @@ typedef struct {
 } __attribute__((packed)) ip_hdr_t;
 
 void net_receive(void* packet, size_t len) {
-    if (len < sizeof(eth_hdr_t)) return;
+    if (!packet || len < sizeof(eth_hdr_t)) return;
+    if (len > 1518) return; /* MTU Violation */
     eth_hdr_t* eth = (eth_hdr_t*)packet;
 
     uint16_t type = (eth->type << 8) | (eth->type >> 8); /* ntohs */

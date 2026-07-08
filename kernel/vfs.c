@@ -79,9 +79,11 @@ static const char* vfs_translate(const char* path, char* out_drv) {
 }
 
 int vfs_ls(const char* path, char* out, size_t sz) {
+    if (!path || !out || sz == 0) return -1;
     DIR dir; FILINFO fno;
     char drv[8], fpath[256];
     const char* sub = vfs_translate(path, drv);
+    if (strlen(sub) > 250) return -1; /* Path too deep */
     snprintf(fpath, sizeof(fpath), "%s%s", drv, sub);
     if (f_opendir(&dir, fpath) == FR_OK) {
         int off = 0;
@@ -96,9 +98,11 @@ int vfs_ls(const char* path, char* out, size_t sz) {
 }
 
 int vfs_cat(const char* path, char* out, size_t sz) {
+    if (!path || !out || sz == 0) return -1;
     FIL fil; UINT br;
     char drv[8], fpath[256];
     const char* sub = vfs_translate(path, drv);
+    if (strlen(sub) > 250) return -1;
     snprintf(fpath, sizeof(fpath), "%s%s", drv, sub);
     if (f_open(&fil, fpath, FA_READ) == FR_OK) {
         f_read(&fil, out, sz - 1, &br); out[br] = '\0';
@@ -147,9 +151,11 @@ int vfs_rename(const char* old_path, const char* new_path) {
 }
 
 int vfs_write(const char* path, const char* content) {
+    if (!path || !content) return -1;
     FIL fil; UINT bw;
     char drv[8], fpath[256];
     const char* sub = vfs_translate(path, drv);
+    if (strlen(sub) > 250) return -1;
     snprintf(fpath, sizeof(fpath), "%s%s", drv, sub);
     if (f_open(&fil, fpath, FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {
         f_write(&fil, content, strlen(content), &bw);

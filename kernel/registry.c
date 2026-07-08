@@ -41,16 +41,22 @@ void registry_init(void) {
 }
 
 int registry_set(const char* key, const char* value) {
+    if (!key || !value) return -1;
+    if (strlen(key) >= 64 || strlen(value) >= 64) return -1;
+
     for (int i = 0; i < MAX_REG_ENTRIES; i++) {
         if (registry[i].active && strcmp(registry[i].key, key) == 0) {
             strncpy(registry[i].value, value, 63);
+            registry[i].value[63] = '\0';
             return 0;
         }
     }
     for (int i = 0; i < MAX_REG_ENTRIES; i++) {
         if (!registry[i].active) {
             strncpy(registry[i].key, key, 63);
+            registry[i].key[63] = '\0';
             strncpy(registry[i].value, value, 63);
+            registry[i].value[63] = '\0';
             registry[i].active = true;
             return 0;
         }

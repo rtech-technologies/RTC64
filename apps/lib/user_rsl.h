@@ -36,5 +36,8 @@ static inline long syscall(long num, const void* a1, void* a2, size_t a3) {
 
 void rsl_printf(const char* fmt, ...);
 int rsl_ls(const char* path, char* out, size_t sz);
+int rsl_read(const char* path, void* buffer, size_t sz);
+int rsl_mkdir(const char* path);
+void rsl_exit(int code);
 
 #endif

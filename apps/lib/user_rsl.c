@@ -15,3 +15,16 @@ void rsl_printf(const char* fmt, ...) {
 int rsl_ls(const char* path, char* out, size_t sz) {
     return (int)syscall(SYS_VFS_LS, path, out, sz);
 }
+
+int rsl_read(const char* path, void* buffer, size_t sz) {
+    return (int)syscall(SYS_VFS_READ, path, buffer, sz);
+}
+
+int rsl_mkdir(const char* path) {
+    return (int)syscall(SYS_VFS_MKDIR, path, NULL, 0);
+}
+
+void rsl_exit(int code) {
+    (void)code;
+    syscall(SYS_EXIT, NULL, NULL, 0);
+}

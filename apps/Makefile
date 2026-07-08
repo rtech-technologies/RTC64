@@ -1,4 +1,4 @@
-SUBDIRS = shell lab studio notepad
+SUBDIRS = shell lab studio notepad tests
 
 all:
 	for dir in $(SUBDIRS); do $(MAKE) -C $$dir all; done

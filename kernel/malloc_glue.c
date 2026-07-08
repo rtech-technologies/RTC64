@@ -16,6 +16,7 @@ void* tlsf_get_global(void) {
 }
 
 void* malloc(size_t size) {
+    if (!global_tlsf_control) return NULL;
     return tlsf_malloc(global_tlsf_control, size);
 }
 

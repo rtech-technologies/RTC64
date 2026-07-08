@@ -51,6 +51,16 @@ static void shell_execute(char* cmd) {
         serial_printf("[DEBUG] Triggering Page Fault...\n");
         volatile uint32_t *ptr = (volatile uint32_t*)0xDEADBEEF;
         *ptr = 0x1337;
+    } else if (strcmp(cmd, "stresstest") == 0) {
+        serial_printf("[DEBUG] Starting high-power resource stress test...\n");
+        for (int i = 0; i < 100; i++) {
+            void* p = malloc(65536);
+            if (p) {
+                memset(p, 0xAA, 65536);
+                free(p);
+            }
+        }
+        serial_printf("[DEBUG] Stress test complete. Stability maintained.\n");
     } else if (strlen(cmd) > 0) {
         serial_printf("Unknown debug command: %s\n", cmd);
     }
