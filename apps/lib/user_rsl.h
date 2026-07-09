@@ -40,4 +40,16 @@ int rsl_read(const char* path, void* buffer, size_t sz);
 int rsl_mkdir(const char* path);
 void rsl_exit(int code);
 
+void* rsl_malloc(size_t size);
+void  rsl_free(void* ptr);
+int rsl_cat(const char* path, char* out, size_t sz);
+int rsl_write(const char* path, const char* content);
+int rsl_mounts(char* out, size_t sz);
+int      rsl_hw_list(char* out, size_t sz);
+uint64_t rsl_uptime(void);
+int      rsl_cpu_load(void);
+int  rsl_spawn(const char* name, void (*entry)(void*), void* arg);
+void rsl_yield(void);
+const char* rsl_i18n(const char* key);
+
 #endif
