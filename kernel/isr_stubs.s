@@ -101,7 +101,7 @@ isr_stub_128:
     jmp syscall_common
 
 isr_common:
-    testq $3, 8(%rsp) /* Check CS (8 bytes above RIP) for RPL=3 */
+    testq $3, 24(%rsp) /* Check CS (8 bytes above RIP) for RPL=3 */
     jz 1f
     swapgs
 1:
@@ -291,7 +291,7 @@ syscall_common:
     sysretq
 
 irq_common:
-    testq $3, 8(%rsp) /* Check CS */
+    testq $3, 24(%rsp) /* Check CS */
     jz 1f
     swapgs
 1:
