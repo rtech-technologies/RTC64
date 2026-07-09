@@ -93,11 +93,19 @@ void hal_input_init(void) {
     memset(g_usb_hid_map, 0, sizeof(g_usb_hid_map));
 }
 
-void kbd_task(void* arg) {
+void usb_task(void* arg) {
     (void)arg;
-    serial_printf("[INPUT] KBD Task Started.\n");
+    serial_printf("[INPUT] USB Task Started.\n");
     while(1) {
         hal_usb_poll();
+        scheduler_yield();
+    }
+}
+
+void kbd_task(void* arg) {
+    (void)arg;
+    serial_printf("[INPUT] PS/2 KBD Task Started.\n");
+    while(1) {
         ps2_poll_kbd();
         scheduler_yield();
     }
@@ -105,9 +113,8 @@ void kbd_task(void* arg) {
 
 void mouse_task(void* arg) {
     (void)arg;
-    serial_printf("[INPUT] MOUSE Task Started.\n");
+    serial_printf("[INPUT] PS/2 MOUSE Task Started.\n");
     while(1) {
-        hal_usb_poll();
         ps2_poll_mouse();
         scheduler_yield();
     }

@@ -181,12 +181,26 @@ void kernel_main(void) {
     linux_compat_init();
     virtio_net_linux_init();
     pci_scan();
-    hal_usb_init();
-    hal_ps2_init();
+
+    extern uint64_t xhci_mmio_base;
+    extern uint64_t ehci_mmio_base;
+    bool has_usb = (xhci_mmio_base != 0 || ehci_mmio_base != 0);
+
+    if (has_usb) {
+        hal_usb_init();
+    } else {
+        hal_ps2_init();
+    }
+
     vfs_refresh_mounts();
 
-    scheduler_spawn_kernel("KBD", kbd_task, NULL);
-    scheduler_spawn_kernel("MOUSE", mouse_task, NULL);
+    if (has_usb) {
+        scheduler_spawn_kernel("USB", usb_task, NULL);
+    } else {
+        scheduler_spawn_kernel("KBD", kbd_task, NULL);
+        scheduler_spawn_kernel("MOUSE", mouse_task, NULL);
+    }
+
     scheduler_spawn_kernel("Compliance", comprec_task, NULL);
     scheduler_spawn_kernel("Environment Manager", environment_manager_entry, NULL);
 
