@@ -22,4 +22,15 @@ float  acosf(float x);
 int    isnan(double x);
 double fmod(double x, double y);
 
+float  fabsf(float x);
+float  sqrtf(float x);
+float  sinf(float x);
+float  cosf(float x);
+float  tanf(float x);
+float  fmodf(float x, float y);
+float  atan2f(float y, float x);
+float  ceilf(float x);
+float  floorf(float x);
+float  roundf(float x);
+
 #endif
