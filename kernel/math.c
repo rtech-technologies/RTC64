@@ -1,6 +1,8 @@
 /* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
  * Licensed under the 'respect people's property' OS license. */
 #include <stdint.h>
+#include <stdarg.h>
+#include <stdbool.h>
 #include "pro_os.h"
 
 #define PI 3.14159265358979323846
@@ -32,7 +34,7 @@ double sqrt(double x) {
 }
 
 double log(double x) {
-    if (x <= 0) return -1.0e300; /* Minimal sanity */
+    if (x <= 0) return -1.0e300;
     double res = 0;
     double y = (x - 1) / (x + 1);
     double y2 = y * y;
@@ -133,53 +135,15 @@ double fmod(double x, double y) {
     return x - (double)((long long)(x / y)) * y;
 }
 
-float fabsf(float x) { return x < 0 ? -x : x; }
+float fabsf(float x) { return (float)fabs((double)x); }
 float sqrtf(float x) { return (float)sqrt((double)x); }
 float sinf(float x) { return (float)sin((double)x); }
 float cosf(float x) { return (float)cos((double)x); }
 float tanf(float x) { return (float)sin((double)x) / (float)cos((double)x); }
 float fmodf(float x, float y) { return (float)fmod((double)x, (double)y); }
 float atan2f(float y, float x) { return (float)atan2((double)y, (double)x); }
-float ceilf(float x) { return (float)((int)x + (x > 0 && x != (float)(int)x)); }
-float floorf(float x) { return (float)((int)x - (x < 0 && x != (float)(int)x)); }
+float ceilf(float x) { return (float)ceil((double)x); }
+float floorf(float x) { return (float)floor((double)x); }
 float roundf(float x) { return (float)((int)(x + (x >= 0 ? 0.5f : -0.5f))); }
-
-long long strtoll(const char *nptr, char **endptr, int base) {
-    (void)base;
-    long long res = 0;
-    int sign = 1;
-    if (*nptr == '-') { sign = -1; nptr++; }
-    while (*nptr >= '0' && *nptr <= '9') {
-        res = res * 10 + (*nptr - '0');
-        nptr++;
-    }
-    if (endptr) *endptr = (char*)nptr;
-    return res * sign;
-}
-
-int sscanf(const char *str, const char *format, ...) {
-    va_list args;
-    va_start(args, format);
-    /* Extreme minimal implementation for NanoSVG color hex: "#%2x%2x%2x" */
-    int count = 0;
-    if (format[0] == '#' && str[0] == '#') {
-        str++;
-        for (int i = 0; i < 3; i++) {
-            unsigned int *val = va_arg(args, unsigned int*);
-            char hex[3] = {str[0], str[1], '\0'};
-            *val = (unsigned int)strtoll(hex, NULL, 16);
-            str += 2;
-            count++;
-        }
-    }
-    va_end(args);
-    return count;
-}
-
-float acosf(float x) {
-    return (float)acos((double)x);
-}
-
-int isnan(double x) {
-    return x != x;
-}
+float acosf(float x) { return (float)acos((double)x); }
+int isnan(double x) { return x != x; }

@@ -44,7 +44,7 @@ if [ ! -f "kernel/ramdisk.img" ]; then
 fi
 
 # Check some userland apps
-for app in shell lab studio notepad; do
+for app in shell lab studio notepad tests; do
     if [ ! -f "apps/$app/app.bin" ]; then
         echo "ERROR: Userland app '$app' failed to build!"
         exit 1

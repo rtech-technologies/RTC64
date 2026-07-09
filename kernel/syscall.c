@@ -13,6 +13,9 @@ static bool is_valid_pointer(const void* ptr, size_t sz) {
     /* Kernel space check (High half) */
     if (addr >= 0xFFFF800000000000ULL) return false;
 
+    /* Overflow check */
+    if (addr + sz < addr) return false;
+
     /* Per-task user boundary check */
     int idx = scheduler_get_current_task_idx();
     if (idx < 0) return true; /* Kernel task */

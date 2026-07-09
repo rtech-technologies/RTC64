@@ -23,6 +23,22 @@ void test_syscall_edge_cases() {
     res = rsl_mkdir(deep_path);
     rsl_printf("[TEST] Result: %d (Expected -1 due to length check)\n", res);
 
+    /* 4. Memory Exhaustion Test */
+    rsl_printf("[TEST] Testing memory exhaustion with large malloc...\n");
+    void* huge_ptr = rsl_malloc(0xFFFFFFFFFFFFFFFFULL);
+    rsl_printf("[TEST] Result: %p (Expected NULL)\n", huge_ptr);
+
+    /* 5. VFS Boundary: Non-existent LS */
+    rsl_printf("[TEST] Testing ls on non-existent path...\n");
+    char dummy[64];
+    res = rsl_ls("/nonexistent", dummy, sizeof(dummy));
+    rsl_printf("[TEST] Result: %d (Expected -1)\n", res);
+
+    /* 6. VFS Boundary: Write to read-only or invalid */
+    rsl_printf("[TEST] Testing write to invalid path...\n");
+    res = rsl_write("/etc/invalid", "data");
+    rsl_printf("[TEST] Result: %d (Expected -1 or authorization failure)\n", res);
+
     rsl_printf("[TEST] Edge case testing complete.\n");
 }
 

@@ -168,7 +168,10 @@ void kernel_main(void) {
     }
 
     void* phys_heap = pmm_alloc_blocks(8192); // 32MB Heap
-    if (!phys_heap) kpanic("HEAP_GENESIS_FAULT");
+    if (!phys_heap) {
+        serial_printf("[FATAL] Failed to allocate 32MB for kernel heap. System halted.\n");
+        kpanic("HEAP_GENESIS_FAULT");
+    }
     void* virt_heap = (void*)((uint64_t)phys_heap + hhdm_offset);
     hal_malloc_init(virt_heap, 8192 * 4096);
 

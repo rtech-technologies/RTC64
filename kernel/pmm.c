@@ -100,10 +100,10 @@ void* pmm_alloc_low(void) {
 }
 
 void* pmm_alloc_blocks(size_t count) {
-    if (count == 0) return NULL;
+    if (count == 0 || count > pmm_total_pages) return NULL;
     if (count == 1) return pmm_alloc();
 
-    for (uint64_t i = 0; i < pmm_total_pages - count; i++) {
+    for (uint64_t i = 0; i <= pmm_total_pages - count; i++) {
         bool found = true;
         for (size_t j = 0; j < count; j++) {
             if (pmm_is_used(i + j)) {
@@ -125,7 +125,9 @@ void* pmm_alloc_blocks_low(size_t count) {
     uint64_t max_page = 0x100000000ULL / PAGE_SIZE;
     if (max_page > pmm_total_pages) max_page = pmm_total_pages;
 
-    for (uint64_t i = 0; i < max_page - count; i++) {
+    if (count > max_page) return NULL;
+
+    for (uint64_t i = 0; i <= max_page - count; i++) {
         bool found = true;
         for (size_t j = 0; j < count; j++) {
             if (pmm_is_used(i + j)) {

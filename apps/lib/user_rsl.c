@@ -16,8 +16,16 @@ int rsl_ls(const char* path, char* out, size_t sz) {
     return (int)syscall(SYS_VFS_LS, path, out, sz);
 }
 
+void* rsl_malloc(size_t size) {
+    return (void*)syscall(SYS_MALLOC, (void*)size, NULL, 0);
+}
+
 int rsl_read(const char* path, void* buffer, size_t sz) {
     return (int)syscall(SYS_VFS_READ, path, buffer, sz);
+}
+
+int rsl_write(const char* path, const char* content) {
+    return (int)syscall(SYS_VFS_WRITE, path, (void*)content, 0);
 }
 
 int rsl_mkdir(const char* path) {

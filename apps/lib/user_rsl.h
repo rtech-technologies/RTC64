@@ -23,7 +23,7 @@
 #define SYS_VFS_READ        0x10
 #define SYS_VFS_RM          0x11
 
-static inline long syscall(long num, const void* a1, void* a2, size_t a3) {
+static inline long syscall(long num, const void* a1, const void* a2, size_t a3) {
     long ret;
     __asm__ volatile (
         "syscall"
@@ -36,7 +36,9 @@ static inline long syscall(long num, const void* a1, void* a2, size_t a3) {
 
 void rsl_printf(const char* fmt, ...);
 int rsl_ls(const char* path, char* out, size_t sz);
+void* rsl_malloc(size_t size);
 int rsl_read(const char* path, void* buffer, size_t sz);
+int rsl_write(const char* path, const char* content);
 int rsl_mkdir(const char* path);
 void rsl_exit(int code);
 
