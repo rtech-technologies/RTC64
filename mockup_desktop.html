@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sovereign rtc64 - boutique cyber-minimalist desktop</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            background-color: #333333; /* Matte charcoal gray background container */
+            overflow: hidden;
+            color: #ffffff;
+        }
+
+        /* Desktop Wallpaper & Vector Clock */
+        #desktop {
+            position: relative;
+            width: 100%;
+            height: calc(100% - 48px);
+            padding: 40px;
+        }
+
+        #brand-text {
+            position: absolute;
+            bottom: 40px;
+            right: 40px;
+            font-size: 19px;
+            color: rgba(255, 255, 255, 0.4);
+            letter-spacing: 0.5px;
+            text-transform: lowercase;
+        }
+
+        /* Large Prominent Vector Clock on the background */
+        #background-clock {
+            position: absolute;
+            top: 60px;
+            right: 60px;
+            width: 160px;
+            height: 160px;
+            border: 2px solid rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        #background-clock::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 50%; width: 2px; height: 10px;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateX(-50%);
+        }
+        #background-clock::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 50%; width: 2px; height: 10px;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateX(-50%);
+        }
+
+        .clock-hand {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform-origin: bottom center;
+            border-radius: 4px;
+        }
+
+        #hour-hand {
+            width: 4px;
+            height: 40px;
+            background-color: #00ffff; /* Cyan hour hand */
+            margin-left: -2px;
+            z-index: 3;
+        }
+
+        #minute-hand {
+            width: 3px;
+            height: 60px;
+            background-color: rgba(255, 255, 255, 0.8); /* White minute hand */
+            margin-left: -1.5px;
+            z-index: 2;
+        }
+
+        #second-hand {
+            width: 1.5px;
+            height: 70px;
+            background-color: #ff0000; /* Red second hand */
+            margin-left: -0.75px;
+            z-index: 1;
+        }
+
+        #clock-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 8px;
+            height: 8px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 4;
+        }
+
+        /* Monolithic dense Grid Matrix of Apps on the Left */
+        #app-grid {
+            position: absolute;
+            top: 40px;
+            left: 40px;
+            display: grid;
+            grid-template-columns: repeat(2, 56px);
+            grid-gap: 6px;
+        }
+
+        .desktop-app-square {
+            width: 56px;
+            height: 56px;
+            border-radius: 8px; /* Slightly rounded corners */
+            cursor: pointer;
+            transition: transform 0.15s, opacity 0.15s;
+        }
+
+        .desktop-app-square:hover {
+            transform: scale(1.05);
+            opacity: 0.9;
+        }
+
+        /* Custom App Solid Colors */
+        .app-terminal { background-color: #ff0000; } /* Pure Red */
+        .app-files { background-color: #0000ff; } /* Pure Blue */
+        .app-diagnostics { background-color: #ff6600; } /* Pure Orange */
+        .app-notepad { background-color: #00ff00; } /* Pure Green */
+        .app-settings { background-color: #ff00ff; } /* Pure Pink/Magenta */
+        .app-installer { background-color: #00ffff; } /* Pure Cyan */
+
+        /* Flat Matte Black Taskbar Pinned to Bottom */
+        #taskbar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 48px;
+            background-color: #000000; /* Matte black bar */
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            z-index: 1000;
+        }
+
+        #taskbar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Clean White 4-Line Hamburger Start Icon */
+        #start-hamburger {
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 4px;
+            padding: 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        #start-hamburger:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .hamburger-line {
+            width: 100%;
+            height: 2px;
+            background-color: #ffffff; /* Clean white */
+        }
+
+        /* Pinned Active/Pinned Taskbar squares */
+        .taskbar-pinned {
+            display: flex;
+            gap: 6px;
+        }
+
+        .taskbar-square {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+
+        .taskbar-square:hover {
+            opacity: 0.8;
+        }
+
+        /* Status Tray with Cyan Silhouettes */
+        #status-tray {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: #00ffff; /* Bright cyan silhouetted color */
+            font-size: 14px;
+        }
+
+        .status-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        /* Window & Layout Styling: Block & Capsule squircle windows */
+        .capsule-window {
+            position: absolute;
+            width: 460px;
+            background-color: #333333; /* Matte charcoal gray container */
+            border-radius: 24px; /* Aggressive heavily rounded corners (squircle) */
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            border: none; /* completely borderless */
+            padding: 8px;
+            z-index: 50;
+        }
+
+        .window-header {
+            width: 100%;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            cursor: move;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 13px;
+            text-transform: lowercase; /* informal lowercase dominant tone */
+            font-weight: 500;
+        }
+
+        .window-close {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #ff0000; /* Saturation block red */
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #ffffff;
+            transition: opacity 0.2s;
+        }
+
+        .window-close:hover {
+            opacity: 0.8;
+        }
+
+        /* Block-filling Compact internal layout */
+        .window-content {
+            background-color: #000000; /* Matte black block inside window */
+            border-radius: 16px;
+            flex-grow: 1;
+            padding: 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px; /* sits close to each other */
+        }
+
+        .content-label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+            text-transform: lowercase; /* lowercase informal styling */
+        }
+
+        .content-block {
+            background-color: #222222;
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 12px;
+            color: #ffffff;
+            text-transform: lowercase;
+            line-height: 1.4;
+        }
+
+        /* Styled inputs and interactive elements in conversational tone */
+        .conversational-button {
+            background-color: #0000ff; /* Solid Pure Blue */
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            text-transform: lowercase;
+            font-weight: 500;
+            transition: background-color 0.15s;
+        }
+
+        .conversational-button:hover {
+            background-color: #00ffff; /* Pure Cyan Hover */
+            color: #000000;
+        }
+
+        /* Start App Launcher styling */
+        #app-launcher-menu {
+            position: absolute;
+            bottom: 60px;
+            left: 20px;
+            width: 320px;
+            background-color: #333333;
+            border-radius: 24px;
+            padding: 12px;
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            z-index: 10000;
+        }
+
+        .launcher-section-title {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: lowercase;
+            padding-left: 8px;
+        }
+
+        .launcher-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .launcher-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 12px;
+            transition: background-color 0.2s;
+        }
+
+        .launcher-item:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .launcher-square {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+        }
+
+        .launcher-text {
+            font-size: 10px;
+            color: #ffffff;
+            text-align: center;
+            text-transform: lowercase;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Desktop Workspace -->
+    <div id="desktop">
+        <!-- Prominent analog vector clock showing dynamic hands -->
+        <div id="background-clock">
+            <div id="hour-hand" class="clock-hand"></div>
+            <div id="minute-hand" class="clock-hand"></div>
+            <div id="second-hand" class="clock-hand"></div>
+            <div id="clock-center"></div>
+        </div>
+
+        <!-- Solid-colored app shortcut grid on the left (No labels!) -->
+        <div id="app-grid">
+            <div class="desktop-app-square app-terminal" onclick="toggleWindow('win-terminal')" title="terminal"></div>
+            <div class="desktop-app-square app-files" onclick="toggleWindow('win-files')" title="file explorer"></div>
+            <div class="desktop-app-square app-diagnostics" onclick="toggleWindow('win-telemetry')" title="telemetry status"></div>
+            <div class="desktop-app-square app-notepad" onclick="toggleWindow('win-notepad')" title="text pad"></div>
+            <div class="desktop-app-square app-settings" onclick="toggleWindow('win-settings')" title="preferences"></div>
+            <div class="desktop-app-square app-installer" onclick="toggleWindow('win-installer')" title="os installer"></div>
+        </div>
+
+        <!-- Cyber-Minimalist Branding -->
+        <div id="brand-text">sovereign rtc64 pro</div>
+
+        <!-- Simulated "Block & Capsule" Squircle Windows -->
+
+        <!-- Window 1: Terminal -->
+        <div id="win-terminal" class="capsule-window" style="top: 100px; left: 240px;">
+            <div class="window-header">
+                <span>command line</span>
+                <div class="window-close" onclick="closeWindow('win-terminal')">×</div>
+            </div>
+            <div class="window-content">
+                <div class="content-label">active context: root@sovereign</div>
+                <div class="content-block" style="font-family: monospace; background: #111;">
+                    $ sys_info<br>
+                    kernel: neont rtc64 microkernel<br>
+                    state: operational<br>
+                    heap usage: 2,412 kb / 32,768 kb<br>
+                    networking: active (virtio-pci)<br>
+                    $ _
+                </div>
+                <button class="conversational-button" onclick="alert('initializing emergency console dump...')">trigger manual memory snapshot</button>
+            </div>
+        </div>
+
+        <!-- Window 2: File Explorer -->
+        <div id="win-files" class="capsule-window" style="top: 120px; left: 340px;">
+            <div class="window-header">
+                <span>file explorer</span>
+                <div class="window-close" onclick="closeWindow('win-files')">×</div>
+            </div>
+            <div class="window-content">
+                <div class="content-label">current path: /bin</div>
+                <div class="content-block">
+                    [dir] .. (parent)<br>
+                    [file] shell.bin (8.5 kb)<br>
+                    [file] lab.bin (12.4 kb)<br>
+                    [file] notepad.bin (8.5 kb)<br>
+                    [file] studio.bin (5.7 kb)
+                </div>
+                <button class="conversational-button" onclick="alert('system partition is write-protected')">destroy selected files</button>
+            </div>
+        </div>
+
+        <!-- Window 3: System Telemetry -->
+        <div id="win-telemetry" class="capsule-window" style="top: 80px; left: 740px;">
+            <div class="window-header">
+                <span>telemetry</span>
+                <div class="window-close" onclick="closeWindow('win-telemetry')">×</div>
+            </div>
+            <div class="window-content">
+                <div class="content-label">hardware overview:</div>
+                <div class="content-block">
+                    ram used: 2,412 kb / 32,768 kb<br>
+                    cpu load: minimal (active multitasking)<br>
+                    active user: root<br>
+                    scheduler task count: 6 threads
+                </div>
+                <button class="conversational-button" onclick="alert('generating debug report file at /var/log/report.txt')">export debugging logs</button>
+            </div>
+        </div>
+
+        <!-- Window 4: Notepad -->
+        <div id="win-notepad" class="capsule-window" style="top: 150px; left: 420px; width: 500px;">
+            <div class="window-header">
+                <span>text pad</span>
+                <div class="window-close" onclick="closeWindow('win-notepad')">×</div>
+            </div>
+            <div class="window-content">
+                <div class="content-label">editing file: notes.txt</div>
+                <textarea style="background-color: #111; color: #fff; border: none; border-radius: 8px; padding: 8px; font-size: 12px; height: 120px; resize: none; text-transform: lowercase;">sovereign rtc64 boutique microkernel notes.
+this system replaces corporate bloat with solid hyper-saturated blocks of pure primary colors and heavily rounded squircles.</textarea>
+                <button class="conversational-button" onclick="alert('file written to VFS partition successfully')">save file</button>
+            </div>
+        </div>
+
+        <!-- Window 5: Settings -->
+        <div id="win-settings" class="capsule-window" style="top: 200px; left: 520px;">
+            <div class="window-header">
+                <span>preferences</span>
+                <div class="window-close" onclick="closeWindow('win-settings')">×</div>
+            </div>
+            <div class="window-content">
+                <div class="content-label">global preferences:</div>
+                <div class="content-block" style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" checked style="accent-color: #00ff00;"> allow terminal to browse internet
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" style="accent-color: #00ff00;"> allow terminal to edit files
+                    </label>
+                </div>
+                <button class="conversational-button" onclick="alert('settings flushed atomically to system registry')">apply changes</button>
+            </div>
+        </div>
+
+        <!-- Window 6: Installer -->
+        <div id="win-installer" class="capsule-window" style="top: 110px; left: 300px; width: 480px;">
+            <div class="window-header">
+                <span>installer</span>
+                <div class="window-close" onclick="closeWindow('win-installer')">×</div>
+            </div>
+            <div class="window-content">
+                <div class="content-label">install sovereign rtc64</div>
+                <div class="content-block">
+                    hey, let's install the system! warning: we will format your disk, so back up anything important first.
+                </div>
+                <button class="conversational-button" onclick="alert('starting installation on drive 0...')">let's go</button>
+            </div>
+        </div>
+
+        <!-- App Launcher Start Menu Popup -->
+        <div id="app-launcher-menu">
+            <div class="launcher-section-title">available applications:</div>
+            <div class="launcher-grid">
+                <div class="launcher-item" onclick="toggleWindow('win-terminal'); toggleLauncher()">
+                    <div class="launcher-square app-terminal"></div>
+                    <div class="launcher-text">terminal</div>
+                </div>
+                <div class="launcher-item" onclick="toggleWindow('win-files'); toggleLauncher()">
+                    <div class="launcher-square app-files"></div>
+                    <div class="launcher-text">files</div>
+                </div>
+                <div class="launcher-item" onclick="toggleWindow('win-telemetry'); toggleLauncher()">
+                    <div class="launcher-square app-diagnostics"></div>
+                    <div class="launcher-text">telemetry</div>
+                </div>
+                <div class="launcher-item" onclick="toggleWindow('win-notepad'); toggleLauncher()">
+                    <div class="launcher-square app-notepad"></div>
+                    <div class="launcher-text">notepad</div>
+                </div>
+            </div>
+            <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 4px 0;"></div>
+            <div class="launcher-section-title">system settings:</div>
+            <div class="launcher-grid">
+                <div class="launcher-item" onclick="toggleWindow('win-settings'); toggleLauncher()">
+                    <div class="launcher-square app-settings"></div>
+                    <div class="launcher-text">preferences</div>
+                </div>
+                <div class="launcher-item" onclick="toggleWindow('win-installer'); toggleLauncher()">
+                    <div class="launcher-square app-installer"></div>
+                    <div class="launcher-text">installer</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Pinned Bottom Taskbar -->
+    <div id="taskbar">
+        <div id="taskbar-left">
+            <!-- 4-line white hamburger icon -->
+            <div id="start-hamburger" onclick="toggleLauncher()">
+                <div class="hamburger-line"></div>
+                <div class="hamburger-line"></div>
+                <div class="hamburger-line"></div>
+                <div class="hamburger-line"></div>
+            </div>
+
+            <!-- Solid, uniform colored pinned square buttons on taskbar -->
+            <div class="taskbar-pinned">
+                <div class="taskbar-square app-terminal" onclick="toggleWindow('win-terminal')" title="terminal"></div>
+                <div class="taskbar-square app-files" onclick="toggleWindow('win-files')" title="file explorer"></div>
+                <div class="taskbar-square app-diagnostics" onclick="toggleWindow('win-telemetry')" title="telemetry"></div>
+                <div class="taskbar-square app-notepad" onclick="toggleWindow('win-notepad')" title="text pad"></div>
+                <div class="taskbar-square app-settings" onclick="toggleWindow('win-settings')" title="preferences"></div>
+            </div>
+        </div>
+
+        <!-- Cyan status tray silhouettes -->
+        <div id="status-tray">
+            <!-- Checkmark silhouette -->
+            <div class="status-icon" title="checkmark system is ok">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
+            <!-- Bluetooth silhouette -->
+            <div class="status-icon" title="bluetooth operational">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m7 7 10 10-5 5V2l5 5L7 17"></path>
+                </svg>
+            </div>
+            <!-- Wi-Fi silhouette -->
+            <div class="status-icon" title="wi-fi signal connected">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+                    <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                    <line x1="12" y1="20" x2="12.01" y2="20" stroke-width="3"></line>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive script to handle clock movements and squircle window triggers -->
+    <script>
+        /* CSS-based Live Vector Clock movements */
+        function updateClock() {
+            const now = new Date();
+            const hr = now.getHours();
+            const min = now.getMinutes();
+            const sec = now.getSeconds();
+
+            const hr_angle = (hr % 12) * 30 + min * 0.5;
+            const min_angle = min * 6;
+            const sec_angle = sec * 6;
+
+            document.getElementById('hour-hand').style.transform = `rotate(${hr_angle}deg)`;
+            document.getElementById('minute-hand').style.transform = `rotate(${min_angle}deg)`;
+            document.getElementById('second-hand').style.transform = `rotate(${sec_angle}deg)`;
+        }
+
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        /* App Launcher Start Menu Popup */
+        function toggleLauncher() {
+            const menu = document.getElementById('app-launcher-menu');
+            if (menu.style.display === 'flex') {
+                menu.style.display = 'none';
+            } else {
+                menu.style.display = 'flex';
+            }
+        }
+
+        /* Capsule Windows Open/Close */
+        function toggleWindow(id) {
+            const win = document.getElementById(id);
+            if (win.style.display === 'flex') {
+                win.style.display = 'none';
+            } else {
+                win.style.display = 'flex';
+                // Bring clicked window to front
+                bringToFront(win);
+            }
+        }
+
+        function closeWindow(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        let zIndexCounter = 100;
+        function bringToFront(win) {
+            win.style.zIndex = ++zIndexCounter;
+        }
+
+        /* Drag and drop squircle windows */
+        const windows = document.querySelectorAll('.capsule-window');
+        windows.forEach(win => {
+            const header = win.querySelector('.window-header');
+            header.onmousedown = function(e) {
+                bringToFront(win);
+                let shiftX = e.clientX - win.getBoundingClientRect().left;
+                let shiftY = e.clientY - win.getBoundingClientRect().top;
+
+                function moveAt(pageX, pageY) {
+                    win.style.left = pageX - shiftX + 'px';
+                    win.style.top = pageY - shiftY + 'px';
+                }
+
+                function onMouseMove(e) {
+                    moveAt(e.pageX, e.pageY);
+                }
+
+                document.addEventListener('mousemove', onMouseMove);
+
+                document.onmouseup = function() {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.onmouseup = null;
+                };
+            };
+
+            header.ondragstart = function() {
+                return false;
+            };
+        });
+    </script>
+</body>
+</html>
