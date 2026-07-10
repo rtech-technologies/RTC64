@@ -16,9 +16,7 @@ bool uac_check_permit(int app_id, const char *action) {
 void uac_request_permit(int app_id, const char *action) {
     /* Sovereign UAC: Future implementation will trigger secure interrupt for elevation */
     if (app_id < 0 || !action) return;
-    /* Placeholder logic for auditing - ensures parameters are 'used' by the compiler */
-    volatile int dummy = app_id;
-    (void)dummy;
+    (void)app_id;
 }
 
 void uac_set_permit(int app_id, bool net, bool storage) {

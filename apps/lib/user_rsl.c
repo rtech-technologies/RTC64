@@ -3,7 +3,6 @@
 #include <stdio.h>
 
 /* Very minimal vsnprintf for userland apps if we don't link with kernel implementation */
-/* For now, just a dummy or we can try to reuse the kernel headers if we're careful. */
 /* Userland shouldn't ideally include kernel headers. */
 
 static void rsl_itoa(unsigned long long n, char* s, int base, int sign) {
