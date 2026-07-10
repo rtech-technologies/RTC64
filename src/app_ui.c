@@ -93,8 +93,52 @@ void ui_init_style(struct nk_context *ctx) {
     ui_init_style_internal(ctx);
 }
 
+static bool verify_user_credentials(const char* username, const char* password) {
+    char buf[2048];
+    if (vfs_cat("/etc/passwd", buf, sizeof(buf)) != 0) return false;
+
+    char *line = buf;
+    while (line && *line) {
+        char *next_line = strchr(line, '\n');
+        if (next_line) *next_line = '\0';
+
+        char *colon = strchr(line, ':');
+        if (colon) {
+            *colon = '\0';
+            char *p_user = line;
+            char *p_pass = colon + 1;
+
+            if (strcmp(p_user, username) == 0 && strcmp(p_pass, password) == 0) {
+                return true;
+            }
+        }
+
+        if (next_line) {
+            *next_line = '\n';
+            line = next_line + 1;
+        } else {
+            line = NULL;
+        }
+    }
+    return false;
+}
+
+static void add_user_account(const char* username, const char* password) {
+    char buf[2048];
+    buf[0] = '\0';
+    vfs_cat("/etc/passwd", buf, sizeof(buf));
+
+    char new_line[128];
+    snprintf(new_line, sizeof(new_line), "%s:%s\n", username, password);
+
+    if (strlen(buf) + strlen(new_line) < sizeof(buf) - 1) {
+        strcat(buf, new_line);
+        vfs_write("/etc/passwd", buf);
+    }
+}
+
 static void ensure_user_desktop(struct app_state *app) {
-    char desktop_path[256];
+    char desktop_path[320];
     char user_home[128];
 
     vfs_mkdir("/etc");
@@ -746,38 +790,102 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
     }
 
     if (app->current_state == STATE_LOGIN) {
-        if (nk_begin(ctx, "login", nk_rect(ww/2 - 210, wh/2 - 200, 420, 360), NK_WINDOW_NO_SCROLLBAR)) {
-            nk_layout_row_dynamic(ctx, 60, 1);
-            nk_label(ctx, "welcome - user. sign in here:", NK_TEXT_CENTERED);
-            nk_layout_row_dynamic(ctx, 28, 1);
-            nk_label(ctx, "login to start creating things.", NK_TEXT_CENTERED);
+        if (nk_begin(ctx, "login", nk_rect(ww/2 - 210, wh/2 - 220, 420, 440), NK_WINDOW_NO_SCROLLBAR)) {
+            static bool signup_mode = false;
+            static char signup_user[32] = "";
+            static char signup_pass[32] = "";
 
-            nk_layout_row_dynamic(ctx, 30, 1);
-            nk_label(ctx, "username: admin", NK_TEXT_CENTERED);
+            if (!signup_mode) {
+                nk_layout_row_dynamic(ctx, 40, 1);
+                nk_label(ctx, "welcome - user. sign in here:", NK_TEXT_CENTERED);
+                nk_layout_row_dynamic(ctx, 24, 1);
+                nk_label(ctx, "login to start creating things.", NK_TEXT_CENTERED);
 
-            nk_layout_row_dynamic(ctx, 34, 1);
-            nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, app->password, sizeof(app->password), nk_filter_default);
+                nk_layout_row_dynamic(ctx, 28, 1);
+                nk_label(ctx, "username:", NK_TEXT_LEFT);
+                nk_layout_row_dynamic(ctx, 32, 1);
+                nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, app->username, sizeof(app->username) - 1, nk_filter_default);
 
-            nk_layout_row_dynamic(ctx, 40, 2);
-            if (nk_button_label(ctx, "let me in!")) {
-                app->current_state = STATE_DESKTOP;
-                app->show_launcher = 1;
+                nk_layout_row_dynamic(ctx, 28, 1);
+                nk_label(ctx, "password:", NK_TEXT_LEFT);
+                nk_layout_row_dynamic(ctx, 32, 1);
+                nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, app->password, sizeof(app->password) - 1, nk_filter_default);
+
+                nk_layout_row_dynamic(ctx, 36, 2);
+                if (nk_button_label(ctx, "let me in!")) {
+                    if (verify_user_credentials(app->username, app->password)) {
+                        app->current_state = STATE_DESKTOP;
+                        app->show_launcher = 1;
+                    }
+                }
+                if (nk_button_label(ctx, "create account")) {
+                    signup_mode = true;
+                }
+            } else {
+                nk_layout_row_dynamic(ctx, 40, 1);
+                nk_label(ctx, "create new account", NK_TEXT_CENTERED);
+                nk_layout_row_dynamic(ctx, 24, 1);
+                nk_label(ctx, "join the sovereign matrix.", NK_TEXT_CENTERED);
+
+                nk_layout_row_dynamic(ctx, 28, 1);
+                nk_label(ctx, "new username:", NK_TEXT_LEFT);
+                nk_layout_row_dynamic(ctx, 32, 1);
+                nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, signup_user, sizeof(signup_user) - 1, nk_filter_default);
+
+                nk_layout_row_dynamic(ctx, 28, 1);
+                nk_label(ctx, "new password:", NK_TEXT_LEFT);
+                nk_layout_row_dynamic(ctx, 32, 1);
+                nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, signup_pass, sizeof(signup_pass) - 1, nk_filter_default);
+
+                nk_layout_row_dynamic(ctx, 36, 2);
+                if (nk_button_label(ctx, "register & login")) {
+                    if (strlen(signup_user) > 0 && strlen(signup_pass) > 0) {
+                        add_user_account(signup_user, signup_pass);
+                        strncpy(app->username, signup_user, sizeof(app->username) - 1);
+                        strncpy(app->password, signup_pass, sizeof(app->password) - 1);
+
+                        /* Pre-initialize Desktop workspace for the newly created account! */
+                        ensure_user_desktop(app);
+
+                        app->current_state = STATE_DESKTOP;
+                        app->show_launcher = 1;
+                    }
+                }
+                if (nk_button_label(ctx, "go back")) {
+                    signup_mode = false;
+                }
             }
-            if (nk_button_label(ctx, "setup system")) app->current_state = STATE_INSTALLER;
+
+            nk_layout_row_dynamic(ctx, 40, 1);
+            if (nk_button_label(ctx, "setup system via installer")) app->current_state = STATE_INSTALLER;
+
             nk_layout_row_dynamic(ctx, 22, 1);
             nk_label(ctx, "sovereign rtc64: power & simplicity redefined.", NK_TEXT_CENTERED);
         }
         nk_end(ctx);
     } else if (app->current_state == STATE_INSTALLER) {
-        if (nk_begin(ctx, "installer", nk_rect(ww/2 - 260, wh/2 - 220, 520, 420), NK_WINDOW_NO_SCROLLBAR|NK_WINDOW_TITLE)) {
+        if (nk_begin(ctx, "installer", nk_rect(ww/2 - 260, wh/2 - 220, 520, 440), NK_WINDOW_NO_SCROLLBAR|NK_WINDOW_TITLE)) {
             static int install_step = 0;
             static int target_drive = 0;
+            static char install_user[32] = "admin";
+            static char install_pass[32] = "password";
 
             if (install_step == 0) {
                 nk_layout_row_dynamic(ctx, 28, 1);
                 nk_label(ctx, "install sovereign rtc64", NK_TEXT_CENTERED);
-                nk_layout_row_dynamic(ctx, 100, 1);
-                nk_label_wrap(ctx, "hey, let's install the system! warning: we will format your disk, so back up anything important first.");
+                nk_layout_row_dynamic(ctx, 60, 1);
+                nk_label_wrap(ctx, "hey, let's install the system! choose your personal administrator credentials below:");
+
+                nk_layout_row_dynamic(ctx, 24, 1);
+                nk_label(ctx, "admin username:", NK_TEXT_LEFT);
+                nk_layout_row_dynamic(ctx, 28, 1);
+                nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, install_user, sizeof(install_user) - 1, nk_filter_default);
+
+                nk_layout_row_dynamic(ctx, 24, 1);
+                nk_label(ctx, "admin password:", NK_TEXT_LEFT);
+                nk_layout_row_dynamic(ctx, 28, 1);
+                nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, install_pass, sizeof(install_pass) - 1, nk_filter_default);
+
                 nk_layout_row_dynamic(ctx, 34, 1);
                 if (nk_button_label(ctx, "let's go")) install_step = 1;
             } else if (install_step == 1) {
@@ -805,12 +913,21 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
                 if (progress >= 1000) {
                     /* Create essential system files */
                     vfs_mkdir("/etc");
-                    vfs_write("/etc/passwd", "admin:password\n");
+
+                    char user_entry[128];
+                    snprintf(user_entry, sizeof(user_entry), "%s:%s\n", install_user, install_pass);
+                    vfs_write("/etc/passwd", user_entry);
+
                     vfs_mkdir("/bin");
                     vfs_mkdir("/home");
-                    vfs_mkdir("/home/Administrator");
+
+                    char user_dir[128];
+                    snprintf(user_dir, sizeof(user_dir), "/home/%s", install_user);
+                    vfs_mkdir(user_dir);
 
                     app->installed = 1;
+                    strncpy(app->username, install_user, sizeof(app->username) - 1);
+                    strncpy(app->password, install_pass, sizeof(app->password) - 1);
                     install_step = 3;
                 }
             } else if (install_step == 3) {
@@ -820,6 +937,9 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
                 nk_label(ctx, "all files written. click finish to boot.", NK_TEXT_CENTERED);
                 nk_layout_row_dynamic(ctx, 34, 1);
                 if (nk_button_label(ctx, "boot desktop")) {
+                    /* Initialise newly installed administrator workspace */
+                    ensure_user_desktop(app);
+
                     app->current_state = STATE_DESKTOP;
                     app->show_launcher = 1;
                 }
