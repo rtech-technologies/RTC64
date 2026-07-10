@@ -164,6 +164,36 @@ int vfs_write(const char* path, const char* content) {
     return -1;
 }
 
+int vfs_copy_file(const char* src, const char* dst) {
+    if (!src || !dst) return -1;
+    FIL fsrc, fdst;
+    UINT br, bw;
+    char drv_src[8], fpath_src[256];
+    char drv_dst[8], fpath_dst[256];
+
+    const char* sub_src = vfs_translate(src, drv_src);
+    snprintf(fpath_src, sizeof(fpath_src), "%s%s", drv_src, sub_src);
+
+    const char* sub_dst = vfs_translate(dst, drv_dst);
+    snprintf(fpath_dst, sizeof(fpath_dst), "%s%s", drv_dst, sub_dst);
+
+    if (f_open(&fsrc, fpath_src, FA_READ) != FR_OK) return -1;
+    if (f_open(&fdst, fpath_dst, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) {
+        f_close(&fsrc);
+        return -1;
+    }
+
+    char buf[1024];
+    for (;;) {
+        if (f_read(&fsrc, buf, sizeof(buf), &br) != FR_OK || br == 0) break;
+        if (f_write(&fdst, buf, br, &bw) != FR_OK || bw < br) break;
+    }
+
+    f_close(&fsrc);
+    f_close(&fdst);
+    return 0;
+}
+
 int vfs_get_mounts(char* out, size_t sz) {
     int off = 0;
     for (int i = 0; i < mount_count; i++) {

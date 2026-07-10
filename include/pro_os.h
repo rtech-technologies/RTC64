@@ -142,6 +142,7 @@ int vfs_mkdir(const char* path);
 int vfs_rm(const char* path);
 int vfs_rename(const char* old_path, const char* new_path);
 int vfs_write(const char* path, const char* content);
+int vfs_copy_file(const char* src, const char* dst);
 int vfs_get_mounts(char* out, size_t sz);
 
 /* Registry System */
