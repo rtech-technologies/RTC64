@@ -40,6 +40,21 @@ struct app_state {
     int show_notepad;
     char notepad_buffer[4096];
     char notepad_file[128];
+
+    /* Upgraded OS additions */
+    int show_drawer;
+    int show_advanced_settings;
+    int uac_authenticated;
+    char uac_password_buffer[32];
+    int show_calendar;
+    char explorer_new_item_name[128];
+    char explorer_rename_name[128];
+    int explorer_rename_active;
+    char explorer_rename_target[256];
+    char notepad_search_term[128];
+    char notepad_replace_term[128];
+    int notepad_show_search_replace;
+    char wallpaper_color[32];
 };
 
 void ui_init_style(struct nk_context *ctx);

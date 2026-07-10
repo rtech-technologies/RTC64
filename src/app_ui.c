@@ -153,8 +153,11 @@ static void ensure_user_desktop(struct app_state *app) {
     vfs_write("/etc/icons/installer.svg", "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg>");
     vfs_write("/etc/icons/default.svg", "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"2\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\" ry=\"2\"/><rect x=\"7\" y=\"7\" width=\"3\" height=\"3\"/><rect x=\"14\" y=\"7\" width=\"3\" height=\"3\"/><rect x=\"7\" y=\"14\" width=\"3\" height=\"3\"/><rect x=\"14\" y=\"14\" width=\"3\" height=\"3\"/></svg>");
 
-    vfs_mkdir("/home");
-    snprintf(user_home, sizeof(user_home), "/home/%s", app->username);
+    vfs_mkdir("/Windows");
+    vfs_mkdir("/Windows/System32");
+    vfs_mkdir("/Windows/System32/config");
+    vfs_mkdir("/Users");
+    snprintf(user_home, sizeof(user_home), "/Users/%s", app->username);
     vfs_mkdir(user_home);
     snprintf(desktop_path, sizeof(desktop_path), "%s/Desktop", user_home);
     vfs_mkdir(desktop_path);
@@ -165,22 +168,27 @@ static void ensure_user_desktop(struct app_state *app) {
     snprintf(check_path, sizeof(check_path), "%s/shell.bin", desktop_path);
     vfs_copy_file("/shell.bin", check_path);
     vfs_copy_file("/bin/shell.bin", check_path);
+    vfs_copy_file("/Windows/System32/shell.bin", check_path);
 
     snprintf(check_path, sizeof(check_path), "%s/lab.bin", desktop_path);
     vfs_copy_file("/lab.bin", check_path);
     vfs_copy_file("/bin/lab.bin", check_path);
+    vfs_copy_file("/Windows/System32/lab.bin", check_path);
 
     snprintf(check_path, sizeof(check_path), "%s/notepad.bin", desktop_path);
     vfs_copy_file("/notepad.bin", check_path);
     vfs_copy_file("/bin/notepad.bin", check_path);
+    vfs_copy_file("/Windows/System32/notepad.bin", check_path);
 
     snprintf(check_path, sizeof(check_path), "%s/studio.bin", desktop_path);
     vfs_copy_file("/studio.bin", check_path);
     vfs_copy_file("/bin/studio.bin", check_path);
+    vfs_copy_file("/Windows/System32/studio.bin", check_path);
 
     snprintf(check_path, sizeof(check_path), "%s/tests.bin", desktop_path);
     vfs_copy_file("/tests.bin", check_path);
     vfs_copy_file("/bin/tests.bin", check_path);
+    vfs_copy_file("/Windows/System32/tests.bin", check_path);
 }
 
 static void scan_desktop_apps(struct app_state *app) {
@@ -188,7 +196,7 @@ static void scan_desktop_apps(struct app_state *app) {
 
     apps_on_desktop_count = 0;
     char desktop_path[256];
-    snprintf(desktop_path, sizeof(desktop_path), "/home/%s/Desktop", app->username);
+    snprintf(desktop_path, sizeof(desktop_path), "/Users/%s/Desktop", app->username);
 
     char list_buf[2048];
     if (vfs_ls(desktop_path, list_buf, sizeof(list_buf)) == 0) {
@@ -375,6 +383,12 @@ static void ui_render_desktop_square(struct nk_context *ctx, struct app_state *a
                 app->show_launcher = !app->show_launcher;
             } else if (strcmp(name, "installer") == 0) {
                 app->current_state = STATE_INSTALLER;
+            } else if (strcmp(name, "advanced settings") == 0) {
+                if (strcmp(app->username, "Administrator") == 0 || strcmp(app->username, "admin") == 0 || app->uac_authenticated) {
+                    app->show_advanced_settings = !app->show_advanced_settings;
+                } else {
+                    app->show_uac = 1;
+                }
             } else {
                 extern int app_spawn_binary(const char* path);
                 app_spawn_binary(path);
@@ -398,11 +412,37 @@ static void ui_render_background(struct nk_context *ctx, struct app_state *app, 
     /* Draw smooth vertical color gradient representing linear-gradient(135deg, #1e293b 0%, #0f172a 100%) */
     int steps = 64;
     float bar_h = (float)wh / (float)steps;
+
+    int r_start = 30, g_start = 41, b_start = 59;
+    int r_end = 15, g_end = 23, b_end = 42;
+
+    static bool wallpaper_loaded = false;
+    if (!wallpaper_loaded) {
+        const char* saved = registry_get("desktop.wallpaper");
+        if (saved) {
+            strncpy(app->wallpaper_color, saved, sizeof(app->wallpaper_color) - 1);
+        } else {
+            strcpy(app->wallpaper_color, "Charcoal");
+        }
+        wallpaper_loaded = true;
+    }
+
+    if (strcmp(app->wallpaper_color, "Sovereign Blue") == 0) {
+        r_start = 15; g_start = 32; b_start = 67;
+        r_end = 5; g_end = 10; b_end = 26;
+    } else if (strcmp(app->wallpaper_color, "Industrial Plum") == 0) {
+        r_start = 48; g_start = 15; b_start = 59;
+        r_end = 24; g_end = 5; b_end = 30;
+    } else if (strcmp(app->wallpaper_color, "Pitch Black") == 0) {
+        r_start = 10; g_start = 10; b_start = 10;
+        r_end = 0; g_end = 0; b_end = 0;
+    }
+
     for (int i = 0; i < steps; i++) {
         float ratio = (float)i / (float)steps;
-        int r = (int)(30.0f + (15.0f - 30.0f) * ratio);
-        int g = (int)(41.0f + (23.0f - 41.0f) * ratio);
-        int b = (int)(59.0f + (42.0f - 59.0f) * ratio);
+        int r = (int)((float)r_start + (float)(r_end - r_start) * ratio);
+        int g = (int)((float)g_start + (float)(g_end - g_start) * ratio);
+        int b = (int)((float)b_start + (float)(b_end - b_start) * ratio);
         nk_fill_rect(canvas, nk_rect(0, (float)i * bar_h, (float)ww, bar_h + 1.0f), 0, nk_rgba(r, g, b, 255));
     }
 
@@ -415,6 +455,15 @@ static void ui_render_background(struct nk_context *ctx, struct app_state *app, 
     /* Render clock text on top right */
     float cl_x = (float)ww * 0.9f - 180.0f;
     float cl_y = 60.0f;
+    struct nk_rect clock_rect = nk_rect(cl_x - 300.0f, cl_y, 480.0f, 175.0f);
+
+    /* Draw background highlight for clock when hovered */
+    if (nk_input_is_mouse_hovering_rect(&ctx->input, clock_rect)) {
+        nk_fill_rect(canvas, clock_rect, 12.0f, nk_rgba(255, 255, 255, 15));
+        if (nk_input_is_mouse_pressed(&ctx->input, NK_BUTTON_LEFT)) {
+            app->show_calendar = !app->show_calendar;
+        }
+    }
     nk_draw_text(canvas, nk_rect(cl_x - 300.0f, cl_y, 480.0f, 130.0f), time_str, (int)strlen(time_str), ctx->style.font, nk_rgba(255, 255, 255, 217), nk_rgba(0,0,0,0));
     nk_draw_text(canvas, nk_rect(cl_x - 300.0f, cl_y + 135.0f, 480.0f, 30.0f), "eastern standard (+3:00)", 24, ctx->style.font, nk_rgba(0, 190, 240, 204), nk_rgba(0,0,0,0));
 
@@ -424,8 +473,17 @@ static void ui_render_background(struct nk_context *ctx, struct app_state *app, 
     float box_sz = 65.0f;
     float gap = 12.0f;
 
-    /* Top Arrow label */
-    nk_draw_text(canvas, nk_rect(grid_x + 5 * box_sz + 4 * gap - 20, grid_y - 25, 20, 20), "v", 1, ctx->style.font, nk_rgba(255, 255, 255, 102), nk_rgba(0,0,0,0));
+    /* Interactive Top Arrow button to toggle sliding App Drawer (Android style) */
+    struct nk_rect arrow_bounds = nk_rect(grid_x + 5 * box_sz + 4 * gap - 30, grid_y - 30, 30, 30);
+    nk_fill_rect(canvas, arrow_bounds, 6, nk_rgba(30, 30, 30, 150));
+    nk_stroke_rect(canvas, arrow_bounds, 6, 1.0f, nk_rgba(255, 255, 255, 50));
+    nk_draw_text(canvas, nk_rect(arrow_bounds.x + 10, arrow_bounds.y + 4, 20, 20), "v", 1, ctx->style.font, nk_rgba(255, 255, 255, 200), nk_rgba(0,0,0,0));
+    if (nk_input_is_mouse_hovering_rect(&ctx->input, arrow_bounds)) {
+        nk_fill_rect(canvas, arrow_bounds, 6, nk_rgba(255, 255, 255, 40));
+        if (nk_input_is_mouse_pressed(&ctx->input, NK_BUTTON_LEFT)) {
+            app->show_drawer = !app->show_drawer;
+        }
+    }
 
     /* Row colors mapping based on row index */
     struct nk_color row_colors[5] = {
@@ -436,85 +494,105 @@ static void ui_render_background(struct nk_context *ctx, struct app_state *app, 
         nk_rgba(28, 198, 94, 255)   /* Green */
     };
 
-    /* Populate the grid dynamically using apps discovered in Desktop folder */
-    for (int i = 0; i < apps_on_desktop_count; i++) {
+    /* Populate the grid with select pinned desktop apps */
+    int pinned_count = 5;
+    const char* pinned_names[] = {"files", "notepad", "welcome", "settings", "advanced settings"};
+    const char* pinned_paths[] = {"", "", "", "", ""};
+    const char* pinned_display[] = {"files", "notepad", "welcome", "settings", "admin settings"};
+
+    for (int i = 0; i < pinned_count; i++) {
         int row = i / 5;
         int col = i % 5;
         float x = grid_x + col * (box_sz + gap);
         float y = grid_y + row * (box_sz + gap);
 
         struct nk_color color = row_colors[row % 5];
+        ui_render_desktop_square(ctx, app, pinned_names[i], pinned_paths[i], x, y, color);
 
-        ui_render_desktop_square(ctx, app, apps_on_desktop[i].name, apps_on_desktop[i].path, x, y, color);
+        /* Draw short label text under desktop square */
+        nk_draw_text(canvas, nk_rect(x, y + box_sz + 2, box_sz, 18), pinned_display[i], (int)strlen(pinned_display[i]), ctx->style.font, nk_rgba(255, 255, 255, 200), nk_rgba(0,0,0,0));
     }
 }
 
-static void ui_render_launcher(struct nk_context *ctx, struct app_state *app)
+static void ui_render_launcher(struct nk_context *ctx, struct app_state *app, int ww, int wh)
 {
     if (!app->show_launcher) return;
-    /* Anchored under the clock / on right, beautifully overlaying welcoming updates */
-    if (nk_begin(ctx, "welcome - user", nk_rect(420, 220, 400, 320), NK_WINDOW_MOVABLE|NK_WINDOW_TITLE)) {
-        nk_layout_row_dynamic(ctx, 24, 1);
-        nk_label(ctx, "your recent apps:", NK_TEXT_LEFT);
 
-        nk_layout_row_begin(ctx, NK_STATIC, 35, 6);
-        nk_layout_row_push(ctx, 20);
-        nk_label(ctx, "<", NK_TEXT_CENTERED);
+    /* Place it nicely on the bottom-left just above the taskbar start button */
+    float sm_w = 420.0f;
+    float sm_h = 450.0f;
+    float sm_x = ((float)ww - (float)ww * 0.95f) / 2.0f; /* align with taskbar left */
+    if (sm_x < 20.0f) sm_x = 20.0f;
+    float sm_y = (float)wh - 84.0f - sm_h - 10.0f; /* 10px spacing above taskbar */
 
-        /* Colored mini squares */
-        nk_layout_row_push(ctx, 35);
-        ctx->style.button.normal = nk_style_item_color(nk_rgba(255, 59, 48, 255));
-        nk_button_label(ctx, "");
+    if (nk_begin(ctx, "Sovereign Start Menu", nk_rect(sm_x, sm_y, sm_w, sm_h), NK_WINDOW_NO_SCROLLBAR)) {
+        /* Left column (Navigation) and Right column (Apps Grid) */
+        nk_layout_row_begin(ctx, NK_STATIC, 400, 2);
 
-        nk_layout_row_push(ctx, 35);
-        ctx->style.button.normal = nk_style_item_color(nk_rgba(59, 48, 224, 255));
-        nk_button_label(ctx, "");
+        /* Column 1: Navigation / User info (Width: 150) */
+        nk_layout_row_push(ctx, 150);
+        if (nk_group_begin(ctx, "start_left", NK_WINDOW_NO_SCROLLBAR)) {
+            nk_layout_row_dynamic(ctx, 24, 1);
+            char user_lbl[64];
+            snprintf(user_lbl, sizeof(user_lbl), "hi, %s!", app->username);
+            nk_label(ctx, user_lbl, NK_TEXT_LEFT);
+            nk_label(ctx, "system links:", NK_TEXT_LEFT);
 
-        nk_layout_row_push(ctx, 35);
-        ctx->style.button.normal = nk_style_item_color(nk_rgba(255, 142, 40, 255));
-        nk_button_label(ctx, "");
+            nk_layout_row_dynamic(ctx, 32, 1);
+            if (nk_button_label(ctx, "explorer")) {
+                app->show_explorer = 1;
+                app->show_launcher = 0;
+            }
+            if (nk_button_label(ctx, "text pad")) {
+                app->show_notepad = 1;
+                app->show_launcher = 0;
+            }
+            if (nk_button_label(ctx, "preferences")) {
+                app->show_settings = 1;
+                app->show_launcher = 0;
+            }
+            if (nk_button_label(ctx, "advanced settings")) {
+                app->show_advanced_settings = 1;
+                app->show_launcher = 0;
+            }
 
-        nk_layout_row_push(ctx, 35);
-        ctx->style.button.normal = nk_style_item_color(nk_rgba(0, 190, 240, 255));
-        nk_button_label(ctx, "");
+            nk_layout_row_dynamic(ctx, 40, 1);
+            nk_label(ctx, "", NK_TEXT_LEFT); /* Spacer */
 
-        nk_layout_row_push(ctx, 20);
-        nk_label(ctx, ">", NK_TEXT_CENTERED);
+            nk_layout_row_dynamic(ctx, 32, 1);
+            if (nk_button_label(ctx, "log out")) {
+                app->current_state = STATE_LOGIN;
+                app->show_launcher = 0;
+            }
+            if (nk_button_label(ctx, "shutdown")) {
+                scheduler_stop_all();
+            }
+            nk_group_end(ctx);
+        }
+
+        /* Column 2: Application matrix / Recent (Width: 230) */
+        nk_layout_row_push(ctx, 230);
+        if (nk_group_begin(ctx, "start_right", 0)) {
+            nk_layout_row_dynamic(ctx, 24, 1);
+            nk_label(ctx, "pinned applications:", NK_TEXT_LEFT);
+
+            /* Vertical list of all compiled OS applications in startup menu */
+            const char* menu_paths[] = {"/bin/shell.bin", "/bin/lab.bin", "/bin/notepad.bin", "/bin/studio.bin", "/bin/tests.bin"};
+            const char* menu_labels[] = {"Terminal (Shell)", "System Laboratory", "Notepad (User)", "App Studio", "System Diagnostics"};
+
+            for (int i = 0; i < 5; i++) {
+                nk_layout_row_dynamic(ctx, 40, 1);
+                if (nk_button_label(ctx, menu_labels[i])) {
+                    extern int app_spawn_binary(const char* path);
+                    app_spawn_binary(menu_paths[i]);
+                    app->show_launcher = 0;
+                }
+            }
+            nk_group_end(ctx);
+        }
         nk_layout_row_end(ctx);
-
-        ui_init_style_internal(ctx);
-
-        nk_layout_row_dynamic(ctx, 24, 1);
-        nk_label(ctx, "updates:", NK_TEXT_LEFT);
-
-        nk_layout_row_begin(ctx, NK_STATIC, 35, 6);
-        nk_layout_row_push(ctx, 20);
-        nk_label(ctx, "<", NK_TEXT_CENTERED);
-
-        /* Colored mini squares in reverse/different layout */
-        nk_layout_row_push(ctx, 35);
-        ctx->style.button.normal = nk_style_item_color(nk_rgba(0, 190, 240, 255));
-        nk_button_label(ctx, "");
-
-        nk_layout_row_push(ctx, 35);
-        ctx->style.button.normal = nk_style_item_color(nk_rgba(255, 142, 40, 255));
-        nk_button_label(ctx, "");
-
-        nk_layout_row_push(ctx, 35);
-        ctx->style.button.normal = nk_style_item_color(nk_rgba(59, 48, 224, 255));
-        nk_button_label(ctx, "");
-
-        nk_layout_row_push(ctx, 35);
-        ctx->style.button.normal = nk_style_item_color(nk_rgba(255, 59, 48, 255));
-        nk_button_label(ctx, "");
-
-        nk_layout_row_push(ctx, 20);
-        nk_label(ctx, ">", NK_TEXT_CENTERED);
-        nk_layout_row_end(ctx);
-
-        ui_init_style_internal(ctx);
     }
-    if (nk_window_is_closed(ctx, "welcome - user")) app->show_launcher = 0;
+    if (nk_window_is_closed(ctx, "Sovereign Start Menu")) app->show_launcher = 0;
     nk_end(ctx);
 }
 
@@ -574,11 +652,31 @@ static void ui_render_crash_reports(struct nk_context *ctx, struct app_state *ap
     nk_end(ctx);
 }
 
+static bool check_path_permission(struct app_state* app, const char* path) {
+    if (strcmp(app->username, "Administrator") == 0 || strcmp(app->username, "admin") == 0) {
+        return true;
+    }
+    /* Restrict regular user to their own home directory or non-system paths */
+    if (strncmp(path, "/Users/", 7) == 0) {
+        const char* sub = path + 7;
+        char current_user_home[64];
+        snprintf(current_user_home, sizeof(current_user_home), "%s", app->username);
+        size_t ulen = strlen(current_user_home);
+        if (strncmp(sub, current_user_home, ulen) != 0 || (sub[ulen] != '/' && sub[ulen] != '\0')) {
+            return false; /* Access denied to other users' directories */
+        }
+    }
+    if (strncmp(path, "/etc", 4) == 0 || strncmp(path, "/Windows/System32/config", 24) == 0 || strncmp(path, "/mnt/disk0/system", 17) == 0) {
+        return false; /* Access denied to administrative folders */
+    }
+    return true;
+}
+
 static void ui_render_files(struct nk_context *ctx, struct app_state *app)
 {
-    if (nk_begin(ctx, "file explorer", nk_rect(550, 200, 400, 300), NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE)) {
+    if (nk_begin(ctx, "file explorer", nk_rect(550, 150, 480, 400), NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE)) {
         nk_layout_row_dynamic(ctx, 26, 1);
-        nk_label(ctx, "index: root/vfs/bin", NK_TEXT_LEFT);
+        nk_label(ctx, "index: root/vfs/Users", NK_TEXT_LEFT);
 
         nk_layout_row_template_begin(ctx, 30);
         nk_layout_row_template_push_static(ctx, 60);
@@ -595,7 +693,65 @@ static void ui_render_files(struct nk_context *ctx, struct app_state *app)
         }
         nk_label(ctx, app->explorer_path, NK_TEXT_LEFT);
 
-        nk_layout_row_dynamic(ctx, 140, 1);
+        /* Create Item Panel */
+        nk_layout_row_dynamic(ctx, 30, 3);
+        nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, app->explorer_new_item_name, sizeof(app->explorer_new_item_name) - 1, nk_filter_default);
+        if (nk_button_label(ctx, "new folder")) {
+            if (app->explorer_new_item_name[0]) {
+                char full_path[320];
+                snprintf(full_path, sizeof(full_path), "%s%s%s",
+                         app->explorer_path,
+                         (app->explorer_path[strlen(app->explorer_path)-1] == '/') ? "" : "/",
+                         app->explorer_new_item_name);
+                if (check_path_permission(app, full_path)) {
+                    vfs_mkdir(full_path);
+                }
+                app->explorer_new_item_name[0] = '\0';
+            }
+        }
+        if (nk_button_label(ctx, "new file")) {
+            if (app->explorer_new_item_name[0]) {
+                char full_path[320];
+                snprintf(full_path, sizeof(full_path), "%s%s%s",
+                         app->explorer_path,
+                         (app->explorer_path[strlen(app->explorer_path)-1] == '/') ? "" : "/",
+                         app->explorer_new_item_name);
+                if (check_path_permission(app, full_path)) {
+                    vfs_write(full_path, "new file text");
+                }
+                app->explorer_new_item_name[0] = '\0';
+            }
+        }
+
+        /* Rename Row if renaming is active */
+        if (app->explorer_rename_active) {
+            nk_layout_row_dynamic(ctx, 30, 4);
+            nk_label(ctx, "rename to:", NK_TEXT_LEFT);
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, app->explorer_rename_name, sizeof(app->explorer_rename_name) - 1, nk_filter_default);
+            if (nk_button_label(ctx, "apply")) {
+                if (app->explorer_rename_name[0]) {
+                    char parent_dir[256];
+                    strncpy(parent_dir, app->explorer_rename_target, sizeof(parent_dir)-1);
+                    parent_dir[sizeof(parent_dir)-1] = '\0';
+                    char *last_slash = strrchr(parent_dir, '/');
+                    if (last_slash) {
+                        *last_slash = '\0';
+                    }
+                    char new_full_path[320];
+                    snprintf(new_full_path, sizeof(new_full_path), "%s/%s", parent_dir, app->explorer_rename_name);
+                    if (check_path_permission(app, app->explorer_rename_target) && check_path_permission(app, new_full_path)) {
+                        vfs_rename(app->explorer_rename_target, new_full_path);
+                    }
+                    app->explorer_rename_active = 0;
+                    app->explorer_rename_name[0] = '\0';
+                }
+            }
+            if (nk_button_label(ctx, "cancel")) {
+                app->explorer_rename_active = 0;
+            }
+        }
+
+        nk_layout_row_dynamic(ctx, 200, 1);
         if (nk_group_begin(ctx, "FileView", 0)) {
             char list_buf[2048];
             if (vfs_ls(app->explorer_path, list_buf, sizeof(list_buf)) == 0) {
@@ -611,10 +767,10 @@ static void ui_render_files(struct nk_context *ctx, struct app_state *app)
 
                         nk_layout_row_template_begin(ctx, 24);
                         nk_layout_row_template_push_dynamic(ctx);
-                        nk_layout_row_template_push_static(ctx, 80);
+                        nk_layout_row_template_push_static(ctx, 60);
+                        nk_layout_row_template_push_static(ctx, 60);
                         nk_layout_row_template_end(ctx);
 
-                        /* Print files in conversational lowercase */
                         char clean_line[128];
                         strncpy(clean_line, line, sizeof(clean_line)-1);
                         clean_line[sizeof(clean_line)-1] = '\0';
@@ -624,32 +780,46 @@ static void ui_render_files(struct nk_context *ctx, struct app_state *app)
                             }
                         }
 
+                        char item_full_path[320];
+                        snprintf(item_full_path, sizeof(item_full_path), "%s%s%s",
+                                 app->explorer_path,
+                                 (app->explorer_path[strlen(app->explorer_path)-1] == '/') ? "" : "/",
+                                 name);
+
                         if (nk_button_label(ctx, clean_line)) {
                             if (is_dir) {
-                                if (app->explorer_path[strlen(app->explorer_path)-1] != '/') {
-                                    strncat(app->explorer_path, "/", sizeof(app->explorer_path) - strlen(app->explorer_path) - 1);
+                                if (check_path_permission(app, item_full_path)) {
+                                    if (app->explorer_path[strlen(app->explorer_path)-1] != '/') {
+                                        strncat(app->explorer_path, "/", sizeof(app->explorer_path) - strlen(app->explorer_path) - 1);
+                                    }
+                                    strncat(app->explorer_path, name, sizeof(app->explorer_path) - strlen(app->explorer_path) - 1);
+                                } else {
+                                    /* Permission denied notice can be printed or serial logged */
+                                    serial_printf("[EXPLORER] Access Denied: User %s has no clearance for %s\n", app->username, item_full_path);
                                 }
-                                strncat(app->explorer_path, name, sizeof(app->explorer_path) - strlen(app->explorer_path) - 1);
                             } else {
                                 /* Open in Notepad */
-                                char full_path[256];
-                                snprintf(full_path, sizeof(full_path), "%s%s%s",
-                                         app->explorer_path,
-                                         (app->explorer_path[strlen(app->explorer_path)-1] == '/') ? "" : "/",
-                                         name);
-                                if (vfs_cat(full_path, app->notepad_buffer, sizeof(app->notepad_buffer)) == 0) {
-                                    strncpy(app->notepad_file, full_path, sizeof(app->notepad_file)-1);
-                                    app->show_notepad = 1;
+                                if (check_path_permission(app, item_full_path)) {
+                                    if (vfs_cat(item_full_path, app->notepad_buffer, sizeof(app->notepad_buffer)) == 0) {
+                                        strncpy(app->notepad_file, item_full_path, sizeof(app->notepad_file)-1);
+                                        app->show_notepad = 1;
+                                    }
+                                } else {
+                                    serial_printf("[EXPLORER] Access Denied: User %s has no clearance for %s\n", app->username, item_full_path);
                                 }
                             }
                         }
+                        if (nk_button_label(ctx, "rename")) {
+                            if (check_path_permission(app, item_full_path)) {
+                                app->explorer_rename_active = 1;
+                                strncpy(app->explorer_rename_target, item_full_path, sizeof(app->explorer_rename_target)-1);
+                                strncpy(app->explorer_rename_name, name, sizeof(app->explorer_rename_name)-1);
+                            }
+                        }
                         if (nk_button_label(ctx, "destroy")) {
-                            char full_path[256];
-                            snprintf(full_path, sizeof(full_path), "%s%s%s",
-                                     app->explorer_path,
-                                     (app->explorer_path[strlen(app->explorer_path)-1] == '/') ? "" : "/",
-                                     name);
-                            vfs_rm(full_path);
+                            if (check_path_permission(app, item_full_path)) {
+                                vfs_rm(item_full_path);
+                            }
                         }
                     }
 
@@ -673,19 +843,38 @@ static void ui_render_files(struct nk_context *ctx, struct app_state *app)
 
 static void ui_render_settings(struct nk_context *ctx, struct app_state *app)
 {
-    if (nk_begin(ctx, "system preferences", nk_rect(650, 280, 400, 260), NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE)) {
+    if (nk_begin(ctx, "system preferences", nk_rect(650, 240, 420, 320), NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE)) {
         nk_layout_row_dynamic(ctx, 20, 1);
-        nk_label(ctx, "workspace adjustments:", NK_TEXT_LEFT);
+        nk_label(ctx, "desktop wallpaper customizer:", NK_TEXT_LEFT);
 
-        nk_layout_row_dynamic(ctx, 100, 1);
+        nk_layout_row_dynamic(ctx, 28, 2);
+        if (nk_option_label(ctx, "charcoal (matte)", strcmp(app->wallpaper_color, "Charcoal") == 0)) {
+            strcpy(app->wallpaper_color, "Charcoal");
+        }
+        if (nk_option_label(ctx, "sovereign blue", strcmp(app->wallpaper_color, "Sovereign Blue") == 0)) {
+            strcpy(app->wallpaper_color, "Sovereign Blue");
+        }
+        if (nk_option_label(ctx, "industrial plum", strcmp(app->wallpaper_color, "Industrial Plum") == 0)) {
+            strcpy(app->wallpaper_color, "Industrial Plum");
+        }
+        if (nk_option_label(ctx, "pitch black", strcmp(app->wallpaper_color, "Pitch Black") == 0)) {
+            strcpy(app->wallpaper_color, "Pitch Black");
+        }
+
+        nk_layout_row_dynamic(ctx, 32, 1);
+        if (nk_button_label(ctx, "save & apply wallpaper")) {
+            registry_set("desktop.wallpaper", app->wallpaper_color);
+            registry_flush();
+            serial_printf("[SETTINGS] Wallpaper saved: %s\n", app->wallpaper_color);
+        }
+
+        nk_layout_row_dynamic(ctx, 20, 1);
+        nk_label(ctx, "workspace notes / memory pad:", NK_TEXT_LEFT);
+
+        nk_layout_row_dynamic(ctx, 80, 1);
         int len = (int)strlen(app->notepad_buffer);
         nk_edit_string(ctx, NK_EDIT_MULTILINE, app->notepad_buffer, &len, sizeof(app->notepad_buffer)-1, nk_filter_default);
         app->notepad_buffer[len] = '\0';
-
-        nk_layout_row_dynamic(ctx, 32, 1);
-        if (nk_button_label(ctx, "commit edits")) {
-            uac_set_permit(0, app->perm_net, app->perm_storage);
-        }
     }
     if (nk_window_is_closed(ctx, "system preferences")) app->show_settings = 0;
     nk_end(ctx);
@@ -694,18 +883,34 @@ static void ui_render_settings(struct nk_context *ctx, struct app_state *app)
 static void ui_render_task_manager(struct nk_context *ctx, struct app_state *app)
 {
     if (!app->show_task_manager) return;
-    if (nk_begin(ctx, "task manager", nk_rect(400, 200, 500, 400), NK_WINDOW_MOVABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE)) {
-        nk_layout_row_dynamic(ctx, 30, 4);
+    if (nk_begin(ctx, "task manager", nk_rect(400, 200, 520, 400), NK_WINDOW_MOVABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE)) {
+        nk_layout_row_template_begin(ctx, 30);
+        nk_layout_row_template_push_static(ctx, 40);
+        nk_layout_row_template_push_dynamic(ctx);
+        nk_layout_row_template_push_static(ctx, 50);
+        nk_layout_row_template_push_static(ctx, 70);
+        nk_layout_row_template_push_static(ctx, 80);
+        nk_layout_row_template_end(ctx);
+
         nk_label(ctx, "id", NK_TEXT_LEFT);
         nk_label(ctx, "name", NK_TEXT_LEFT);
         nk_label(ctx, "upid", NK_TEXT_LEFT);
         nk_label(ctx, "state", NK_TEXT_LEFT);
+        nk_label(ctx, "action", NK_TEXT_LEFT);
 
         int count = scheduler_get_task_count();
         for (int i = 0; i < count; i++) {
             task_t* t = scheduler_get_task(i);
             if (!t || t->state == TASK_DEAD) continue;
-            nk_layout_row_dynamic(ctx, 24, 4);
+
+            nk_layout_row_template_begin(ctx, 24);
+            nk_layout_row_template_push_static(ctx, 40);
+            nk_layout_row_template_push_dynamic(ctx);
+            nk_layout_row_template_push_static(ctx, 50);
+            nk_layout_row_template_push_static(ctx, 70);
+            nk_layout_row_template_push_static(ctx, 80);
+            nk_layout_row_template_end(ctx);
+
             char id_buf[16]; snprintf(id_buf, sizeof(id_buf), "%d", t->id);
             nk_label(ctx, id_buf, NK_TEXT_LEFT);
 
@@ -721,23 +926,93 @@ static void ui_render_task_manager(struct nk_context *ctx, struct app_state *app
             char upid_buf[16]; snprintf(upid_buf, sizeof(upid_buf), "%u", t->upid);
             nk_label(ctx, upid_buf, NK_TEXT_LEFT);
             nk_label(ctx, t->state == TASK_RUNNING ? "running" : "idle", NK_TEXT_LEFT);
+
+            /* Action button to End Task */
+            if (t->id == 0 || strcmp(t->name, "Environment Manager") == 0 || strcmp(t->name, "Compliance") == 0) {
+                nk_label(ctx, "locked", NK_TEXT_CENTERED);
+            } else {
+                if (nk_button_label(ctx, "end task")) {
+                    scheduler_remove_task(t->id);
+                }
+            }
         }
     }
     if (nk_window_is_closed(ctx, "task manager")) app->show_task_manager = 0;
     nk_end(ctx);
 }
 
+static void notepad_find_replace(struct app_state* app) {
+    if (!app->notepad_search_term[0]) return;
+    char temp[4096];
+    char *src = app->notepad_buffer;
+    char *dst = temp;
+    size_t search_len = strlen(app->notepad_search_term);
+    size_t replace_len = strlen(app->notepad_replace_term);
+
+    while (*src) {
+        if (strncmp(src, app->notepad_search_term, search_len) == 0) {
+            if ((size_t)(dst - temp) + replace_len < sizeof(temp) - 1) {
+                strcpy(dst, app->notepad_replace_term);
+                dst += replace_len;
+                src += search_len;
+            } else {
+                break;
+            }
+        } else {
+            if ((size_t)(dst - temp) < sizeof(temp) - 1) {
+                *dst++ = *src++;
+            } else {
+                break;
+            }
+        }
+    }
+    *dst = '\0';
+    strncpy(app->notepad_buffer, temp, sizeof(app->notepad_buffer)-1);
+    app->notepad_buffer[sizeof(app->notepad_buffer)-1] = '\0';
+}
+
 static void ui_render_notepad(struct nk_context *ctx, struct app_state *app)
 {
     if (!app->show_notepad) return;
     if (nk_begin(ctx, "text pad", nk_rect(300, 100, 600, 500), NK_WINDOW_MOVABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE)) {
-        nk_layout_row_dynamic(ctx, 24, 2);
-        nk_label(ctx, app->notepad_file[0] ? app->notepad_file : "untitled.txt", NK_TEXT_LEFT);
-        if (nk_button_label(ctx, "save file") && app->notepad_file[0]) {
-            vfs_write(app->notepad_file, app->notepad_buffer);
+        /* Notepad Action Bar */
+        nk_layout_row_dynamic(ctx, 28, 4);
+        if (nk_button_label(ctx, "new")) {
+            app->notepad_buffer[0] = '\0';
+            app->notepad_file[0] = '\0';
+        }
+        if (nk_button_label(ctx, "open path")) {
+            if (app->notepad_file[0]) {
+                vfs_cat(app->notepad_file, app->notepad_buffer, sizeof(app->notepad_buffer));
+            }
+        }
+        if (nk_button_label(ctx, "save")) {
+            if (app->notepad_file[0]) {
+                vfs_write(app->notepad_file, app->notepad_buffer);
+            }
+        }
+        if (nk_button_label(ctx, "search & replace")) {
+            app->notepad_show_search_replace = !app->notepad_show_search_replace;
         }
 
-        nk_layout_row_dynamic(ctx, 400, 1);
+        /* Filepath Input Bar */
+        nk_layout_row_dynamic(ctx, 28, 2);
+        nk_label(ctx, "file path:", NK_TEXT_LEFT);
+        nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, app->notepad_file, sizeof(app->notepad_file) - 1, nk_filter_default);
+
+        /* Search and Replace Sub-Panel */
+        if (app->notepad_show_search_replace) {
+            nk_layout_row_dynamic(ctx, 28, 5);
+            nk_label(ctx, "find:", NK_TEXT_LEFT);
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, app->notepad_search_term, sizeof(app->notepad_search_term) - 1, nk_filter_default);
+            nk_label(ctx, "replace:", NK_TEXT_LEFT);
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, app->notepad_replace_term, sizeof(app->notepad_replace_term) - 1, nk_filter_default);
+            if (nk_button_label(ctx, "replace all")) {
+                notepad_find_replace(app);
+            }
+        }
+
+        nk_layout_row_dynamic(ctx, 320, 1);
         int len = (int)strlen(app->notepad_buffer);
         nk_edit_string(ctx, NK_EDIT_MULTILINE, app->notepad_buffer, &len, sizeof(app->notepad_buffer)-1, nk_filter_default);
         app->notepad_buffer[len] = '\0';
@@ -746,11 +1021,217 @@ static void ui_render_notepad(struct nk_context *ctx, struct app_state *app)
     nk_end(ctx);
 }
 
+static void ui_render_drawer(struct nk_context *ctx, struct app_state *app, int ww, int wh) {
+    if (!app->show_drawer) return;
+
+    struct nk_rect drawer_rect = nk_rect(0, 0, (float)ww, (float)wh * 0.7f);
+    if (nk_begin(ctx, "app_drawer", drawer_rect, NK_WINDOW_NO_SCROLLBAR)) {
+        struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
+        nk_fill_rect(canvas, drawer_rect, 0.0f, nk_rgba(15, 23, 42, 240)); /* Very dark slate overlay */
+        nk_stroke_rect(canvas, drawer_rect, 0.0f, 1.0f, nk_rgba(0, 190, 240, 100));
+
+        nk_layout_row_dynamic(ctx, 30, 1);
+        char title_buf[128];
+        snprintf(title_buf, sizeof(title_buf), "app drawer - signed in as %s", app->username);
+        nk_label(ctx, title_buf, NK_TEXT_CENTERED);
+        nk_label(ctx, "all accessible applications on this system:", NK_TEXT_CENTERED);
+
+        /* Render dynamic grid of applications */
+        char list_buf[4096];
+        int count = 0;
+
+        /* List /bin binaries */
+        if (vfs_ls("/bin", list_buf, sizeof(list_buf)) == 0) {
+            char *line = list_buf;
+            while (line && *line && count < 24) {
+                char *next_line = strchr(line, '\n');
+                if (next_line) *next_line = '\0';
+
+                if (strlen(line) > 6) {
+                    bool is_dir = (strncmp(line, "<DIR>", 5) == 0);
+                    const char *name = line + 6;
+                    if (!is_dir && strstr(name, ".bin")) {
+                        /* Render item */
+                        if (count % 6 == 0) {
+                            nk_layout_row_dynamic(ctx, 80, 6);
+                        }
+                        char full_path[320];
+                        snprintf(full_path, sizeof(full_path), "/bin/%s", name);
+
+                        /* Strip .bin suffix for display */
+                        char display_name[64];
+                        strncpy(display_name, name, sizeof(display_name)-1);
+                        char *suffix = strstr(display_name, ".bin");
+                        if (suffix) *suffix = '\0';
+
+                        if (nk_button_label(ctx, display_name)) {
+                            extern int app_spawn_binary(const char* path);
+                            app_spawn_binary(full_path);
+                            app->show_drawer = 0; /* Auto close drawer */
+                        }
+                        count++;
+                    }
+                }
+                if (next_line) line = next_line + 1;
+                else line = NULL;
+            }
+        }
+
+        nk_layout_row_dynamic(ctx, 40, 1);
+        if (nk_button_label(ctx, "close drawer (^)")) {
+            app->show_drawer = 0;
+        }
+    }
+    nk_end(ctx);
+}
+
+static bool verify_admin_password(const char* password) {
+    if (verify_user_credentials("Administrator", password)) return true;
+    if (verify_user_credentials("admin", password)) return true;
+    return false;
+}
+
+static void ui_render_uac(struct nk_context *ctx, struct app_state *app) {
+    if (nk_begin(ctx, "User Account Control", nk_rect(350, 180, 420, 260), NK_WINDOW_MOVABLE|NK_WINDOW_TITLE|NK_WINDOW_NO_SCROLLBAR)) {
+        nk_layout_row_dynamic(ctx, 24, 1);
+        nk_label(ctx, "Do you want to allow this app to make changes?", NK_TEXT_CENTERED);
+        nk_label(ctx, "App: Advanced Settings Manager", NK_TEXT_CENTERED);
+        nk_label(ctx, "Enter Administrator Password:", NK_TEXT_LEFT);
+
+        nk_layout_row_dynamic(ctx, 32, 1);
+        nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, app->uac_password_buffer, sizeof(app->uac_password_buffer) - 1, nk_filter_default);
+
+        nk_layout_row_dynamic(ctx, 36, 2);
+        if (nk_button_label(ctx, "Yes / Elevate")) {
+            if (verify_admin_password(app->uac_password_buffer)) {
+                app->uac_authenticated = 1;
+                app->show_advanced_settings = 1;
+                app->show_uac = 0;
+                app->uac_password_buffer[0] = '\0';
+            } else {
+                serial_printf("[UAC] Elevation failed: Invalid Admin Password entered.\n");
+            }
+        }
+        if (nk_button_label(ctx, "No / Cancel")) {
+            app->show_uac = 0;
+            app->uac_password_buffer[0] = '\0';
+        }
+    }
+    nk_end(ctx);
+}
+
+static void ui_render_advanced_settings(struct nk_context *ctx, struct app_state *app) {
+    if (nk_begin(ctx, "Advanced Settings Manager", nk_rect(300, 120, 500, 380), NK_WINDOW_MOVABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE)) {
+        nk_layout_row_dynamic(ctx, 24, 1);
+        nk_label(ctx, "Sovereign Advanced Policy Configurator", NK_TEXT_LEFT);
+        nk_label(ctx, "Direct Registry and System Capability Overrides", NK_TEXT_LEFT);
+
+        nk_layout_row_dynamic(ctx, 30, 2);
+        app->perm_net = nk_check_label(ctx, "Enable System Networking (SYS_NET_FETCH)", app->perm_net);
+        app->perm_storage = nk_check_label(ctx, "Enable Storage Direct Block Writing", app->perm_storage);
+
+        nk_layout_row_dynamic(ctx, 36, 1);
+        if (nk_button_label(ctx, "Apply Security Policy Changes")) {
+            uac_set_permit(0, app->perm_net, app->perm_storage);
+            serial_printf("[POLICY] Admin updated security capabilities: Net=%d, Storage=%d\n", app->perm_net, app->perm_storage);
+        }
+
+        nk_layout_row_dynamic(ctx, 24, 1);
+        nk_label(ctx, "Quick-Format Storage Partition:", NK_TEXT_LEFT);
+
+        nk_layout_row_dynamic(ctx, 36, 2);
+        if (nk_button_label(ctx, "Format secondary drive (FAT32)")) {
+            BYTE work[FF_MAX_SS];
+            MKFS_PARM opt = {FM_FAT32, 0, 0, 0, 0};
+            FRESULT res = f_mkfs("1:", &opt, work, sizeof(work));
+            if (res == FR_OK) {
+                serial_printf("[SYS] Formatted drive 1 to FAT32 successfully.\n");
+            } else {
+                serial_printf("[SYS] Failed to format drive 1 (FRESULT=%d).\n", (int)res);
+            }
+        }
+        if (nk_button_label(ctx, "Flush System Registry")) {
+            registry_flush();
+        }
+    }
+    if (nk_window_is_closed(ctx, "Advanced Settings Manager")) {
+        app->show_advanced_settings = 0;
+        app->uac_authenticated = 0;
+    }
+    nk_end(ctx);
+}
+
+static void ui_render_calendar(struct nk_context *ctx, struct app_state *app, int ww, int wh) {
+    if (!app->show_calendar) return;
+    (void)wh;
+
+    float cl_x = (float)ww * 0.9f - 180.0f;
+    float cl_y = 60.0f;
+
+    /* Render dropdown window directly below the desktop clock */
+    if (nk_begin(ctx, "Calendar & Time", nk_rect(cl_x - 100.0f, cl_y + 175.0f, 280.0f, 320.0f), NK_WINDOW_NO_SCROLLBAR|NK_WINDOW_TITLE)) {
+        int h = 0, m = 0, s = 0;
+        rtc_get_time(&h, &m, &s);
+        char full_time_str[64];
+        snprintf(full_time_str, sizeof(full_time_str), "%02d:%02d:%02d UTC", h, m, s);
+
+        nk_layout_row_dynamic(ctx, 24, 1);
+        nk_label(ctx, full_time_str, NK_TEXT_CENTERED);
+        nk_label(ctx, "March 2025", NK_TEXT_CENTERED);
+
+        /* Weekday headers */
+        nk_layout_row_dynamic(ctx, 20, 7);
+        nk_label(ctx, "Mo", NK_TEXT_CENTERED);
+        nk_label(ctx, "Tu", NK_TEXT_CENTERED);
+        nk_label(ctx, "We", NK_TEXT_CENTERED);
+        nk_label(ctx, "Th", NK_TEXT_CENTERED);
+        nk_label(ctx, "Fr", NK_TEXT_CENTERED);
+        nk_label(ctx, "Sa", NK_TEXT_CENTERED);
+        nk_label(ctx, "Su", NK_TEXT_CENTERED);
+
+        /* March 2025 starts on a Saturday.
+         * Monday-Friday are empty slots in first week.
+         * Saturday is 1st, Sunday is 2nd. */
+        nk_layout_row_dynamic(ctx, 20, 7);
+        for (int i = 0; i < 5; i++) {
+            nk_label(ctx, " ", NK_TEXT_CENTERED);
+        }
+
+        /* Draw day 1 and 2 */
+        nk_label(ctx, "1", NK_TEXT_CENTERED);
+        nk_label(ctx, "2", NK_TEXT_CENTERED);
+
+        /* Draw the rest of March (3 to 31) */
+        int col = 0;
+        for (int day = 3; day <= 31; day++) {
+            if (col == 0) {
+                nk_layout_row_dynamic(ctx, 20, 7);
+            }
+            char day_str[8];
+            snprintf(day_str, sizeof(day_str), "%d", day);
+
+            /* Highlight today/current day (e.g. 5th of March) as cyan */
+            if (day == 5) {
+                ctx->style.button.normal = nk_style_item_color(nk_rgba(0, 190, 240, 150));
+                if (nk_button_label(ctx, day_str)) {}
+                ui_init_style_internal(ctx);
+            } else {
+                nk_label(ctx, day_str, NK_TEXT_CENTERED);
+            }
+
+            col = (col + 1) % 7;
+        }
+    }
+    if (nk_window_is_closed(ctx, "Calendar & Time")) app->show_calendar = 0;
+    nk_end(ctx);
+}
+
 static void ui_render_desktop(struct nk_context *ctx, struct app_state *app, int ww, int wh)
 {
     ui_render_background(ctx, app, ww, wh);
     ui_render_taskbar(ctx, app, ww, wh);
-    ui_render_launcher(ctx, app);
+    ui_render_launcher(ctx, app, ww, wh);
+    ui_render_drawer(ctx, app, ww, wh);
     ui_render_system_panel(ctx, app);
     ui_render_crash_reports(ctx, app);
     ui_render_task_manager(ctx, app);
@@ -758,6 +1239,9 @@ static void ui_render_desktop(struct nk_context *ctx, struct app_state *app, int
     if (app->show_explorer) ui_render_files(ctx, app);
     if (app->show_settings) ui_render_settings(ctx, app);
     if (app->show_notepad) ui_render_notepad(ctx, app);
+    if (app->show_uac) ui_render_uac(ctx, app);
+    if (app->show_advanced_settings) ui_render_advanced_settings(ctx, app);
+    ui_render_calendar(ctx, app, ww, wh);
 }
 
 void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, int window_height)
@@ -920,10 +1404,17 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
 
                     vfs_mkdir("/bin");
                     vfs_mkdir("/home");
+                    vfs_mkdir("/Windows");
+                    vfs_mkdir("/Windows/System32");
+                    vfs_mkdir("/Windows/System32/config");
+                    vfs_mkdir("/Users");
 
                     char user_dir[128];
-                    snprintf(user_dir, sizeof(user_dir), "/home/%s", install_user);
+                    snprintf(user_dir, sizeof(user_dir), "/Users/%s", install_user);
                     vfs_mkdir(user_dir);
+                    char fallback_dir[128];
+                    snprintf(fallback_dir, sizeof(fallback_dir), "/home/%s", install_user);
+                    vfs_mkdir(fallback_dir);
 
                     app->installed = 1;
                     strncpy(app->username, install_user, sizeof(app->username) - 1);
