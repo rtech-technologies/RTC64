@@ -47,6 +47,7 @@ void kernel_main(void) {
     hal_input_init();
     scheduler_init();
     vfs_init();
+    user_init();
     hal_usb_init();
 
     // 3. UI Initialization
@@ -61,7 +62,8 @@ void kernel_main(void) {
 
     struct app_state app;
     memset(&app, 0, sizeof(app));
-    app.current_state = STATE_LOGIN;
+    // Start with the Installer first as requested
+    app.current_state = STATE_INSTALLER;
 
     int cursor_x = fb->width / 2;
     int cursor_y = fb->height / 2;
@@ -79,6 +81,26 @@ void kernel_main(void) {
                 cursor_y = ev.mouse.y;
                 nk_input_motion(&ctx, cursor_x, cursor_y);
                 nk_input_button(&ctx, NK_BUTTON_LEFT, cursor_x, cursor_y, (ev.mouse.buttons & 1));
+            } else if (ev.type == INPUT_TYPE_KEYBOARD) {
+                // Route keyboard characters or action events to Nuklear
+                if (ev.kbd.down) {
+                    uint32_t key = ev.kbd.key;
+                    if (key >= 32 && key <= 126) {
+                        nk_input_char(&ctx, (char)key);
+                    } else if (key == 8) { // Backspace
+                        nk_input_key(&ctx, NK_KEY_BACKSPACE, 1);
+                        nk_input_key(&ctx, NK_KEY_BACKSPACE, 0);
+                    } else if (key == 13) { // Enter
+                        nk_input_key(&ctx, NK_KEY_ENTER, 1);
+                        nk_input_key(&ctx, NK_KEY_ENTER, 0);
+                    } else if (key == 38) { // Up
+                        nk_input_key(&ctx, NK_KEY_UP, 1);
+                        nk_input_key(&ctx, NK_KEY_UP, 0);
+                    } else if (key == 40) { // Down
+                        nk_input_key(&ctx, NK_KEY_DOWN, 1);
+                        nk_input_key(&ctx, NK_KEY_DOWN, 0);
+                    }
+                }
             }
         }
         nk_input_end(&ctx);
@@ -95,7 +117,6 @@ void kernel_main(void) {
         tgx_blit_rect(&canvas, cursor_x, cursor_y, 4, 4, 0xFFFFFF);
 
         // Logical flow delay using scheduler-aware mechanics
-        // In a real system, we'd wait for a timer interrupt here.
         __asm__("pause");
     }
 }

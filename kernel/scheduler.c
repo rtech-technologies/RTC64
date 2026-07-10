@@ -23,7 +23,21 @@ void scheduler_add_task(const char *name, void (*entry)(void)) {
 void scheduler_run(void) {
     if (task_count == 0) return;
     current_task = (current_task + 1) % task_count;
-    if (tasks[current_task].entry) {
+    if (tasks[current_task].state == TASK_RUNNING && tasks[current_task].entry) {
         tasks[current_task].entry();
+    }
+}
+
+int scheduler_get_tasks(task_t *out_tasks, int max_tasks) {
+    int count = (task_count < max_tasks) ? task_count : max_tasks;
+    for (int i = 0; i < count; i++) {
+        out_tasks[i] = tasks[i];
+    }
+    return count;
+}
+
+void scheduler_end_task(int id) {
+    if (id >= 0 && id < task_count) {
+        tasks[id].state = TASK_SQUEEZED; // Stop task execution
     }
 }
