@@ -1,6 +1,6 @@
 /* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
  * Licensed under the 'respect people's property' OS license.
- * Modified by Sovereign for GNOME Adwaita Dark styling. */
+ * Modified by Sovereign for GNOME Adwaita Dark styling with integrated Web Browser. */
 #include "nuklear.h"
 #include "pro_os.h"
 #include "app_ui.h"
@@ -22,6 +22,21 @@ struct desktop_app {
 
 static struct desktop_app apps_on_desktop[25];
 static int apps_on_desktop_count = 0;
+
+/* Browser states */
+static int show_browser = 0;
+static char browser_url[128] = "http://sovereign.net";
+static char browser_content[1024] = "welcome to sovereign web explorer!\ntype in a URL above and press go to fetch content dynamically via virtio-net.\n";
+
+/* Forward declarations of render subsystems */
+static void ui_render_launcher(struct nk_context *ctx, struct app_state *app);
+static void ui_render_system_panel(struct nk_context *ctx, struct app_state *app);
+static void ui_render_crash_reports(struct nk_context *ctx, struct app_state *app);
+static void ui_render_task_manager(struct nk_context *ctx, struct app_state *app);
+static void ui_render_files(struct nk_context *ctx, struct app_state *app);
+static void ui_render_settings(struct nk_context *ctx, struct app_state *app);
+static void ui_render_notepad(struct nk_context *ctx, struct app_state *app);
+static void ui_render_browser(struct nk_context *ctx, struct app_state *app);
 
 static void ui_init_style_internal(struct nk_context *ctx)
 {
@@ -152,6 +167,7 @@ static void ensure_user_desktop(struct app_state *app) {
     vfs_write("/etc/icons/settings.svg", "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"/></svg>");
     vfs_write("/etc/icons/installer.svg", "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg>");
     vfs_write("/etc/icons/default.svg", "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"2\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\" ry=\"2\"/><rect x=\"7\" y=\"7\" width=\"3\" height=\"3\"/><rect x=\"14\" y=\"7\" width=\"3\" height=\"3\"/><rect x=\"7\" y=\"14\" width=\"3\" height=\"3\"/><rect x=\"14\" y=\"14\" width=\"3\" height=\"3\"/></svg>");
+    vfs_write("/etc/icons/browser.svg", "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><line x1=\"2\" y1=\"12\" x2=\"22\" y2=\"12\"/><path d=\"M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z\"/></svg>");
 
     vfs_mkdir("/home");
     snprintf(user_home, sizeof(user_home), "/home/%s", app->username);
@@ -181,6 +197,9 @@ static void ensure_user_desktop(struct app_state *app) {
     snprintf(check_path, sizeof(check_path), "%s/tests.bin", desktop_path);
     vfs_copy_file("/tests.bin", check_path);
     vfs_copy_file("/bin/tests.bin", check_path);
+
+    snprintf(check_path, sizeof(check_path), "%s/browser.bin", desktop_path);
+    vfs_copy_file("/shell.bin", check_path);
 }
 
 static void scan_desktop_apps(struct app_state *app) {
@@ -216,6 +235,147 @@ static void scan_desktop_apps(struct app_state *app) {
                 line = NULL;
             }
         }
+    }
+}
+
+static const char* get_app_icon_path(const char* name) {
+    if (strstr(name, "shell") || strstr(name, "terminal")) {
+        return "/etc/icons/terminal.svg";
+    } else if (strstr(name, "file") || strstr(name, "explorer")) {
+        return "/etc/icons/files.svg";
+    } else if (strstr(name, "lab") || strstr(name, "telemetry")) {
+        return "/etc/icons/telemetry.svg";
+    } else if (strstr(name, "notepad") || strstr(name, "text")) {
+        return "/etc/icons/notepad.svg";
+    } else if (strstr(name, "studio") || strstr(name, "settings") || strstr(name, "preferences")) {
+        return "/etc/icons/settings.svg";
+    } else if (strstr(name, "welcome") || strstr(name, "installer")) {
+        return "/etc/icons/installer.svg";
+    } else if (strstr(name, "browser")) {
+        return "/etc/icons/browser.svg";
+    }
+    return "/etc/icons/default.svg";
+}
+
+static void ui_render_desktop_square(struct nk_context *ctx, struct app_state *app, const char* name, const char* path, float x, float y, struct nk_color color)
+{
+    struct nk_rect bounds = nk_rect(x, y, 65, 65);
+    struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
+
+    /* Clean Adwaita 12px rounding on squares */
+    /* Draw standard translucent background */
+    nk_fill_rect(canvas, bounds, 12, nk_rgba(40, 40, 40, 220));
+    nk_stroke_rect(canvas, bounds, 12, 1.0f, nk_rgba(60, 60, 60, 255));
+
+    /* Load and draw the SVG icon! */
+    const char* icon_path = get_app_icon_path(name);
+    struct nk_image img = ui_icon_load_svg(name, icon_path, 36, 36);
+    if (img.handle.ptr) {
+        nk_draw_image(canvas, nk_rect(x + 14.5f, y + 14.5f, 36.0f, 36.0f), &img, nk_rgba(255, 255, 255, 255));
+    } else {
+        nk_fill_rect(canvas, nk_rect(x + 14.5f, y + 14.5f, 36.0f, 36.0f), 6, color);
+    }
+
+    /* Hover and Click actions */
+    if (nk_input_is_mouse_hovering_rect(&ctx->input, bounds)) {
+        nk_fill_rect(canvas, bounds, 12, nk_rgba(255, 255, 255, 30));
+        if (nk_input_is_mouse_pressed(&ctx->input, NK_BUTTON_LEFT)) {
+            if (strcmp(name, "files") == 0) {
+                app->show_explorer = !app->show_explorer;
+            } else if (strcmp(name, "notepad") == 0) {
+                app->show_notepad = !app->show_notepad;
+            } else if (strcmp(name, "settings") == 0) {
+                app->show_settings = !app->show_settings;
+            } else if (strcmp(name, "welcome") == 0) {
+                app->show_launcher = !app->show_launcher;
+            } else if (strcmp(name, "installer") == 0) {
+                app->current_state = STATE_INSTALLER;
+            } else if (strstr(name, "browser")) {
+                show_browser = !show_browser;
+            } else {
+                extern int app_spawn_binary(const char* path);
+                app_spawn_binary(path);
+            }
+        }
+    }
+}
+
+static void ui_render_background(struct nk_context *ctx, struct app_state *app, int ww, int wh)
+{
+    struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
+
+    /* Dynamic desktop scanning */
+    static uint32_t last_scan_time = 0;
+    uint32_t now_ms = (uint32_t)hal_get_uptime_ms();
+    if (apps_on_desktop_count == 0 || (now_ms - last_scan_time) > 2000) {
+        scan_desktop_apps(app);
+        last_scan_time = now_ms;
+    }
+
+    /* Draw signature GNOME Adwaita background geometric/striped wallpaper! */
+    int steps = 120;
+    float bar_h = (float)wh / (float)steps;
+    for (int i = 0; i < steps; i++) {
+        float ratio = (float)i / (float)steps;
+        int r = (int)(26.0f + (15.0f - 26.0f) * ratio);
+        int g = (int)(51.0f + (23.0f - 51.0f) * ratio);
+        int b = (int)(116.0f + (42.0f - 116.0f) * ratio);
+        nk_fill_rect(canvas, nk_rect(0, (float)i * bar_h, (float)ww, bar_h + 1.0f), 0, nk_rgba(r, g, b, 255));
+    }
+
+    /* Draw subtle geometric dark polygonal shapes to look like high-fidelity default GNOME wallpaper */
+    float poly1[] = {
+        (float)ww * 0.1f, 0.0f,
+        (float)ww * 0.4f, 0.0f,
+        (float)ww * 0.2f, (float)wh * 0.6f
+    };
+    nk_fill_polygon(canvas, poly1, 3, nk_rgba(40, 75, 170, 45));
+
+    float poly2[] = {
+        (float)ww * 0.6f, (float)wh,
+        (float)ww * 0.9f, (float)wh,
+        (float)ww * 0.75f, (float)wh * 0.3f
+    };
+    nk_fill_polygon(canvas, poly2, 3, nk_rgba(45, 80, 190, 45));
+
+    /* Elegant, crisp digital clock centered or right-aligned */
+    int h = 0, m = 0, s = 0;
+    rtc_get_time(&h, &m, &s);
+    char time_str[32];
+    snprintf(time_str, sizeof(time_str), "%02d:%02d", h, m);
+
+    float cl_x = (float)ww * 0.9f - 180.0f;
+    float cl_y = 60.0f;
+    nk_draw_text(canvas, nk_rect(cl_x - 300.0f, cl_y, 480.0f, 130.0f), time_str, (int)strlen(time_str), ctx->style.font, nk_rgba(255, 255, 255, 225), nk_rgba(0,0,0,0));
+    nk_draw_text(canvas, nk_rect(cl_x - 300.0f, cl_y + 135.0f, 480.0f, 30.0f), "eastern standard (+3:00)", 24, ctx->style.font, nk_rgba(154, 195, 245, 230), nk_rgba(0,0,0,0));
+
+    /* Monolithic 5x5 Grid matrix layout of Apps */
+    float grid_x = 40.0f;
+    float grid_y = 50.0f;
+    float box_sz = 65.0f;
+    float gap = 12.0f;
+
+    /* Top Arrow label */
+    nk_draw_text(canvas, nk_rect(grid_x + 5 * box_sz + 4 * gap - 20, grid_y - 25, 20, 20), "v", 1, ctx->style.font, nk_rgba(255, 255, 255, 102), nk_rgba(0,0,0,0));
+
+    struct nk_color row_colors[5] = {
+        nk_rgba(224, 27, 36, 255),  /* Adwaita Red */
+        nk_rgba(53, 132, 228, 255), /* Adwaita Blue */
+        nk_rgba(255, 120, 0, 255),  /* Adwaita Orange */
+        nk_rgba(0, 190, 240, 255),  /* Light Blue */
+        nk_rgba(46, 194, 126, 255)  /* Adwaita Green */
+    };
+
+    /* Populate grid */
+    for (int i = 0; i < apps_on_desktop_count; i++) {
+        int row = i / 5;
+        int col = i % 5;
+        float x = grid_x + col * (box_sz + gap);
+        float y = grid_y + row * (box_sz + gap);
+
+        struct nk_color color = row_colors[row % 5];
+
+        ui_render_desktop_square(ctx, app, apps_on_desktop[i].name, apps_on_desktop[i].path, x, y, color);
     }
 }
 
@@ -290,6 +450,14 @@ static void ui_render_taskbar(struct nk_context *ctx, struct app_state *app, int
             app_spawn_binary("/lab.bin");
         }
 
+        /* App 5: Browser (Teal) */
+        nk_layout_row_push(ctx, 38);
+        ctx->style.button.normal = nk_style_item_color(nk_rgba(53, 194, 180, 255)); /* #35c2b4 */
+        ctx->style.button.hover = nk_style_item_color(nk_rgba(100, 220, 210, 255));
+        if (nk_button_label(ctx, "")) {
+            show_browser = !show_browser;
+        }
+
         /* Restore standard button style */
         ui_init_style_internal(ctx);
 
@@ -321,147 +489,47 @@ static void ui_render_taskbar(struct nk_context *ctx, struct app_state *app, int
     nk_end(ctx);
 }
 
-static const char* get_app_icon_path(const char* name) {
-    if (strstr(name, "shell") || strstr(name, "terminal")) {
-        return "/etc/icons/terminal.svg";
-    } else if (strstr(name, "file") || strstr(name, "explorer")) {
-        return "/etc/icons/files.svg";
-    } else if (strstr(name, "lab") || strstr(name, "telemetry")) {
-        return "/etc/icons/telemetry.svg";
-    } else if (strstr(name, "notepad") || strstr(name, "text")) {
-        return "/etc/icons/notepad.svg";
-    } else if (strstr(name, "studio") || strstr(name, "settings") || strstr(name, "preferences")) {
-        return "/etc/icons/settings.svg";
-    } else if (strstr(name, "welcome") || strstr(name, "installer")) {
-        return "/etc/icons/installer.svg";
-    }
-    return "/etc/icons/default.svg";
+static void ui_render_desktop(struct nk_context *ctx, struct app_state *app, int ww, int wh)
+{
+    ui_render_background(ctx, app, ww, wh);
+    ui_render_taskbar(ctx, app, ww, wh);
+    ui_render_launcher(ctx, app);
+    ui_render_system_panel(ctx, app);
+    ui_render_crash_reports(ctx, app);
+    ui_render_task_manager(ctx, app);
+
+    if (app->show_explorer) ui_render_files(ctx, app);
+    if (app->show_settings) ui_render_settings(ctx, app);
+    if (app->show_notepad) ui_render_notepad(ctx, app);
+    ui_render_browser(ctx, app);
 }
 
-static void ui_render_desktop_square(struct nk_context *ctx, struct app_state *app, const char* name, const char* path, float x, float y, struct nk_color color)
-{
-    struct nk_rect bounds = nk_rect(x, y, 65, 65);
-    struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
+static void ui_render_browser(struct nk_context *ctx, struct app_state *app) {
+    (void)app;
+    if (!show_browser) return;
+    if (nk_begin(ctx, "web browser", nk_rect(350, 160, 520, 360), NK_WINDOW_MOVABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE)) {
+        nk_layout_row_template_begin(ctx, 32);
+        nk_layout_row_template_push_dynamic(ctx);
+        nk_layout_row_template_push_static(ctx, 60);
+        nk_layout_row_template_end(ctx);
 
-    /* Clean Adwaita 12px rounding on squares */
-    /* Draw standard translucent background */
-    nk_fill_rect(canvas, bounds, 12, nk_rgba(40, 40, 40, 220));
-    nk_stroke_rect(canvas, bounds, 12, 1.0f, nk_rgba(60, 60, 60, 255));
-
-    /* Load and draw the SVG icon! */
-    const char* icon_path = get_app_icon_path(name);
-    struct nk_image img = ui_icon_load_svg(name, icon_path, 36, 36);
-    if (img.handle.ptr) {
-        nk_draw_image(canvas, nk_rect(x + 14.5f, y + 14.5f, 36.0f, 36.0f), &img, nk_rgba(255, 255, 255, 255));
-    } else {
-        nk_fill_rect(canvas, nk_rect(x + 14.5f, y + 14.5f, 36.0f, 36.0f), 6, color);
-    }
-
-    /* Hover and Click actions */
-    if (nk_input_is_mouse_hovering_rect(&ctx->input, bounds)) {
-        nk_fill_rect(canvas, bounds, 12, nk_rgba(255, 255, 255, 30));
-        if (nk_input_is_mouse_pressed(&ctx->input, NK_BUTTON_LEFT)) {
-            if (strcmp(name, "files") == 0) {
-                app->show_explorer = !app->show_explorer;
-            } else if (strcmp(name, "notepad") == 0) {
-                app->show_notepad = !app->show_notepad;
-            } else if (strcmp(name, "settings") == 0) {
-                app->show_settings = !app->show_settings;
-            } else if (strcmp(name, "welcome") == 0) {
-                app->show_launcher = !app->show_launcher;
-            } else if (strcmp(name, "installer") == 0) {
-                app->current_state = STATE_INSTALLER;
-            } else {
-                extern int app_spawn_binary(const char* path);
-                app_spawn_binary(path);
-            }
+        nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, browser_url, sizeof(browser_url)-1, nk_filter_default);
+        if (nk_button_label(ctx, "go")) {
+            extern int rsl_web_fetch(const char* url, char* out, size_t sz);
+            rsl_web_fetch(browser_url, browser_content, sizeof(browser_content)-1);
         }
+
+        nk_layout_row_dynamic(ctx, 220, 1);
+        nk_label_wrap(ctx, browser_content);
     }
-}
-
-static void ui_render_background(struct nk_context *ctx, struct app_state *app, int ww, int wh)
-{
-    struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
-
-    /* Dynamic desktop scanning */
-    static uint32_t last_scan_time = 0;
-    uint32_t now_ms = (uint32_t)hal_get_uptime_ms();
-    if (apps_on_desktop_count == 0 || (now_ms - last_scan_time) > 2000) {
-        scan_desktop_apps(app);
-        last_scan_time = now_ms;
-    }
-
-    /* Draw signature GNOME Adwaita background geometric/striped wallpaper! */
-    /* Deep blue to dark indigo-purple transition layout */
-    int steps = 120;
-    float bar_h = (float)wh / (float)steps;
-    for (int i = 0; i < steps; i++) {
-        float ratio = (float)i / (float)steps;
-        int r = (int)(26.0f + (15.0f - 26.0f) * ratio);
-        int g = (int)(51.0f + (23.0f - 51.0f) * ratio);
-        int b = (int)(116.0f + (42.0f - 116.0f) * ratio);
-        nk_fill_rect(canvas, nk_rect(0, (float)i * bar_h, (float)ww, bar_h + 1.0f), 0, nk_rgba(r, g, b, 255));
-    }
-
-    /* Draw subtle geometric dark polygonal shapes to look like high-fidelity default GNOME wallpaper */
-    float poly1[] = {
-        (float)ww * 0.1f, 0.0f,
-        (float)ww * 0.4f, 0.0f,
-        (float)ww * 0.2f, (float)wh * 0.6f
-    };
-    nk_fill_polygon(canvas, poly1, 3, nk_rgba(40, 75, 170, 45));
-
-    float poly2[] = {
-        (float)ww * 0.6f, (float)wh,
-        (float)ww * 0.9f, (float)wh,
-        (float)ww * 0.75f, (float)wh * 0.3f
-    };
-    nk_fill_polygon(canvas, poly2, 3, nk_rgba(45, 80, 190, 45));
-
-    /* Elegant, crisp digital clock centered or right-aligned */
-    int h = 0, m = 0, s = 0;
-    rtc_get_time(&h, &m, &s);
-    char time_str[32];
-    snprintf(time_str, sizeof(time_str), "%02d:%02d", h, m);
-
-    float cl_x = (float)ww * 0.9f - 180.0f;
-    float cl_y = 60.0f;
-    nk_draw_text(canvas, nk_rect(cl_x - 300.0f, cl_y, 480.0f, 130.0f), time_str, (int)strlen(time_str), ctx->style.font, nk_rgba(255, 255, 255, 225), nk_rgba(0,0,0,0));
-    nk_draw_text(canvas, nk_rect(cl_x - 300.0f, cl_y + 135.0f, 480.0f, 30.0f), "eastern standard (+3:00)", 24, ctx->style.font, nk_rgba(154, 195, 245, 230), nk_rgba(0,0,0,0));
-
-    /* Monolithic 5x5 Grid matrix layout of Apps */
-    float grid_x = 40.0f;
-    float grid_y = 50.0f;
-    float box_sz = 65.0f;
-    float gap = 12.0f;
-
-    /* Top Arrow label */
-    nk_draw_text(canvas, nk_rect(grid_x + 5 * box_sz + 4 * gap - 20, grid_y - 25, 20, 20), "v", 1, ctx->style.font, nk_rgba(255, 255, 255, 102), nk_rgba(0,0,0,0));
-
-    struct nk_color row_colors[5] = {
-        nk_rgba(224, 27, 36, 255),  /* Adwaita Red */
-        nk_rgba(53, 132, 228, 255), /* Adwaita Blue */
-        nk_rgba(255, 120, 0, 255),  /* Adwaita Orange */
-        nk_rgba(0, 190, 240, 255),  /* Light Blue */
-        nk_rgba(46, 194, 126, 255)  /* Adwaita Green */
-    };
-
-    /* Populate grid */
-    for (int i = 0; i < apps_on_desktop_count; i++) {
-        int row = i / 5;
-        int col = i % 5;
-        float x = grid_x + col * (box_sz + gap);
-        float y = grid_y + row * (box_sz + gap);
-
-        struct nk_color color = row_colors[row % 5];
-
-        ui_render_desktop_square(ctx, app, apps_on_desktop[i].name, apps_on_desktop[i].path, x, y, color);
-    }
+    if (nk_window_is_closed(ctx, "web browser")) show_browser = 0;
+    nk_end(ctx);
 }
 
 static void ui_render_launcher(struct nk_context *ctx, struct app_state *app)
 {
     if (!app->show_launcher) return;
+    /* Anchored under the clock / on right, beautifully overlaying welcoming updates */
     if (nk_begin(ctx, "welcome - user", nk_rect(420, 220, 400, 320), NK_WINDOW_MOVABLE|NK_WINDOW_TITLE)) {
         nk_layout_row_dynamic(ctx, 24, 1);
         nk_label(ctx, "your recent apps:", NK_TEXT_LEFT);
@@ -527,6 +595,7 @@ static void ui_render_launcher(struct nk_context *ctx, struct app_state *app)
 
 static void ui_render_system_panel(struct nk_context *ctx, struct app_state *app)
 {
+    /* Keep active telemetry but in boutique styled window with action-btn */
     if (nk_begin(ctx, "system telemetry", nk_rect(600, 240, 400, 280), NK_WINDOW_TITLE|NK_WINDOW_MOVABLE|NK_WINDOW_CLOSABLE)) {
         size_t used = hal_malloc_get_used();
         size_t total = hal_malloc_get_total();
@@ -747,20 +816,6 @@ static void ui_render_notepad(struct nk_context *ctx, struct app_state *app)
     }
     if (nk_window_is_closed(ctx, "text pad")) app->show_notepad = 0;
     nk_end(ctx);
-}
-
-static void ui_render_desktop(struct nk_context *ctx, struct app_state *app, int ww, int wh)
-{
-    ui_render_background(ctx, app, ww, wh);
-    ui_render_taskbar(ctx, app, ww, wh);
-    ui_render_launcher(ctx, app);
-    ui_render_system_panel(ctx, app);
-    ui_render_crash_reports(ctx, app);
-    ui_render_task_manager(ctx, app);
-
-    if (app->show_explorer) ui_render_files(ctx, app);
-    if (app->show_settings) ui_render_settings(ctx, app);
-    if (app->show_notepad) ui_render_notepad(ctx, app);
 }
 
 void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, int window_height)
