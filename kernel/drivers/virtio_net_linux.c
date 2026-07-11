@@ -6,7 +6,32 @@
 #include "pro_os.h"
 
 static const struct pci_device_id virtio_net_pci_ids[] = {
+    /* VirtIO-Net controllers */
     { 0x1af4, 0x1000, PCI_ANY_ID, PCI_ANY_ID, 0, 0 },
+    { 0x1af4, 0x1041, PCI_ANY_ID, PCI_ANY_ID, 0, 0 },
+
+    /* Intel e1000 / e1000e Gigabit Ethernet controllers (8086) */
+    { 0x8086, 0x100e, PCI_ANY_ID, PCI_ANY_ID, 0, 0 }, /* 82540EM (QEMU default) */
+    { 0x8086, 0x100f, PCI_ANY_ID, PCI_ANY_ID, 0, 0 }, /* 82545EM */
+    { 0x8086, 0x10d3, PCI_ANY_ID, PCI_ANY_ID, 0, 0 }, /* 82574L */
+    { 0x8086, 0x10ea, PCI_ANY_ID, PCI_ANY_ID, 0, 0 }, /* 82577LM */
+    { 0x8086, 0x153a, PCI_ANY_ID, PCI_ANY_ID, 0, 0 }, /* I217-LM */
+    { 0x8086, 0x153b, PCI_ANY_ID, PCI_ANY_ID, 0, 0 }, /* I217-V */
+    { 0x8086, 0x15bc, PCI_ANY_ID, PCI_ANY_ID, 0, 0 }, /* I219-LM */
+    { 0x8086, 0x15bd, PCI_ANY_ID, PCI_ANY_ID, 0, 0 }, /* I219-V */
+
+    /* Realtek RTL8139 / RTL8169 Fast and Gigabit controllers (10EC) */
+    { 0x10ec, 0x8139, PCI_ANY_ID, PCI_ANY_ID, 0, 0 }, /* RTL8139 */
+    { 0x10ec, 0x8168, PCI_ANY_ID, PCI_ANY_ID, 0, 0 }, /* RTL8111/8168 */
+    { 0x10ec, 0x8169, PCI_ANY_ID, PCI_ANY_ID, 0, 0 }, /* RTL8169 */
+
+    /* Broadcom NetXtreme Gigabit Ethernet controllers (14E4) */
+    { 0x14e4, 0x1659, PCI_ANY_ID, PCI_ANY_ID, 0, 0 }, /* BCM5721 */
+    { 0x14e4, 0x165f, PCI_ANY_ID, PCI_ANY_ID, 0, 0 }, /* BCM5722 */
+
+    /* AMD PCnet Fast III Ethernet controllers (1022) */
+    { 0x1022, 0x2000, PCI_ANY_ID, PCI_ANY_ID, 0, 0 }, /* Am79C973 */
+
     { PCI_ANY_ID, PCI_ANY_ID, PCI_ANY_ID, PCI_ANY_ID, 0, 0 }
 };
 
