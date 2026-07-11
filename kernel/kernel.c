@@ -182,8 +182,10 @@ void kernel_main(void) {
     virtio_net_linux_init();
     extern int e1000_init(void);
     extern int rtl8139_init(void);
+    extern int iwlwifi_init(void);
     e1000_init();
     rtl8139_init();
+    iwlwifi_init();
     pci_scan();
 
     extern uint64_t xhci_mmio_base;
