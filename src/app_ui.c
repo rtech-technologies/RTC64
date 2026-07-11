@@ -1,6 +1,6 @@
 /* Copyright (C) 2025 Sovereign RTC64 Project. All rights reserved.
  * Licensed under the 'respect people's property' OS license.
- * Modified by Sovereign for Boutique Cyber-Minimalist Dark Mode styling. */
+ * Modified by Sovereign for GNOME Adwaita Dark styling. */
 #include "nuklear.h"
 #include "pro_os.h"
 #include "app_ui.h"
@@ -27,66 +27,66 @@ static void ui_init_style_internal(struct nk_context *ctx)
 {
     struct nk_color table[NK_COLOR_COUNT];
 
-    /* Matte dark/charcoal styling with white text */
+    /* Official GNOME Adwaita Dark color palette */
     table[NK_COLOR_TEXT] = nk_rgba(255, 255, 255, 255);
-    table[NK_COLOR_WINDOW] = nk_rgba(30, 30, 30, 217); /* rgba(30,30,30,0.85) => 217/255 */
-    table[NK_COLOR_HEADER] = nk_rgba(255, 255, 255, 8); /* rgba(255,255,255,0.03) */
-    table[NK_COLOR_BORDER] = nk_rgba(255, 255, 255, 25); /* rgba(255,255,255,0.1) */
+    table[NK_COLOR_WINDOW] = nk_rgba(36, 36, 36, 255); /* Adwaita Dark window background #242424 */
+    table[NK_COLOR_HEADER] = nk_rgba(48, 48, 48, 255); /* Adwaita Dark titlebar #303030 */
+    table[NK_COLOR_BORDER] = nk_rgba(48, 48, 48, 0); /* Borderless headers */
 
-    /* Interactive elements: `#3b30e0` base */
-    table[NK_COLOR_BUTTON] = nk_rgba(59, 48, 224, 255);
-    table[NK_COLOR_BUTTON_HOVER] = nk_rgba(0, 190, 240, 255); /* #00bef0 */
-    table[NK_COLOR_BUTTON_ACTIVE] = nk_rgba(0, 190, 240, 255);
+    /* Adwaita Accent Blue: `#3584e4` (53, 132, 228) */
+    table[NK_COLOR_BUTTON] = nk_rgba(53, 132, 228, 255);
+    table[NK_COLOR_BUTTON_HOVER] = nk_rgba(74, 144, 235, 255); /* Lighter blue */
+    table[NK_COLOR_BUTTON_ACTIVE] = nk_rgba(38, 105, 196, 255); /* Darker blue */
 
-    table[NK_COLOR_TOGGLE] = nk_rgba(30, 30, 30, 255);
-    table[NK_COLOR_TOGGLE_CURSOR] = nk_rgba(0, 190, 240, 255);
+    table[NK_COLOR_TOGGLE] = nk_rgba(48, 48, 48, 255);
+    table[NK_COLOR_TOGGLE_CURSOR] = nk_rgba(53, 132, 228, 255);
 
-    table[NK_COLOR_SELECT] = nk_rgba(59, 48, 224, 255);
-    table[NK_COLOR_SELECT_ACTIVE] = nk_rgba(0, 190, 240, 255);
+    table[NK_COLOR_SELECT] = nk_rgba(53, 132, 228, 255);
+    table[NK_COLOR_SELECT_ACTIVE] = nk_rgba(38, 105, 196, 255);
 
-    table[NK_COLOR_SLIDER] = nk_rgba(10, 10, 10, 128);
-    table[NK_COLOR_SLIDER_CURSOR] = nk_rgba(0, 190, 240, 255);
-    table[NK_COLOR_SLIDER_CURSOR_HOVER] = nk_rgba(255, 59, 48, 255);
-    table[NK_COLOR_SLIDER_CURSOR_ACTIVE] = nk_rgba(28, 198, 62, 255);
+    table[NK_COLOR_SLIDER] = nk_rgba(30, 30, 30, 255);
+    table[NK_COLOR_SLIDER_CURSOR] = nk_rgba(53, 132, 228, 255);
+    table[NK_COLOR_SLIDER_CURSOR_HOVER] = nk_rgba(74, 144, 235, 255);
+    table[NK_COLOR_SLIDER_CURSOR_ACTIVE] = nk_rgba(38, 105, 196, 255);
 
-    table[NK_COLOR_PROPERTY] = nk_rgba(30, 30, 30, 255);
-    table[NK_COLOR_EDIT] = nk_rgba(0, 0, 0, 76); /* rgba(0,0,0,0.3) => 76 */
-    table[NK_COLOR_EDIT_CURSOR] = nk_rgba(0, 190, 240, 255);
-    table[NK_COLOR_COMBO] = nk_rgba(30, 30, 30, 255);
+    table[NK_COLOR_PROPERTY] = nk_rgba(48, 48, 48, 255);
+    table[NK_COLOR_EDIT] = nk_rgba(30, 30, 30, 255);
+    table[NK_COLOR_EDIT_CURSOR] = nk_rgba(53, 132, 228, 255);
+    table[NK_COLOR_COMBO] = nk_rgba(48, 48, 48, 255);
 
-    table[NK_COLOR_CHART] = nk_rgba(30, 30, 30, 255);
-    table[NK_COLOR_CHART_COLOR] = nk_rgba(0, 190, 240, 255);
-    table[NK_COLOR_CHART_COLOR_HIGHLIGHT] = nk_rgba(255, 59, 48, 255);
+    table[NK_COLOR_CHART] = nk_rgba(36, 36, 36, 255);
+    table[NK_COLOR_CHART_COLOR] = nk_rgba(53, 132, 228, 255);
+    table[NK_COLOR_CHART_COLOR_HIGHLIGHT] = nk_rgba(224, 27, 36, 255); /* Adwaita Red */
 
-    table[NK_COLOR_SCROLLBAR] = nk_rgba(30, 30, 30, 255);
-    table[NK_COLOR_SCROLLBAR_CURSOR] = nk_rgba(59, 48, 224, 255);
-    table[NK_COLOR_SCROLLBAR_CURSOR_HOVER] = nk_rgba(0, 190, 240, 255);
-    table[NK_COLOR_SCROLLBAR_CURSOR_ACTIVE] = nk_rgba(0, 190, 240, 255);
-    table[NK_COLOR_TAB_HEADER] = nk_rgba(30, 30, 30, 255);
+    table[NK_COLOR_SCROLLBAR] = nk_rgba(36, 36, 36, 255);
+    table[NK_COLOR_SCROLLBAR_CURSOR] = nk_rgba(53, 132, 228, 255);
+    table[NK_COLOR_SCROLLBAR_CURSOR_HOVER] = nk_rgba(74, 144, 235, 255);
+    table[NK_COLOR_SCROLLBAR_CURSOR_ACTIVE] = nk_rgba(38, 105, 196, 255);
+    table[NK_COLOR_TAB_HEADER] = nk_rgba(48, 48, 48, 255);
 
     nk_style_from_table(ctx, table);
 
-    /* Enforce 24px rounded squircle borders */
-    ctx->style.window.rounding = 24.0f;
+    /* Enforce modern Adwaita 12px rounding on windows & dialogs */
+    ctx->style.window.rounding = 12.0f;
     ctx->style.window.border = 1.0f;
-    ctx->style.window.header.normal = nk_style_item_color(nk_rgba(255, 255, 255, 8));
-    ctx->style.window.header.hover = nk_style_item_color(nk_rgba(255, 255, 255, 15));
-    ctx->style.window.header.active = nk_style_item_color(nk_rgba(255, 255, 255, 15));
-    ctx->style.window.fixed_background = nk_style_item_color(nk_rgba(30, 30, 30, 217));
-    ctx->style.window.background = nk_rgba(30, 30, 30, 217);
-    ctx->style.window.border_color = nk_rgba(255, 255, 255, 25);
-    ctx->style.window.group_border = 0.0f;
-    ctx->style.window.group_border_color = nk_rgba(0, 0, 0, 0);
+    ctx->style.window.header.normal = nk_style_item_color(nk_rgba(48, 48, 48, 255));
+    ctx->style.window.header.hover = nk_style_item_color(nk_rgba(58, 58, 58, 255));
+    ctx->style.window.header.active = nk_style_item_color(nk_rgba(58, 58, 58, 255));
+    ctx->style.window.fixed_background = nk_style_item_color(nk_rgba(36, 36, 36, 255));
+    ctx->style.window.background = nk_rgba(36, 36, 36, 255);
+    ctx->style.window.border_color = nk_rgba(48, 48, 48, 255);
+    ctx->style.window.group_border = 1.0f;
+    ctx->style.window.group_border_color = nk_rgba(48, 48, 48, 255);
 
-    /* Tight, compact padding and spacing */
-    ctx->style.window.padding = nk_vec2(12, 12);
-    ctx->style.window.group_padding = nk_vec2(4, 4);
-    ctx->style.window.spacing = nk_vec2(8, 8);
+    /* Adwaita spacing guidelines */
+    ctx->style.window.padding = nk_vec2(16, 16);
+    ctx->style.window.group_padding = nk_vec2(12, 12);
+    ctx->style.window.spacing = nk_vec2(10, 10);
 
-    /* Action buttons: rounded 8px */
+    /* Clean, rounded Adwaita button styling (8px) */
     ctx->style.button.rounding = 8.0f;
     ctx->style.button.border = 0.0f;
-    ctx->style.button.padding = nk_vec2(6, 6);
+    ctx->style.button.padding = nk_vec2(8, 8);
 }
 
 void ui_init_style(struct nk_context *ctx) {
@@ -221,55 +221,53 @@ static void scan_desktop_apps(struct app_state *app) {
 
 static void ui_render_taskbar(struct nk_context *ctx, struct app_state *app, int ww, int wh)
 {
-    /* Center bottom taskbar layout mimicking the floating style */
+    /* Float GNOME-style top or bottom floating panel */
     float tb_w = (float)ww * 0.95f;
     if (tb_w > 1200.0f) tb_w = 1200.0f;
     float tb_x = ((float)ww - tb_w) / 2.0f;
-    float tb_y = (float)wh - 84.0f; /* 20px bottom offset, 64px height */
+    float tb_y = (float)wh - 84.0f; /* 20px off bottom, 64px height */
 
-    /* Ensure we are rendering completely flat transparent window but drawing inside custom background */
     if (nk_begin(ctx, "taskbar", nk_rect(tb_x, tb_y, tb_w, 64.0f), NK_WINDOW_NO_SCROLLBAR)) {
         struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
 
-        /* Draw the beautiful dark-translucent floating container */
-        nk_fill_rect(canvas, nk_rect(tb_x, tb_y, tb_w, 64.0f), 20.0f, nk_rgba(0, 0, 0, 166)); /* rgba(0,0,0,0.65) => 166 */
-        nk_stroke_rect(canvas, nk_rect(tb_x, tb_y, tb_w, 64.0f), 20.0f, 1.0f, nk_rgba(255, 255, 255, 20)); /* rgba(255,255,255,0.08) */
+        /* GNOME Adwaita Dark: solid dark gray header #303030 with clean border and elegant 12px rounding */
+        nk_fill_rect(canvas, nk_rect(tb_x, tb_y, tb_w, 64.0f), 12.0f, nk_rgba(48, 48, 48, 240));
+        nk_stroke_rect(canvas, nk_rect(tb_x, tb_y, tb_w, 64.0f), 12.0f, 1.0f, nk_rgba(60, 60, 60, 255));
 
-        /* Start row for start hamburger menu button and pinned apps */
         nk_layout_row_begin(ctx, NK_STATIC, 48, 12);
 
-        /* Push offset so content is inside padding */
-        nk_layout_row_push(ctx, 8);
+        /* Padding */
+        nk_layout_row_push(ctx, 12);
         nk_label(ctx, "", NK_TEXT_LEFT);
 
-        /* Start Hamburger: 3 white lines */
+        /* Start hamburger start menu (White, modern) */
         nk_layout_row_push(ctx, 36);
         ctx->style.button.normal = nk_style_item_color(nk_rgba(0, 0, 0, 0));
-        ctx->style.button.hover = nk_style_item_color(nk_rgba(255, 255, 255, 30));
-        ctx->style.button.active = nk_style_item_color(nk_rgba(255, 255, 255, 60));
+        ctx->style.button.hover = nk_style_item_color(nk_rgba(255, 255, 255, 20));
+        ctx->style.button.active = nk_style_item_color(nk_rgba(255, 255, 255, 40));
         ctx->style.button.rounding = 6.0f;
         if (nk_button_label(ctx, "")) {
             app->show_launcher = !app->show_launcher;
         }
         float gx = tb_x + 24.0f;
-        float gy = tb_y + 18.0f;
-        nk_stroke_line(canvas, gx, gy,       gx + 28.0f, gy,       2.5f, nk_rgba(255, 255, 255, 255));
-        nk_stroke_line(canvas, gx, gy + 7.5f,  gx + 28.0f, gy + 7.5f,  2.5f, nk_rgba(255, 255, 255, 255));
-        nk_stroke_line(canvas, gx, gy + 15.0f, gx + 28.0f, gy + 15.0f, 2.5f, nk_rgba(255, 255, 255, 255));
+        float gy = tb_y + 20.0f;
+        nk_stroke_line(canvas, gx, gy,       gx + 24.0f, gy,       2.0f, nk_rgba(255, 255, 255, 255));
+        nk_stroke_line(canvas, gx, gy + 6.0f,  gx + 24.0f, gy + 6.0f,  2.0f, nk_rgba(255, 255, 255, 255));
+        nk_stroke_line(canvas, gx, gy + 12.0f, gx + 24.0f, gy + 12.0f, 2.0f, nk_rgba(255, 255, 255, 255));
 
-        /* App 1: Welcome/Launcher (Red) */
+        /* App 1: Welcome (Red, customized to fit Adwaita grid) */
         nk_layout_row_push(ctx, 38);
-        ctx->style.button.normal = nk_style_item_color(nk_rgba(255, 59, 48, 255)); /* #ff3b30 */
-        ctx->style.button.hover = nk_style_item_color(nk_rgba(255, 100, 100, 255));
-        ctx->style.button.rounding = 10.0f;
+        ctx->style.button.normal = nk_style_item_color(nk_rgba(224, 27, 36, 255)); /* Adwaita Red */
+        ctx->style.button.hover = nk_style_item_color(nk_rgba(235, 74, 81, 255));
+        ctx->style.button.rounding = 8.0f;
         if (nk_button_label(ctx, "")) {
             app->show_launcher = !app->show_launcher;
         }
 
-        /* App 2: Terminal (Blue) */
+        /* App 2: Terminal (Accent Blue) */
         nk_layout_row_push(ctx, 38);
-        ctx->style.button.normal = nk_style_item_color(nk_rgba(59, 48, 224, 255)); /* #3b30e0 */
-        ctx->style.button.hover = nk_style_item_color(nk_rgba(100, 100, 255, 255));
+        ctx->style.button.normal = nk_style_item_color(nk_rgba(53, 132, 228, 255)); /* Adwaita Blue */
+        ctx->style.button.hover = nk_style_item_color(nk_rgba(74, 144, 235, 255));
         if (nk_button_label(ctx, "")) {
             extern int app_spawn_binary(const char* path);
             app_spawn_binary("/shell.bin");
@@ -277,15 +275,15 @@ static void ui_render_taskbar(struct nk_context *ctx, struct app_state *app, int
 
         /* App 3: Files (Orange) */
         nk_layout_row_push(ctx, 38);
-        ctx->style.button.normal = nk_style_item_color(nk_rgba(255, 142, 40, 255)); /* #ff8e28 */
-        ctx->style.button.hover = nk_style_item_color(nk_rgba(255, 180, 100, 255));
+        ctx->style.button.normal = nk_style_item_color(nk_rgba(255, 120, 0, 255)); /* Adwaita Orange */
+        ctx->style.button.hover = nk_style_item_color(nk_rgba(255, 150, 50, 255));
         if (nk_button_label(ctx, "")) {
             app->show_explorer = !app->show_explorer;
         }
 
-        /* App 4: Telemetry (Light Blue) */
+        /* App 4: Diagnostics (Light Blue) */
         nk_layout_row_push(ctx, 38);
-        ctx->style.button.normal = nk_style_item_color(nk_rgba(0, 190, 240, 255)); /* #00bef0 */
+        ctx->style.button.normal = nk_style_item_color(nk_rgba(0, 190, 240, 255));
         ctx->style.button.hover = nk_style_item_color(nk_rgba(100, 220, 255, 255));
         if (nk_button_label(ctx, "")) {
             extern int app_spawn_binary(const char* path);
@@ -295,30 +293,30 @@ static void ui_render_taskbar(struct nk_context *ctx, struct app_state *app, int
         /* Restore standard button style */
         ui_init_style_internal(ctx);
 
-        /* Cyan Status Tray with beautiful vector icons on the far right */
+        /* Cyan/White Status Tray on far right with clean silhouettes */
         float tray_w = 120.0f;
         float tray_x = tb_x + tb_w - tray_w - 20.0f;
         float tray_y = tb_y + 16.0f;
 
         /* Checkmark icon✓ */
-        nk_stroke_line(canvas, tray_x + 10, tray_y + 16, tray_x + 15, tray_y + 22, 2.5f, nk_rgba(0, 190, 240, 217)); /* #00bef0 with high opacity */
-        nk_stroke_line(canvas, tray_x + 15, tray_y + 22, tray_x + 25, tray_y + 10, 2.5f, nk_rgba(0, 190, 240, 217));
+        nk_stroke_line(canvas, tray_x + 10, tray_y + 16, tray_x + 15, tray_y + 22, 2.0f, nk_rgba(255, 255, 255, 200));
+        nk_stroke_line(canvas, tray_x + 15, tray_y + 22, tray_x + 25, tray_y + 10, 2.0f, nk_rgba(255, 255, 255, 200));
 
         /* Bluetooth icon */
         float bt_x = tray_x + 45;
-        nk_stroke_line(canvas, bt_x + 6, tray_y + 8,  bt_x + 6,  tray_y + 24, 2.0f, nk_rgba(0, 190, 240, 217));
-        nk_stroke_line(canvas, bt_x + 6, tray_y + 8,  bt_x + 12, tray_y + 12, 2.0f, nk_rgba(0, 190, 240, 217));
-        nk_stroke_line(canvas, bt_x + 12, tray_y + 12, bt_x + 6,  tray_y + 16, 2.0f, nk_rgba(0, 190, 240, 217));
-        nk_stroke_line(canvas, bt_x + 6, tray_y + 16, bt_x + 12, tray_y + 20, 2.0f, nk_rgba(0, 190, 240, 217));
-        nk_stroke_line(canvas, bt_x + 12, tray_y + 20, bt_x + 6,  tray_y + 24, 2.0f, nk_rgba(0, 190, 240, 217));
-        nk_stroke_line(canvas, bt_x + 6, tray_y + 8,  bt_x,      tray_y + 12, 2.0f, nk_rgba(0, 190, 240, 217));
-        nk_stroke_line(canvas, bt_x + 6, tray_y + 24, bt_x,      tray_y + 20, 2.0f, nk_rgba(0, 190, 240, 217));
+        nk_stroke_line(canvas, bt_x + 6, tray_y + 8,  bt_x + 6,  tray_y + 24, 2.0f, nk_rgba(255, 255, 255, 200));
+        nk_stroke_line(canvas, bt_x + 6, tray_y + 8,  bt_x + 12, tray_y + 12, 2.0f, nk_rgba(255, 255, 255, 200));
+        nk_stroke_line(canvas, bt_x + 12, tray_y + 12, bt_x + 6,  tray_y + 16, 2.0f, nk_rgba(255, 255, 255, 200));
+        nk_stroke_line(canvas, bt_x + 6, tray_y + 16, bt_x + 12, tray_y + 20, 2.0f, nk_rgba(255, 255, 255, 200));
+        nk_stroke_line(canvas, bt_x + 12, tray_y + 20, bt_x + 6,  tray_y + 24, 2.0f, nk_rgba(255, 255, 255, 200));
+        nk_stroke_line(canvas, bt_x + 6, tray_y + 8,  bt_x,      tray_y + 12, 2.0f, nk_rgba(255, 255, 255, 200));
+        nk_stroke_line(canvas, bt_x + 6, tray_y + 24, bt_x,      tray_y + 20, 2.0f, nk_rgba(255, 255, 255, 200));
 
         /* Wi-Fi icon */
         float wf_x = tray_x + 80;
-        nk_stroke_arc(canvas, wf_x + 10, tray_y + 22, 12.0f, -0.7f, -2.44f, 2.0f, nk_rgba(0, 190, 240, 217));
-        nk_stroke_arc(canvas, wf_x + 10, tray_y + 22, 7.0f, -0.7f, -2.44f, 2.0f, nk_rgba(0, 190, 240, 217));
-        nk_fill_circle(canvas, nk_rect(wf_x + 8, tray_y + 20, 4, 4), nk_rgba(0, 190, 240, 217));
+        nk_stroke_arc(canvas, wf_x + 10, tray_y + 22, 12.0f, -0.7f, -2.44f, 2.0f, nk_rgba(255, 255, 255, 200));
+        nk_stroke_arc(canvas, wf_x + 10, tray_y + 22, 7.0f, -0.7f, -2.44f, 2.0f, nk_rgba(255, 255, 255, 200));
+        nk_fill_circle(canvas, nk_rect(wf_x + 8, tray_y + 20, 4, 4), nk_rgba(255, 255, 255, 200));
     }
     nk_end(ctx);
 }
@@ -345,25 +343,23 @@ static void ui_render_desktop_square(struct nk_context *ctx, struct app_state *a
     struct nk_rect bounds = nk_rect(x, y, 65, 65);
     struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
 
-    /* Draw container with aggressive rounding 14px like CSS `.desktop-app-square { border-radius: 14px; }` */
-    /* Beautiful dark-translucent block container */
-    nk_fill_rect(canvas, bounds, 14, nk_rgba(30, 30, 30, 200));
-    nk_stroke_rect(canvas, bounds, 14, 1.0f, nk_rgba(255, 255, 255, 30));
+    /* Clean Adwaita 12px rounding on squares */
+    /* Draw standard translucent background */
+    nk_fill_rect(canvas, bounds, 12, nk_rgba(40, 40, 40, 220));
+    nk_stroke_rect(canvas, bounds, 12, 1.0f, nk_rgba(60, 60, 60, 255));
 
     /* Load and draw the SVG icon! */
     const char* icon_path = get_app_icon_path(name);
     struct nk_image img = ui_icon_load_svg(name, icon_path, 36, 36);
     if (img.handle.ptr) {
-        /* Centered inside 65x65 bounds (offset of 14.5px from top-left) */
         nk_draw_image(canvas, nk_rect(x + 14.5f, y + 14.5f, 36.0f, 36.0f), &img, nk_rgba(255, 255, 255, 255));
     } else {
-        /* Fallback: draw a small centered circle/rect using the row-color */
         nk_fill_rect(canvas, nk_rect(x + 14.5f, y + 14.5f, 36.0f, 36.0f), 6, color);
     }
 
     /* Hover and Click actions */
     if (nk_input_is_mouse_hovering_rect(&ctx->input, bounds)) {
-        nk_fill_rect(canvas, bounds, 14, nk_rgba(255, 255, 255, 40));
+        nk_fill_rect(canvas, bounds, 12, nk_rgba(255, 255, 255, 30));
         if (nk_input_is_mouse_pressed(&ctx->input, NK_BUTTON_LEFT)) {
             if (strcmp(name, "files") == 0) {
                 app->show_explorer = !app->show_explorer;
@@ -395,30 +391,45 @@ static void ui_render_background(struct nk_context *ctx, struct app_state *app, 
         last_scan_time = now_ms;
     }
 
-    /* Draw smooth vertical color gradient representing linear-gradient(135deg, #1e293b 0%, #0f172a 100%) */
-    int steps = 64;
+    /* Draw signature GNOME Adwaita background geometric/striped wallpaper! */
+    /* Deep blue to dark indigo-purple transition layout */
+    int steps = 120;
     float bar_h = (float)wh / (float)steps;
     for (int i = 0; i < steps; i++) {
         float ratio = (float)i / (float)steps;
-        int r = (int)(30.0f + (15.0f - 30.0f) * ratio);
-        int g = (int)(41.0f + (23.0f - 41.0f) * ratio);
-        int b = (int)(59.0f + (42.0f - 59.0f) * ratio);
+        int r = (int)(26.0f + (15.0f - 26.0f) * ratio);
+        int g = (int)(51.0f + (23.0f - 51.0f) * ratio);
+        int b = (int)(116.0f + (42.0f - 116.0f) * ratio);
         nk_fill_rect(canvas, nk_rect(0, (float)i * bar_h, (float)ww, bar_h + 1.0f), 0, nk_rgba(r, g, b, 255));
     }
 
-    /* Large background digital clock with Eastern Standard Zone info */
+    /* Draw subtle geometric dark polygonal shapes to look like high-fidelity default GNOME wallpaper */
+    float poly1[] = {
+        (float)ww * 0.1f, 0.0f,
+        (float)ww * 0.4f, 0.0f,
+        (float)ww * 0.2f, (float)wh * 0.6f
+    };
+    nk_fill_polygon(canvas, poly1, 3, nk_rgba(40, 75, 170, 45));
+
+    float poly2[] = {
+        (float)ww * 0.6f, (float)wh,
+        (float)ww * 0.9f, (float)wh,
+        (float)ww * 0.75f, (float)wh * 0.3f
+    };
+    nk_fill_polygon(canvas, poly2, 3, nk_rgba(45, 80, 190, 45));
+
+    /* Elegant, crisp digital clock centered or right-aligned */
     int h = 0, m = 0, s = 0;
     rtc_get_time(&h, &m, &s);
     char time_str[32];
     snprintf(time_str, sizeof(time_str), "%02d:%02d", h, m);
 
-    /* Render clock text on top right */
     float cl_x = (float)ww * 0.9f - 180.0f;
     float cl_y = 60.0f;
-    nk_draw_text(canvas, nk_rect(cl_x - 300.0f, cl_y, 480.0f, 130.0f), time_str, (int)strlen(time_str), ctx->style.font, nk_rgba(255, 255, 255, 217), nk_rgba(0,0,0,0));
-    nk_draw_text(canvas, nk_rect(cl_x - 300.0f, cl_y + 135.0f, 480.0f, 30.0f), "eastern standard (+3:00)", 24, ctx->style.font, nk_rgba(0, 190, 240, 204), nk_rgba(0,0,0,0));
+    nk_draw_text(canvas, nk_rect(cl_x - 300.0f, cl_y, 480.0f, 130.0f), time_str, (int)strlen(time_str), ctx->style.font, nk_rgba(255, 255, 255, 225), nk_rgba(0,0,0,0));
+    nk_draw_text(canvas, nk_rect(cl_x - 300.0f, cl_y + 135.0f, 480.0f, 30.0f), "eastern standard (+3:00)", 24, ctx->style.font, nk_rgba(154, 195, 245, 230), nk_rgba(0,0,0,0));
 
-    /* 5x5 Grid matrix layout of Apps exactly matching HTML spec */
+    /* Monolithic 5x5 Grid matrix layout of Apps */
     float grid_x = 40.0f;
     float grid_y = 50.0f;
     float box_sz = 65.0f;
@@ -427,16 +438,15 @@ static void ui_render_background(struct nk_context *ctx, struct app_state *app, 
     /* Top Arrow label */
     nk_draw_text(canvas, nk_rect(grid_x + 5 * box_sz + 4 * gap - 20, grid_y - 25, 20, 20), "v", 1, ctx->style.font, nk_rgba(255, 255, 255, 102), nk_rgba(0,0,0,0));
 
-    /* Row colors mapping based on row index */
     struct nk_color row_colors[5] = {
-        nk_rgba(255, 59, 48, 255),  /* Red */
-        nk_rgba(59, 48, 224, 255),  /* Blue */
-        nk_rgba(255, 142, 40, 255), /* Orange */
+        nk_rgba(224, 27, 36, 255),  /* Adwaita Red */
+        nk_rgba(53, 132, 228, 255), /* Adwaita Blue */
+        nk_rgba(255, 120, 0, 255),  /* Adwaita Orange */
         nk_rgba(0, 190, 240, 255),  /* Light Blue */
-        nk_rgba(28, 198, 94, 255)   /* Green */
+        nk_rgba(46, 194, 126, 255)  /* Adwaita Green */
     };
 
-    /* Populate the grid dynamically using apps discovered in Desktop folder */
+    /* Populate grid */
     for (int i = 0; i < apps_on_desktop_count; i++) {
         int row = i / 5;
         int col = i % 5;
@@ -452,7 +462,6 @@ static void ui_render_background(struct nk_context *ctx, struct app_state *app, 
 static void ui_render_launcher(struct nk_context *ctx, struct app_state *app)
 {
     if (!app->show_launcher) return;
-    /* Anchored under the clock / on right, beautifully overlaying welcoming updates */
     if (nk_begin(ctx, "welcome - user", nk_rect(420, 220, 400, 320), NK_WINDOW_MOVABLE|NK_WINDOW_TITLE)) {
         nk_layout_row_dynamic(ctx, 24, 1);
         nk_label(ctx, "your recent apps:", NK_TEXT_LEFT);
@@ -461,17 +470,16 @@ static void ui_render_launcher(struct nk_context *ctx, struct app_state *app)
         nk_layout_row_push(ctx, 20);
         nk_label(ctx, "<", NK_TEXT_CENTERED);
 
-        /* Colored mini squares */
         nk_layout_row_push(ctx, 35);
-        ctx->style.button.normal = nk_style_item_color(nk_rgba(255, 59, 48, 255));
+        ctx->style.button.normal = nk_style_item_color(nk_rgba(224, 27, 36, 255));
         nk_button_label(ctx, "");
 
         nk_layout_row_push(ctx, 35);
-        ctx->style.button.normal = nk_style_item_color(nk_rgba(59, 48, 224, 255));
+        ctx->style.button.normal = nk_style_item_color(nk_rgba(53, 132, 228, 255));
         nk_button_label(ctx, "");
 
         nk_layout_row_push(ctx, 35);
-        ctx->style.button.normal = nk_style_item_color(nk_rgba(255, 142, 40, 255));
+        ctx->style.button.normal = nk_style_item_color(nk_rgba(255, 120, 0, 255));
         nk_button_label(ctx, "");
 
         nk_layout_row_push(ctx, 35);
@@ -491,21 +499,20 @@ static void ui_render_launcher(struct nk_context *ctx, struct app_state *app)
         nk_layout_row_push(ctx, 20);
         nk_label(ctx, "<", NK_TEXT_CENTERED);
 
-        /* Colored mini squares in reverse/different layout */
         nk_layout_row_push(ctx, 35);
         ctx->style.button.normal = nk_style_item_color(nk_rgba(0, 190, 240, 255));
         nk_button_label(ctx, "");
 
         nk_layout_row_push(ctx, 35);
-        ctx->style.button.normal = nk_style_item_color(nk_rgba(255, 142, 40, 255));
+        ctx->style.button.normal = nk_style_item_color(nk_rgba(255, 120, 0, 255));
         nk_button_label(ctx, "");
 
         nk_layout_row_push(ctx, 35);
-        ctx->style.button.normal = nk_style_item_color(nk_rgba(59, 48, 224, 255));
+        ctx->style.button.normal = nk_style_item_color(nk_rgba(53, 132, 228, 255));
         nk_button_label(ctx, "");
 
         nk_layout_row_push(ctx, 35);
-        ctx->style.button.normal = nk_style_item_color(nk_rgba(255, 59, 48, 255));
+        ctx->style.button.normal = nk_style_item_color(nk_rgba(224, 27, 36, 255));
         nk_button_label(ctx, "");
 
         nk_layout_row_push(ctx, 20);
@@ -520,7 +527,6 @@ static void ui_render_launcher(struct nk_context *ctx, struct app_state *app)
 
 static void ui_render_system_panel(struct nk_context *ctx, struct app_state *app)
 {
-    /* Keep active telemetry but in boutique styled window with action-btn */
     if (nk_begin(ctx, "system telemetry", nk_rect(600, 240, 400, 280), NK_WINDOW_TITLE|NK_WINDOW_MOVABLE|NK_WINDOW_CLOSABLE)) {
         size_t used = hal_malloc_get_used();
         size_t total = hal_malloc_get_total();
@@ -614,7 +620,6 @@ static void ui_render_files(struct nk_context *ctx, struct app_state *app)
                         nk_layout_row_template_push_static(ctx, 80);
                         nk_layout_row_template_end(ctx);
 
-                        /* Print files in conversational lowercase */
                         char clean_line[128];
                         strncpy(clean_line, line, sizeof(clean_line)-1);
                         clean_line[sizeof(clean_line)-1] = '\0';
@@ -631,7 +636,6 @@ static void ui_render_files(struct nk_context *ctx, struct app_state *app)
                                 }
                                 strncat(app->explorer_path, name, sizeof(app->explorer_path) - strlen(app->explorer_path) - 1);
                             } else {
-                                /* Open in Notepad */
                                 char full_path[256];
                                 snprintf(full_path, sizeof(full_path), "%s%s%s",
                                          app->explorer_path,
@@ -709,7 +713,6 @@ static void ui_render_task_manager(struct nk_context *ctx, struct app_state *app
             char id_buf[16]; snprintf(id_buf, sizeof(id_buf), "%d", t->id);
             nk_label(ctx, id_buf, NK_TEXT_LEFT);
 
-            /* Print task names in lowercase conversational style */
             char t_name[32];
             strncpy(t_name, t->name, sizeof(t_name)-1);
             t_name[sizeof(t_name)-1] = '\0';
@@ -765,7 +768,7 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
     float ww = (float)window_width;
     float wh = (float)window_height;
 
-    /* Initial Boot Check: Run installer if no user or booting from removable media */
+    /* Initial Boot Check */
     static bool boot_check_done = false;
     if (!boot_check_done) {
         bool removable_boot = false;
@@ -844,7 +847,6 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
                         strncpy(app->username, signup_user, sizeof(app->username) - 1);
                         strncpy(app->password, signup_pass, sizeof(app->password) - 1);
 
-                        /* Pre-initialize Desktop workspace for the newly created account! */
                         ensure_user_desktop(app);
 
                         app->current_state = STATE_DESKTOP;
@@ -911,7 +913,6 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
                 nk_progress(ctx, (nk_size*)&progress, 1000, NK_MODIFIABLE);
 
                 if (progress >= 1000) {
-                    /* Create essential system files */
                     vfs_mkdir("/etc");
 
                     char user_entry[128];
@@ -937,9 +938,7 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
                 nk_label(ctx, "all files written. click finish to boot.", NK_TEXT_CENTERED);
                 nk_layout_row_dynamic(ctx, 34, 1);
                 if (nk_button_label(ctx, "boot desktop")) {
-                    /* Initialise newly installed administrator workspace */
                     ensure_user_desktop(app);
-
                     app->current_state = STATE_DESKTOP;
                     app->show_launcher = 1;
                 }
