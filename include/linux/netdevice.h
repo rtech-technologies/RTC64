@@ -8,6 +8,9 @@
 #define ETH_ALEN 6
 #define IFNAMSIZ 16
 
+struct net_device;
+struct sk_buff;
+
 struct net_device_stats {
     unsigned long rx_packets;
     unsigned long tx_packets;
@@ -33,10 +36,21 @@ struct net_device {
     uint8_t dev_addr[ETH_ALEN];
     unsigned int mtu;
     unsigned int flags;
-    struct net_device_ops *netdev_ops;
+    const struct net_device_ops *netdev_ops;
     struct net_device_stats stats;
     void *ml_priv;
 };
+
+typedef int netdev_tx_t;
+#define NETDEV_TX_OK 0
+
+static inline void *netdev_priv(const struct net_device *dev) {
+    return (void *)(dev + 1);
+}
+
+static inline void ether_setup(struct net_device *dev) {
+    (void)dev;
+}
 
 struct net_device *alloc_netdev(int sizeof_priv, const char *name, void (*setup)(struct net_device *));
 void free_netdev(struct net_device *dev);

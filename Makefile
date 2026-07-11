@@ -25,6 +25,7 @@ KERNEL_OBJS = kernel/entry.o kernel/kernel.o src/app_ui.o \
               kernel/fatfs/ff.o kernel/fatfs/ffunicode.o \
               kernel/drivers/pci.o kernel/drivers/xhci.o kernel/drivers/ehci.o \
               kernel/drivers/virtio_net.o kernel/drivers/virtio_net_linux.o \
+              kernel/drivers/e1000_linux.o kernel/drivers/rtl8139_linux.o \
               kernel/linux_compat.o kernel/linux_irq.o kernel/linux_pci_compat.o \
               kernel/drivers/nvme.o kernel/drivers/ahci.o kernel/drivers/ramdisk.o \
               kernel/drivers/ps2.o kernel/drivers/rtc.o \
