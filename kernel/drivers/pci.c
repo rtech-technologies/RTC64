@@ -32,6 +32,13 @@ uint32_t pci_read_config(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset
     return inl(0xCFC);
 }
 
+void pci_write_config(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset, uint32_t val) {
+    uint32_t address = (uint32_t)((uint32_t)bus << 16) | ((uint32_t)slot << 11) |
+                       ((uint32_t)func << 8) | (offset & 0xFC) | ((uint32_t)0x80000000);
+    outl(0xCF8, address);
+    outl(0xCFC, val);
+}
+
 uint64_t pci_get_bar(uint8_t bus, uint8_t slot, uint8_t func, uint8_t bar_index) {
     uint32_t bar = pci_read_config(bus, slot, func, 0x10 + (bar_index * 4));
     if ((bar & 0x6) == 0x04) {
