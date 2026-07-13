@@ -5,8 +5,8 @@
 #include "serial.h"
 
 #define MAX_REG_ENTRIES 128
-#define REG_PATH "/mnt/disk0/system/registry.conf"
-#define REG_TMP_PATH "/mnt/disk0/system/registry.tmp"
+#define REG_PATH "/registry/registry.conf"
+#define REG_TMP_PATH "/registry/registry.tmp"
 
 typedef struct {
     char key[64];
@@ -20,6 +20,7 @@ static bool registry_loaded = false;
 void registry_init(void) {
     memset(registry, 0, sizeof(registry));
     char buf[8192];
+    vfs_mkdir("/registry");
     if (vfs_cat(REG_PATH, buf, sizeof(buf)) == 0) {
         char* line = buf;
         while (line && *line) {
@@ -36,6 +37,13 @@ void registry_init(void) {
             else line = NULL;
         }
         serial_printf("[REGISTRY] Loaded state from %s\n", REG_PATH);
+    } else {
+        /* Set defaults */
+        registry_set("SESSION/CurrentUser", "Administrator");
+        registry_set("USERS/Administrator/Role", "Administrator");
+        registry_set("HKCU\\ControlPanel\\Desktop\\Wallpaper", "/system/wallpapers/pawel-czerwinski.jpg");
+        registry_loaded = true;
+        registry_flush();
     }
     registry_loaded = true;
 }
@@ -85,7 +93,7 @@ void registry_flush(void) {
     }
 
     /* Industrial Atomic Write: Write to Temp -> Rename */
-    vfs_mkdir("/mnt/disk0/system");
+    vfs_mkdir("/registry");
     if (vfs_write(REG_TMP_PATH, buf) == 0) {
         vfs_rm(REG_PATH);
         vfs_rename(REG_TMP_PATH, REG_PATH);

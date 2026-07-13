@@ -52,16 +52,29 @@ $(KERNEL_OBJS): environment
 	$(CC) $(CFLAGS) -x assembler-with-cpp -c $< -o $@
 iso: kernel/kernel
 	mkdir -p iso_root/boot/sys
+	mkdir -p iso_root/boot/limine
+	mkdir -p iso_root/EFI/BOOT
 	cp kernel/kernel iso_root/boot/sys/kernel.elf
 	cp kernel/ramdisk.img iso_root/boot/sys/ramdisk.img
 	cp kernel/limine.cfg iso_root/limine.conf
 	cp kernel/limine.cfg iso_root/limine.cfg
 	cp kernel/limine.cfg iso_root/boot/limine.conf
 	cp kernel/limine.cfg iso_root/boot/limine.cfg
+	cp kernel/limine.cfg iso_root/boot/limine/limine.conf
+	cp kernel/limine.cfg iso_root/boot/limine/limine.cfg
 	cp external/limine/limine-bios.sys iso_root/boot/
 	cp external/limine/limine-bios-cd.bin iso_root/boot/
-	xorriso -as mkisofs -b boot/limine-bios-cd.bin \
+	cp external/limine/limine-bios.sys iso_root/boot/limine/
+	cp external/limine/limine-bios-cd.bin iso_root/boot/limine/
+	cp external/limine/limine-uefi-cd.bin iso_root/boot/
+	cp external/limine/limine-uefi-cd.bin iso_root/boot/limine/
+	cp external/limine/BOOTX64.EFI iso_root/EFI/BOOT/
+	cp external/limine/BOOTIA32.EFI iso_root/EFI/BOOT/
+	xorriso -as mkisofs \
+		-b boot/limine-bios-cd.bin \
 		-no-emul-boot -boot-load-size 4 -boot-info-table \
+		--efi-boot boot/limine-uefi-cd.bin \
+		-efi-boot-part --efi-boot-image \
 		iso_root -o os.iso
 	./external/limine/limine bios-install os.iso
 run: all

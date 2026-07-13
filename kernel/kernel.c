@@ -46,7 +46,91 @@ void draw_rtech_logo(struct nk_context *ctx, int screen_w, int screen_h) {
                 ctx->style.font, nk_rgb(30, 30, 30), nk_rgb(255, 255, 255));
 }
 
-static void* g_back_buffer = NULL;
+void* g_back_buffer = NULL;
+
+typedef struct {
+    void* pixels;
+    int width;
+    int height;
+    int channels;
+    char current_path[256];
+} wallpaper_state_t;
+
+static wallpaper_state_t g_wallpaper = {NULL, 0, 0, 0, ""};
+static bool g_wallpaper_loaded = false;
+
+extern const char* registry_get(const char* key);
+
+void wallpaper_render(void) {
+    const char* path = registry_get("HKCU\\ControlPanel\\Desktop\\Wallpaper");
+    if (!path) path = "/system/wallpapers/pawel-czerwinski.jpg";
+
+    if (strcmp(g_wallpaper.current_path, path) != 0) {
+        serial_printf("[WALLPAPER] Requesting wallpaper change to: %s\n", path);
+        size_t max_sz = 8 * 1024 * 1024; // 8MB limit
+        void* file_buf = malloc(max_sz);
+        if (file_buf) {
+            int bytes_read = vfs_read(path, file_buf, max_sz);
+            if (bytes_read > 0) {
+                int w = 0, h = 0, channels = 0;
+                extern unsigned char *stbi_load_from_memory(unsigned char const *buffer, int len, int *x, int *y, int *channels_in_file, int desired_channels);
+                void* decoded = stbi_load_from_memory(file_buf, bytes_read, &w, &h, &channels, 4);
+                if (decoded) {
+                    if (g_wallpaper.pixels) {
+                        extern void stbi_image_free(void *retval_from_stbi_load);
+                        stbi_image_free(g_wallpaper.pixels);
+                    }
+                    g_wallpaper.pixels = decoded;
+                    g_wallpaper.width = w;
+                    g_wallpaper.height = h;
+                    g_wallpaper.channels = 4;
+                    strncpy(g_wallpaper.current_path, path, sizeof(g_wallpaper.current_path) - 1);
+                    g_wallpaper.current_path[sizeof(g_wallpaper.current_path) - 1] = '\0';
+                    g_wallpaper_loaded = true;
+                    serial_printf("[WALLPAPER] Decoding success: %dx%d\n", w, h);
+                } else {
+                    serial_printf("[WALLPAPER] STBI load failed\n");
+                }
+            } else {
+                serial_printf("[WALLPAPER] VFS read failed for path: %s\n", path);
+            }
+            free(file_buf);
+        } else {
+            serial_printf("[WALLPAPER] Allocation failure for file buffer\n");
+        }
+    }
+
+    if (g_wallpaper_loaded && g_wallpaper.pixels && g_back_buffer && primary_fb) {
+        int sw = g_wallpaper.width;
+        int sh = g_wallpaper.height;
+        int dw = (int)primary_fb->width;
+        int dh = (int)primary_fb->height;
+        uint32_t* dst = (uint32_t*)g_back_buffer;
+        uint8_t r_shift = (uint8_t)primary_fb->red_mask_shift;
+        uint8_t g_shift = (uint8_t)primary_fb->green_mask_shift;
+        uint8_t b_shift = (uint8_t)primary_fb->blue_mask_shift;
+
+        for (int y = 0; y < dh; y++) {
+            int src_y = (y * sh) / dh;
+            if (src_y >= sh) src_y = sh - 1;
+            uint8_t* src_row = (uint8_t*)g_wallpaper.pixels + (src_y * sw * 4);
+            uint32_t* dst_row = dst + (y * (primary_fb->pitch / 4));
+
+            for (int x = 0; x < dw; x++) {
+                int src_x = (x * sw) / dw;
+                if (src_x >= sw) src_x = sw - 1;
+                uint8_t* src_pixel = src_row + (src_x * 4);
+                dst_row[x] = ((uint32_t)src_pixel[0] << r_shift) |
+                             ((uint32_t)src_pixel[1] << g_shift) |
+                             ((uint32_t)src_pixel[2] << b_shift);
+            }
+        }
+    } else {
+        if (g_back_buffer && primary_fb) {
+            memset(g_back_buffer, 20, primary_fb->height * primary_fb->pitch);
+        }
+    }
+}
 
 void environment_manager_entry(void* arg) {
     (void)arg;
@@ -123,11 +207,12 @@ void environment_manager_entry(void* arg) {
                 draw_rtech_logo(ctx, (int)primary_fb->width, (int)primary_fb->height);
             }
             nk_end(ctx);
+            nk_rawfb_render(rawfb, nk_rgb(20, 20, 20), 1);
         } else {
+            wallpaper_render();
             ui_render(ctx, &app, (int)primary_fb->width, (int)primary_fb->height);
+            nk_rawfb_render(rawfb, nk_rgb(20, 20, 20), 0);
         }
-
-        nk_rawfb_render(rawfb, nk_rgb(20, 20, 20), 1);
 
         /* Flush back-buffer to primary framebuffer */
         memcpy((void*)primary_fb->address, g_back_buffer, fb_size);
@@ -187,6 +272,8 @@ void kernel_main(void) {
     rtl8139_init();
     iwlwifi_init();
     pci_scan();
+    extern void hal_storage_finish_init(void);
+    hal_storage_finish_init();
 
     extern uint64_t xhci_mmio_base;
     extern uint64_t ehci_mmio_base;
@@ -199,6 +286,8 @@ void kernel_main(void) {
     }
 
     vfs_refresh_mounts();
+    extern void registry_init(void);
+    registry_init();
 
     if (has_usb) {
         scheduler_spawn_kernel("USB", usb_task, NULL);

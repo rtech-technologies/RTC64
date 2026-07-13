@@ -302,6 +302,7 @@ static void ui_render_desktop_square(struct nk_context *ctx, struct app_state *a
 
 static void ui_render_background(struct nk_context *ctx, struct app_state *app, int ww, int wh)
 {
+    (void)wh;
     struct nk_command_buffer *canvas = nk_window_get_canvas(ctx);
 
     /* Dynamic desktop scanning */
@@ -311,32 +312,6 @@ static void ui_render_background(struct nk_context *ctx, struct app_state *app, 
         scan_desktop_apps(app);
         last_scan_time = now_ms;
     }
-
-    /* Draw signature GNOME Adwaita background geometric/striped wallpaper! */
-    int steps = 120;
-    float bar_h = (float)wh / (float)steps;
-    for (int i = 0; i < steps; i++) {
-        float ratio = (float)i / (float)steps;
-        int r = (int)(26.0f + (15.0f - 26.0f) * ratio);
-        int g = (int)(51.0f + (23.0f - 51.0f) * ratio);
-        int b = (int)(116.0f + (42.0f - 116.0f) * ratio);
-        nk_fill_rect(canvas, nk_rect(0, (float)i * bar_h, (float)ww, bar_h + 1.0f), 0, nk_rgba(r, g, b, 255));
-    }
-
-    /* Draw subtle geometric dark polygonal shapes to look like high-fidelity default GNOME wallpaper */
-    float poly1[] = {
-        (float)ww * 0.1f, 0.0f,
-        (float)ww * 0.4f, 0.0f,
-        (float)ww * 0.2f, (float)wh * 0.6f
-    };
-    nk_fill_polygon(canvas, poly1, 3, nk_rgba(40, 75, 170, 45));
-
-    float poly2[] = {
-        (float)ww * 0.6f, (float)wh,
-        (float)ww * 0.9f, (float)wh,
-        (float)ww * 0.75f, (float)wh * 0.3f
-    };
-    nk_fill_polygon(canvas, poly2, 3, nk_rgba(45, 80, 190, 45));
 
     /* Elegant, crisp digital clock centered or right-aligned */
     int h = 0, m = 0, s = 0;
@@ -746,18 +721,74 @@ static void ui_render_files(struct nk_context *ctx, struct app_state *app)
 
 static void ui_render_settings(struct nk_context *ctx, struct app_state *app)
 {
-    if (nk_begin(ctx, "system preferences", nk_rect(650, 280, 400, 260), NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE)) {
-        nk_layout_row_dynamic(ctx, 20, 1);
-        nk_label(ctx, "workspace adjustments:", NK_TEXT_LEFT);
+    if (nk_begin(ctx, "system preferences", nk_rect(450, 200, 460, 360), NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE)) {
+        static int active_tab = 0;
+        nk_layout_row_dynamic(ctx, 30, 2);
+        if (nk_option_label(ctx, "system uac", active_tab == 0)) active_tab = 0;
+        if (nk_option_label(ctx, "personalization", active_tab == 1)) active_tab = 1;
 
-        nk_layout_row_dynamic(ctx, 100, 1);
-        int len = (int)strlen(app->notepad_buffer);
-        nk_edit_string(ctx, NK_EDIT_MULTILINE, app->notepad_buffer, &len, sizeof(app->notepad_buffer)-1, nk_filter_default);
-        app->notepad_buffer[len] = '\0';
+        if (active_tab == 0) {
+            nk_layout_row_dynamic(ctx, 20, 1);
+            nk_label(ctx, "workspace adjustments:", NK_TEXT_LEFT);
 
-        nk_layout_row_dynamic(ctx, 32, 1);
-        if (nk_button_label(ctx, "commit edits")) {
-            uac_set_permit(0, app->perm_net, app->perm_storage);
+            nk_layout_row_dynamic(ctx, 100, 1);
+            int len = (int)strlen(app->notepad_buffer);
+            nk_edit_string(ctx, NK_EDIT_MULTILINE, app->notepad_buffer, &len, sizeof(app->notepad_buffer)-1, nk_filter_default);
+            app->notepad_buffer[len] = '\0';
+
+            nk_layout_row_dynamic(ctx, 32, 1);
+            if (nk_button_label(ctx, "commit edits")) {
+                uac_set_permit(0, app->perm_net, app->perm_storage);
+            }
+        } else if (active_tab == 1) {
+            nk_layout_row_dynamic(ctx, 20, 1);
+            nk_label(ctx, "select desktop background:", NK_TEXT_LEFT);
+
+            /* Pre-installed options */
+            const char* wallpapers[] = {
+                "/system/wallpapers/pawel-czerwinski.jpg",
+                "/system/wallpapers/sebastian-svenson.jpg",
+                "/system/wallpapers/anders-jilden.jpg",
+                "/system/wallpapers/cubes.png",
+                "/system/wallpapers/glassy.png",
+                "/system/wallpapers/1.png"
+            };
+            const char* wallpaper_names[] = {
+                "sovereign wave (pawel - default)",
+                "mountain peak (sebastian)",
+                "northern lights (anders)",
+                "abstract cubes",
+                "glassy overlay",
+                "retro sphere"
+            };
+
+            for (int i = 0; i < 6; i++) {
+                nk_layout_row_dynamic(ctx, 24, 1);
+                if (nk_button_label(ctx, wallpaper_names[i])) {
+                    extern int registry_set(const char* key, const char* value);
+                    extern void registry_flush(void);
+                    registry_set("HKCU\\ControlPanel\\Desktop\\Wallpaper", wallpapers[i]);
+                    registry_flush();
+                }
+            }
+
+            /* Custom wallpaper path input */
+            nk_layout_row_dynamic(ctx, 22, 1);
+            nk_label(ctx, "custom wallpaper path:", NK_TEXT_LEFT);
+
+            static char custom_wall_path[256] = "";
+            nk_layout_row_template_begin(ctx, 32);
+            nk_layout_row_template_push_dynamic(ctx);
+            nk_layout_row_template_push_static(ctx, 120);
+            nk_layout_row_template_end(ctx);
+
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, custom_wall_path, sizeof(custom_wall_path)-1, nk_filter_default);
+            if (nk_button_label(ctx, "apply custom")) {
+                extern int registry_set(const char* key, const char* value);
+                extern void registry_flush(void);
+                registry_set("HKCU\\ControlPanel\\Desktop\\Wallpaper", custom_wall_path);
+                registry_flush();
+            }
         }
     }
     if (nk_window_is_closed(ctx, "system preferences")) app->show_settings = 0;
@@ -946,7 +977,7 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
                 nk_layout_row_dynamic(ctx, 34, 1);
                 if (nk_button_label(ctx, "let's go")) install_step = 1;
             } else if (install_step == 1) {
-                nk_layout_row_dynamic(ctx, 28, 1);
+                nk_layout_row_dynamic(ctx, 24, 1);
                 nk_label(ctx, "where should we install it?", NK_TEXT_LEFT);
                 int dev_count = hal_storage_get_device_count();
                 for (int i = 0; i < dev_count; i++) {
@@ -956,16 +987,37 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
                     snprintf(drive_label, sizeof(drive_label), "drive %d: %s (%llu mb)", i, dev->name, (dev->total_blocks * dev->block_size) / (1024*1024));
                     if (nk_option_label(ctx, drive_label, target_drive == i)) target_drive = i;
                 }
+
+                nk_layout_row_dynamic(ctx, 16, 1);
+                nk_label(ctx, "discovered physical hardware:", NK_TEXT_LEFT);
+
+                static char hw_info[512];
+                extern int devmgr_list(char* out, size_t sz);
+                devmgr_list(hw_info, sizeof(hw_info));
+                nk_layout_row_dynamic(ctx, 100, 1);
+                nk_label_wrap(ctx, hw_info);
+
                 nk_layout_row_dynamic(ctx, 34, 2);
                 if (nk_button_label(ctx, "go back")) install_step = 0;
                 if (nk_button_label(ctx, "write files")) install_step = 2;
             } else if (install_step == 2) {
-                nk_layout_row_dynamic(ctx, 28, 1);
+                nk_layout_row_dynamic(ctx, 24, 1);
                 nk_label(ctx, "writing sovereign files...", NK_TEXT_CENTERED);
 
                 static int progress = 0;
-                progress++;
+                progress += 2; // steady speed
                 nk_progress(ctx, (nk_size*)&progress, 1000, NK_MODIFIABLE);
+
+                nk_layout_row_dynamic(ctx, 24, 1);
+                if (progress < 250) {
+                    nk_label(ctx, "step 1/4: partitioning disk & creating EFI system partition (ESP)...", NK_TEXT_CENTERED);
+                } else if (progress < 500) {
+                    nk_label(ctx, "step 2/4: creating system partition and unpacking VFS root...", NK_TEXT_CENTERED);
+                } else if (progress < 750) {
+                    nk_label(ctx, "step 3/4: copying kernel, bootx64.efi loader & visual assets...", NK_TEXT_CENTERED);
+                } else {
+                    nk_label(ctx, "step 4/4: registering system loader in motherboard's UEFI firmware boot order...", NK_TEXT_CENTERED);
+                }
 
                 if (progress >= 1000) {
                     vfs_mkdir("/etc");
