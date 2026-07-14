@@ -35,8 +35,10 @@ KERNEL_OBJS = kernel/entry.o kernel/kernel.o src/app_ui.o \
               external/CherryUSB/class/hid/usbh_hid.o \
               external/CherryUSB/class/hub/usbh_hub.o \
               external/CherryUSB/port/ehci/usb_hc_ehci.o
-.PHONY: all clean environment iso run
+.PHONY: all clean environment iso run setup
 all: environment userland kernel/kernel iso
+setup:
+	sudo apt-get update && sudo apt-get install -y xorriso mtools gcc make python3 git binutils
 environment:
 	chmod +x build.sh
 	./build.sh
