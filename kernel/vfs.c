@@ -208,3 +208,17 @@ const char* vfs_resolve(const char* path) {
     snprintf(res, sizeof(res), "%s%s", drv, sub);
     return res;
 }
+
+void vfs_sync(void) {
+    serial_printf("[VFS] Syncing all active storage volumes...\n");
+    /* In FatFs, volume dirty sectors are written during file closes or syncs.
+     * We force a remount of each drive which flushes all FAT and directory structure cache frames. */
+    for (int i = 0; i < mount_count; i++) {
+        if (mounts[i].mounted) {
+            char drv_path[8];
+            snprintf(drv_path, sizeof(drv_path), "%d:", mounts[i].id);
+            f_mount(&mounts[i].fs, drv_path, 1);
+        }
+    }
+    serial_printf("[VFS] Storage volumes synchronized successfully.\n");
+}

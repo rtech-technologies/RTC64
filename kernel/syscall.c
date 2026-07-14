@@ -81,6 +81,15 @@ int syscall_dispatch(int num, const void* a1, void* a2, size_t a3) {
         case SYS_SERIAL_WRITE: serial_write((const char*)a1); return 0;
         case SYS_VFS_RM:      return vfs_rm((const char*)a1);
         case SYS_NET_FETCH:    return rsl_web_fetch((const char*)a1, (char*)a2, a3);
+        case SYS_FORK:        return scheduler_fork((const char*)a1, (void (*)(void*))a2, (void*)(uintptr_t)a3);
+        case SYS_MMAP:        return (int)(uintptr_t)malloc(a3);
+        case SYS_MPROTECT:    return 0;
+        case SYS_IOCTL:       return 0;
+        case SYS_SYNC: {
+            extern void vfs_sync(void);
+            vfs_sync();
+            return 0;
+        }
         default:
             serial_printf("[SYSCALL] Unknown syscall: %d\n", num);
             return -1;

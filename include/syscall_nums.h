@@ -22,4 +22,10 @@
 #define SYS_VFS_RM          0x11
 #define SYS_NET_FETCH       0x12
 
+#define SYS_FORK            0x13
+#define SYS_MMAP            0x14
+#define SYS_MPROTECT        0x15
+#define SYS_IOCTL           0x16
+#define SYS_SYNC            0x17
+
 #endif

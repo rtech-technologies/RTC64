@@ -98,5 +98,7 @@ void registry_flush(void) {
         vfs_rm(REG_PATH);
         vfs_rename(REG_TMP_PATH, REG_PATH);
         serial_printf("[REGISTRY] Flushed state atomically to %s\n", REG_PATH);
+        extern void vfs_sync(void);
+        vfs_sync();
     }
 }

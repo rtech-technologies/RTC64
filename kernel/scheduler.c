@@ -87,6 +87,24 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
     __asm__ volatile("mov %%cr3, %0" : "=r"(current_cr3));
     __asm__ volatile("mov %%cr4, %0" : "=r"(current_cr4));
 
+    uint64_t task_cr3 = current_cr3;
+    if (uaid > 0) {
+        /* Allocate a private isolated page directory (PML4) for this user task context */
+        void* pml4_phys = pmm_alloc_blocks(1);
+        if (pml4_phys) {
+            uint64_t* pml4_virt = (uint64_t*)((uint64_t)pml4_phys + hhdm_offset);
+            memset(pml4_virt, 0, 4096);
+
+            /* Copy kernel space mappings (indices 256 to 511) to isolate Ring 3 from kernel memory */
+            uint64_t* boot_pml4_virt = (uint64_t*)(current_cr3 + hhdm_offset);
+            for (int i = 256; i < 512; i++) {
+                pml4_virt[i] = boot_pml4_virt[i];
+            }
+            task_cr3 = (uint64_t)pml4_phys;
+            serial_printf("[SCHED] Allocated isolated PML4 CR3=%p for user task %s\n", (void*)task_cr3, name);
+        }
+    }
+
     uint64_t *p = (uint64_t *)stack_top;
 
     /* 1. iretq frame (SS, RSP, RFLAGS, CS, RIP) */
@@ -117,8 +135,8 @@ int scheduler_add_task(const char *name, void (*entry)(void*), void *arg, uint32
     for(int i=0; i<8; i++) *(--p) = 0; /* R8-R15 */
 
     /* 4. CRs (CR2, CR3, CR4) */
-    *(--p) = 0;           /* CR2 */
-    *(--p) = current_cr3; /* CR3 */
+    *(--p) = 0;        /* CR2 */
+    *(--p) = task_cr3; /* CR3 - Private Isolated Paging Directory */
     *(--p) = current_cr4; /* CR4 */
 
     /* 5. Segments (DS, ES, FS, GS) */
