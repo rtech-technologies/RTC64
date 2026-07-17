@@ -43,6 +43,9 @@ void kernel_main(void) {
     static uint8_t kernel_heap[16 * 1024 * 1024];
     hal_malloc_init(kernel_heap, sizeof(kernel_heap));
 
+    void pci_scan(void);
+    pci_scan();
+
     hal_storage_init();
     hal_input_init();
     scheduler_init();
@@ -62,6 +65,8 @@ void kernel_main(void) {
     struct app_state app;
     memset(&app, 0, sizeof(app));
     app.current_state = STATE_LOGIN;
+    app.show_analog_clock = 1;
+    app.show_calendar = 1;
 
     int cursor_x = fb->width / 2;
     int cursor_y = fb->height / 2;
@@ -70,6 +75,8 @@ void kernel_main(void) {
     while (1) {
         tgx_clear(&canvas, 0x001010); // Dark Teal Background
         hal_usb_poll();
+        void hal_input_poll(void);
+        hal_input_poll();
 
         input_event_t ev;
         nk_input_begin(&ctx);
@@ -79,6 +86,22 @@ void kernel_main(void) {
                 cursor_y = ev.mouse.y;
                 nk_input_motion(&ctx, cursor_x, cursor_y);
                 nk_input_button(&ctx, NK_BUTTON_LEFT, cursor_x, cursor_y, (ev.mouse.buttons & 1));
+            } else if (ev.type == INPUT_TYPE_KEYBOARD) {
+                if (ev.kbd.down) {
+                    if (ev.kbd.key == '\b') {
+                        nk_input_key(&ctx, NK_KEY_BACKSPACE, 1);
+                    } else if (ev.kbd.key == '\n') {
+                        nk_input_key(&ctx, NK_KEY_ENTER, 1);
+                    } else if (ev.kbd.key >= 32 && ev.kbd.key < 127) {
+                        nk_input_char(&ctx, (char)ev.kbd.key);
+                    }
+                } else {
+                    if (ev.kbd.key == '\b') {
+                        nk_input_key(&ctx, NK_KEY_BACKSPACE, 0);
+                    } else if (ev.kbd.key == '\n') {
+                        nk_input_key(&ctx, NK_KEY_ENTER, 0);
+                    }
+                }
             }
         }
         nk_input_end(&ctx);

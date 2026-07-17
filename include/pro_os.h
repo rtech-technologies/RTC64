@@ -42,6 +42,13 @@ void scheduler_run(void);
 /* VFS */
 void vfs_init(void);
 const char* vfs_resolve(const char *path);
+void vfs_mkdir(const char *path);
+void fat_format(void);
+int vfs_write(const char *path, const void *data, uint32_t size);
+int vfs_read(const char *path, void *buffer, uint32_t max_size);
+void vfs_readdir(const char *path, void (*callback)(const char *name, bool is_dir, uint32_t size));
+int vfs_rm(const char *path);
+bool vfs_exists(const char *path);
 
 /* Security / UAC */
 typedef struct {

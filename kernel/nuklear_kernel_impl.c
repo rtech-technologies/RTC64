@@ -66,6 +66,13 @@ char* strcpy(char* dest, const char* src) {
     return dest;
 }
 
+char* strcat(char* dest, const char* src) {
+    char* rd = dest;
+    while (*rd) rd++;
+    while ((*rd++ = *src++));
+    return dest;
+}
+
 int strcmp(const char* s1, const char* s2) {
     while(*s1 && (*s1 == *s2)) { s1++; s2++; }
     return *(unsigned char*)s1 - *(unsigned char*)s2;
@@ -87,6 +94,16 @@ char* strchr(const char* s, int c) {
     }
     if (c == 0) return (char*)s;
     return NULL;
+}
+
+char* strrchr(const char* s, int c) {
+    const char* last = NULL;
+    while (*s) {
+        if (*s == (char)c) last = s;
+        s++;
+    }
+    if (c == 0) return (char*)s;
+    return (char*)last;
 }
 
 long strtol(const char* nptr, char** endptr, int base) {
