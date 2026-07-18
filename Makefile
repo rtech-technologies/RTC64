@@ -43,7 +43,7 @@ environment:
 kernel/kernel: $(KERNEL_OBJS)
 	$(LD) $(LDFLAGS) $(KERNEL_OBJS) -o kernel/kernel
 
-%.o: %.c
+%.o: %.c | environment
 	$(CC) $(CFLAGS) -c $< -o $@
 
 iso: kernel/kernel
