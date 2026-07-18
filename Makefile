@@ -51,6 +51,8 @@ iso: kernel/kernel
 	mkdir -p iso_root/boot/sys
 	mkdir -p iso_root/boot/limine
 	mkdir -p iso_root/EFI/BOOT
+	cp kernel/kernel iso_root/kernel.elf
+	cp kernel/kernel iso_root/boot/kernel.elf
 	cp kernel/kernel iso_root/boot/sys/kernel.elf
 	cp kernel/limine.conf iso_root/limine.cfg
 	cp kernel/limine.conf iso_root/boot/limine.cfg
