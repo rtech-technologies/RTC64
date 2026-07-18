@@ -73,6 +73,7 @@ iso: kernel/kernel
 		-no-emul-boot -boot-load-size 4 -boot-info-table \
 		--efi-boot boot/limine/limine-uefi-cd.bin \
 		-efi-boot-part --efi-boot-image --protective-msdos-label \
+		-R -J \
 		iso_root -o os.iso
 	./external/limine/limine bios-install os.iso
 
