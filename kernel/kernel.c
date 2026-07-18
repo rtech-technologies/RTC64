@@ -6,16 +6,27 @@
 #include "app_ui.h"
 #include "nk_software_renderer.h"
 
+__attribute__((section(".limine_requests")))
+static volatile LIMINE_BASE_REVISION(2);
+
+__attribute__((section(".limine_requests_start")))
+static volatile LIMINE_REQUESTS_START_MARKER
+
 // Tell the bootloader we want a graphical framebuffer
+__attribute__((section(".limine_requests")))
 volatile struct limine_framebuffer_request framebuffer_request = {
     .id = LIMINE_FRAMEBUFFER_REQUEST,
     .revision = 0
 };
 
+__attribute__((section(".limine_requests")))
 static volatile struct limine_hhdm_request hhdm_request = {
     .id = LIMINE_HHDM_REQUEST,
     .revision = 0
 };
+
+__attribute__((section(".limine_requests_end")))
+static volatile LIMINE_REQUESTS_END_MARKER
 
 uint64_t hhdm_offset = 0;
 
