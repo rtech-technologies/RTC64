@@ -57,6 +57,35 @@ void cm_write_config(const char *key, const char *val);
 void comprec_init(void);
 void comprec_log(const char *event);
 
+/* Linux Driver Netdev Compatibility Shim */
+struct net_device;
+struct sk_buff {
+    uint8_t *data;
+    uint32_t len;
+};
+
+struct net_device_ops {
+    int (*ndo_open)(struct net_device *dev);
+    int (*ndo_start_xmit)(struct sk_buff *skb, struct net_device *dev);
+    int (*ndo_stop)(struct net_device *dev);
+};
+
+struct net_device {
+    char name[16];
+    const struct net_device_ops *netdev_ops;
+    uint8_t dev_addr[6];
+    void *priv;
+};
+
+struct sk_buff* dev_alloc_skb(unsigned int length);
+void dev_kfree_skb(struct sk_buff *skb);
+struct net_device* alloc_etherdev(int sizeof_priv);
+void free_netdev(struct net_device *dev);
+int register_netdev(struct net_device *dev);
+void unregister_netdev(struct net_device *dev);
+void hal_virtio_net_probe(uint64_t mmio);
+int sys_net_fetch(const char *url, char *buffer, uint32_t max_size);
+
 /* Security / UAC */
 typedef struct {
     bool can_network;

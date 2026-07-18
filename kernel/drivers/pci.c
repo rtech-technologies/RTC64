@@ -42,6 +42,16 @@ void pci_scan(void) {
                 uint8_t sub_class = (class_rev >> 16) & 0xFF;
                 uint8_t prog_if = (class_rev >> 8) & 0xFF;
 
+                uint16_t vendor = vendor_device & 0xFFFF;
+                uint16_t device = (vendor_device >> 16) & 0xFFFF;
+
+                /* Probe Linux Driver Compatibility VirtIO Network Card */
+                if (vendor == 0x1AF4 && (device == 0x1000 || device == 0x1041)) {
+                    uint64_t mmio = pci_get_bar(bus, slot, func, 0);
+                    void hal_virtio_net_probe(uint64_t mmio);
+                    hal_virtio_net_probe(mmio);
+                }
+
                 /* Identify xHCI (USB 3.0), EHCI (USB 2.0), NVMe, AHCI */
                 if (base_class == 0x0C && sub_class == 0x03 && prog_if == 0x30) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 0);

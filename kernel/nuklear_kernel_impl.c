@@ -106,6 +106,22 @@ char* strrchr(const char* s, int c) {
     return (char*)last;
 }
 
+char* strstr(const char* haystack, const char* needle) {
+    if (!*needle) return (char*)haystack;
+    for (; *haystack; haystack++) {
+        if (*haystack == *needle) {
+            const char *h = haystack;
+            const char *n = needle;
+            while (*h && *n && *h == *n) {
+                h++;
+                n++;
+            }
+            if (!*n) return (char*)haystack;
+        }
+    }
+    return NULL;
+}
+
 long strtol(const char* nptr, char** endptr, int base) {
     (void)nptr; (void)endptr; (void)base;
     return 0;
