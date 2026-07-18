@@ -3,7 +3,7 @@ LD = ld
 
 CFLAGS = -Wall -Wextra -std=c11 -ffreestanding -fno-stack-protector \
          -fno-stack-check -fno-lto -fno-pic -m64 -march=x86-64 -mcmodel=kernel \
-         -mno-red-zone -fno-asynchronous-unwind-tables \
+         -mno-red-zone -fno-asynchronous-unwind-tables -Wno-pointer-to-int-cast \
          -I./include -I./kernel -I./kernel/drivers \
          -I./external/limine \
          -I./external/CherryUSB/common \
