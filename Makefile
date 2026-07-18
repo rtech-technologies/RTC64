@@ -49,7 +49,9 @@ kernel/kernel: $(KERNEL_OBJS)
 iso: kernel/kernel
 	mkdir -p iso_root/boot/sys
 	cp kernel/kernel iso_root/boot/sys/kernel.elf
+	cp kernel/limine.conf iso_root/
 	cp kernel/limine.conf iso_root/boot/
+	cp external/limine/limine-bios.sys iso_root/
 	cp external/limine/limine-bios.sys iso_root/boot/
 	cp external/limine/limine-bios-cd.bin iso_root/boot/
 	xorriso -as mkisofs -b boot/limine-bios-cd.bin \
