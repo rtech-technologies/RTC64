@@ -50,6 +50,13 @@ void vfs_readdir(const char *path, void (*callback)(const char *name, bool is_di
 int vfs_rm(const char *path);
 bool vfs_exists(const char *path);
 
+/* Configuration Manager & Compliance Recording */
+void cm_init(void);
+int cm_read_config(const char *key, char *out_val, int max_len);
+void cm_write_config(const char *key, const char *val);
+void comprec_init(void);
+void comprec_log(const char *event);
+
 /* Security / UAC */
 typedef struct {
     bool can_network;

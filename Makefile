@@ -23,6 +23,7 @@ KERNEL_OBJS = kernel/kernel.o src/app_ui.o kernel/nuklear_kernel_impl.o \
               kernel/i18n.o kernel/uac_policy.o kernel/tgx_impl.o \
               kernel/tlsf_impl.o kernel/math.o kernel/panic.o \
               kernel/malloc_glue.o kernel/storage_hal.o kernel/panic_hal.o \
+              kernel/cm.o kernel/comprec.o \
               kernel/drivers/pci.o kernel/drivers/xhci.o kernel/drivers/ehci.o \
               kernel/drivers/nvme.o kernel/drivers/ahci.o \
               external/CherryUSB/core/usbd_core.o \

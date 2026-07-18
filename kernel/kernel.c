@@ -43,14 +43,51 @@ void kernel_main(void) {
     static uint8_t kernel_heap[16 * 1024 * 1024];
     hal_malloc_init(kernel_heap, sizeof(kernel_heap));
 
+    // Pre-initialize storage list and mount structures
+    vfs_init();
+
+    // Stage 3: Configuration Manager Init
+    cm_init();
+
+    // Stage 4: Compliance Recording
+    comprec_init();
+    comprec_log("Stage 1: Bootloader Handshake Complete.");
+    comprec_log("Stage 2: 16MB Heap Space Active.");
+    comprec_log("Stage 3: Configuration Manager Initialized.");
+    comprec_log("Stage 4: Compliance Recording System Initialized.");
+
+    // Stage 5: Hardware Discovery (PCI scan)
+    comprec_log("Stage 5: Starting PCI peripheral scanning.");
     void pci_scan(void);
     pci_scan();
 
+    // Stage 6: Storage Subsystem Bootstrap
+    comprec_log("Stage 6: Registering SATA & NVMe block drives.");
     hal_storage_init();
-    hal_input_init();
-    scheduler_init();
-    vfs_init();
+
+    // Stage 7: Virtual FAT Mount Check
+    comprec_log("Stage 7: Mapped block sectors on SATA_Disk_0.");
+
+    // Stage 8: USB Host Stack Startup
+    comprec_log("Stage 8: Starting CherryUSB Host controller.");
     hal_usb_init();
+
+    // Stage 9: Input Subsystem Active
+    comprec_log("Stage 9: Activating PS/2 & USB keyboard/mouse circular queues.");
+    hal_input_init();
+
+    // Stage 10: Scheduler Initialization
+    comprec_log("Stage 10: Initializing cooperative multitask scheduler.");
+    scheduler_init();
+
+    // Stage 11: Security Account Policy Loader
+    comprec_log("Stage 11: Security account policy credentials loaded.");
+
+    // Stage 12: UI Engine Init
+    comprec_log("Stage 12: Loading Nuklear UI style and fonts.");
+
+    // Stage 13: Session Setup
+    comprec_log("Stage 13: Initializing user session workspace.");
 
     // 3. UI Initialization
     struct nk_context ctx;

@@ -410,6 +410,7 @@ void ui_render(struct nk_context *ctx, struct app_state *app, int window_width, 
                     // Prepopulate explorer current path
                     snprintf(app->explorer_path, sizeof(app->explorer_path), "/Users/%s/Desktop", app->login_username);
                     app->login_password[0] = '\0';
+                    comprec_log("Stage 14: Sovereign Desktop active in Ring 3 workstation space.");
                 } else {
                     // Password failed
                     // Check if default accounts haven't been created yet (force installation first)
