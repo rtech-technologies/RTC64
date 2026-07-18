@@ -29,7 +29,7 @@ typedef struct {
 } ahci_port_t;
 
 void ahci_init(uint64_t mmio) {
-    if (mmio == 0) return;
+    if (mmio == 0 || mmio >= 0x20000000) return;
     volatile uint32_t* ghc = (volatile uint32_t*)(mmio + hhdm_offset + AHCI_GHC_REG);
 
     /* 1. Enable AHCI Mode */
