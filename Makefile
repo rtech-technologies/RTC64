@@ -3,7 +3,7 @@ LD = ld
 
 CFLAGS = -Wall -Wextra -std=c11 -ffreestanding -fno-stack-protector \
          -fno-stack-check -fno-lto -fno-pic -m64 -march=x86-64 -mcmodel=kernel \
-         -mno-red-zone -fno-asynchronous-unwind-tables \
+         -mno-red-zone -fno-asynchronous-unwind-tables -Wno-pointer-to-int-cast \
          -I./include -I./kernel -I./kernel/drivers \
          -I./external/limine \
          -I./external/CherryUSB/common \
@@ -23,8 +23,9 @@ KERNEL_OBJS = kernel/kernel.o src/app_ui.o kernel/nuklear_kernel_impl.o \
               kernel/i18n.o kernel/uac_policy.o kernel/tgx_impl.o \
               kernel/tlsf_impl.o kernel/math.o kernel/panic.o \
               kernel/malloc_glue.o kernel/storage_hal.o kernel/panic_hal.o \
+              kernel/cm.o kernel/comprec.o kernel/net.o \
               kernel/drivers/pci.o kernel/drivers/xhci.o kernel/drivers/ehci.o \
-              kernel/drivers/nvme.o kernel/drivers/ahci.o \
+              kernel/drivers/nvme.o kernel/drivers/ahci.o kernel/drivers/virtio_net_linux.o \
               external/CherryUSB/core/usbd_core.o \
               external/CherryUSB/core/usbh_core.o \
               external/CherryUSB/class/msc/usbh_msc.o \
@@ -43,17 +44,38 @@ environment:
 kernel/kernel: $(KERNEL_OBJS)
 	$(LD) $(LDFLAGS) $(KERNEL_OBJS) -o kernel/kernel
 
-%.o: %.c
+%.o: %.c | environment
 	$(CC) $(CFLAGS) -c $< -o $@
 
 iso: kernel/kernel
 	mkdir -p iso_root/boot/sys
+	mkdir -p iso_root/boot/limine
+	mkdir -p iso_root/EFI/BOOT
+	cp kernel/kernel iso_root/kernel.elf
+	cp kernel/kernel iso_root/boot/kernel.elf
 	cp kernel/kernel iso_root/boot/sys/kernel.elf
-	cp kernel/limine.conf iso_root/boot/
+	cp kernel/limine.conf iso_root/limine.cfg
+	cp kernel/limine.conf iso_root/boot/limine.cfg
+	cp kernel/limine.conf iso_root/boot/limine/limine.cfg
+	cp kernel/limine.conf iso_root/limine.conf
+	cp kernel/limine.conf iso_root/boot/limine.conf
+	cp kernel/limine.conf iso_root/boot/limine/limine.conf
+	cp external/limine/limine-bios.sys iso_root/
 	cp external/limine/limine-bios.sys iso_root/boot/
+	cp external/limine/limine-bios.sys iso_root/boot/limine/
+	cp external/limine/limine-bios-cd.bin iso_root/
 	cp external/limine/limine-bios-cd.bin iso_root/boot/
-	xorriso -as mkisofs -b boot/limine-bios-cd.bin \
+	cp external/limine/limine-bios-cd.bin iso_root/boot/limine/
+	cp external/limine/limine-uefi-cd.bin iso_root/
+	cp external/limine/limine-uefi-cd.bin iso_root/boot/
+	cp external/limine/limine-uefi-cd.bin iso_root/boot/limine/
+	cp external/limine/BOOTX64.EFI iso_root/EFI/BOOT/
+	cp external/limine/BOOTIA32.EFI iso_root/EFI/BOOT/
+	xorriso -as mkisofs -b boot/limine/limine-bios-cd.bin \
 		-no-emul-boot -boot-load-size 4 -boot-info-table \
+		--efi-boot boot/limine/limine-uefi-cd.bin \
+		-efi-boot-part --efi-boot-image --protective-msdos-label \
+		-R -J \
 		iso_root -o os.iso
 	./external/limine/limine bios-install os.iso
 

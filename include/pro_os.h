@@ -42,6 +42,49 @@ void scheduler_run(void);
 /* VFS */
 void vfs_init(void);
 const char* vfs_resolve(const char *path);
+void vfs_mkdir(const char *path);
+void fat_format(void);
+int vfs_write(const char *path, const void *data, uint32_t size);
+int vfs_read(const char *path, void *buffer, uint32_t max_size);
+void vfs_readdir(const char *path, void (*callback)(const char *name, bool is_dir, uint32_t size));
+int vfs_rm(const char *path);
+bool vfs_exists(const char *path);
+
+/* Configuration Manager & Compliance Recording */
+void cm_init(void);
+int cm_read_config(const char *key, char *out_val, int max_len);
+void cm_write_config(const char *key, const char *val);
+void comprec_init(void);
+void comprec_log(const char *event);
+
+/* Linux Driver Netdev Compatibility Shim */
+struct net_device;
+struct sk_buff {
+    uint8_t *data;
+    uint32_t len;
+};
+
+struct net_device_ops {
+    int (*ndo_open)(struct net_device *dev);
+    int (*ndo_start_xmit)(struct sk_buff *skb, struct net_device *dev);
+    int (*ndo_stop)(struct net_device *dev);
+};
+
+struct net_device {
+    char name[16];
+    const struct net_device_ops *netdev_ops;
+    uint8_t dev_addr[6];
+    void *priv;
+};
+
+struct sk_buff* dev_alloc_skb(unsigned int length);
+void dev_kfree_skb(struct sk_buff *skb);
+struct net_device* alloc_etherdev(int sizeof_priv);
+void free_netdev(struct net_device *dev);
+int register_netdev(struct net_device *dev);
+void unregister_netdev(struct net_device *dev);
+void hal_virtio_net_probe(uint64_t mmio);
+int sys_net_fetch(const char *url, char *buffer, uint32_t max_size);
 
 /* Security / UAC */
 typedef struct {

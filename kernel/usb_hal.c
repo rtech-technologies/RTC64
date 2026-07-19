@@ -13,7 +13,8 @@ void hal_usb_init(void) {
 }
 
 void hal_usb_poll(void) {
-    /* Poll the USB host controller and update stack state */
+    void USBH_IRQHandler(uint8_t busid);
+    USBH_IRQHandler(0);
 }
 
 /* Callbacks from CherryUSB for HID devices */

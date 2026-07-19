@@ -8,6 +8,13 @@ SECTIONS
     /* Limine expects kernels to be loaded at this virtual address prefix */
     . = 0xffffffff80000000;
 
+    . = ALIGN(64);
+    .limine_requests : {
+        KEEP(*(.limine_requests_start))
+        KEEP(*(.limine_requests))
+        KEEP(*(.limine_requests_end))
+    }
+
     .text : {
         *(.text .text.*)
     }

@@ -42,6 +42,16 @@ void pci_scan(void) {
                 uint8_t sub_class = (class_rev >> 16) & 0xFF;
                 uint8_t prog_if = (class_rev >> 8) & 0xFF;
 
+                uint16_t vendor = vendor_device & 0xFFFF;
+                uint16_t device = (vendor_device >> 16) & 0xFFFF;
+
+                /* Probe Linux Driver Compatibility VirtIO Network Card */
+                if (vendor == 0x1AF4 && (device == 0x1000 || device == 0x1041)) {
+                    uint64_t mmio = pci_get_bar(bus, slot, func, 0);
+                    void hal_virtio_net_probe(uint64_t mmio);
+                    hal_virtio_net_probe(mmio);
+                }
+
                 /* Identify xHCI (USB 3.0), EHCI (USB 2.0), NVMe, AHCI */
                 if (base_class == 0x0C && sub_class == 0x03 && prog_if == 0x30) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 0);
@@ -54,15 +64,13 @@ void pci_scan(void) {
                 } else if (base_class == 0x01 && sub_class == 0x08 && prog_if == 0x02) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 0);
                     nvme_mmio_base = mmio;
-                    void hal_nvme_init(void);
-                    hal_nvme_init();
-                    nvme_init(mmio);
+                    void hal_nvme_init(uint64_t mmio);
+                    hal_nvme_init(mmio);
                 } else if (base_class == 0x01 && sub_class == 0x06 && prog_if == 0x01) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 5); /* AHCI BAR is usually 5 */
                     ahci_mmio_base = mmio;
-                    void hal_sata_init(void);
-                    hal_sata_init();
-                    ahci_init(mmio);
+                    void hal_sata_init(uint64_t mmio);
+                    hal_sata_init(mmio);
                 }
 
                 if (func == 0) {
