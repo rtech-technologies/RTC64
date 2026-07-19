@@ -13,6 +13,12 @@ uint64_t ehci_mmio_base = 0;
 uint64_t nvme_mmio_base = 0;
 uint64_t ahci_mmio_base = 0;
 
+/* Explicit 64-bit function prototypes to prevent System V ABI Register Truncation */
+extern void xhci_init(uint64_t mmio);
+extern void ehci_init(uint64_t mmio);
+extern int nvme_init(uint64_t mmio);
+extern int ahci_init(uint64_t mmio);
+
 typedef struct {
     uint16_t vendor;
     uint16_t device;
