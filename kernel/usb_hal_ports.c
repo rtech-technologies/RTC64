@@ -31,7 +31,11 @@ int printf(const char *format, ...) {
     va_start(args, format);
     int len = vsnprintf(buf, sizeof(buf), format, args);
     (void)len;
-    /* Output to kernel log or serial device if available */
+
+    /* Output to COM1 serial device */
+    extern void serial_write_string(const char *str);
+    serial_write_string(buf);
+
     va_end(args);
     return 0;
 }
