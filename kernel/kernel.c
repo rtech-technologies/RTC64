@@ -76,7 +76,7 @@ void kernel_main(void) {
     comprec_log("Stage 6: Registering SATA & NVMe block drives.");
     hal_storage_init();
     if (hal_storage_get_device_count() == 0) {
-        kpanic("CRITICAL SYSTEM BOOT EXCEPTION: Hard drive partition table could not be loaded. SATA_Disk_0 not found.");
+        kpanic("hardware partition error (no registers found)");
     }
 
     // Stage 7: Virtual FAT Mount Check
