@@ -19,6 +19,9 @@ typedef struct {
 FILE* fopen(const char* filename, const char* mode);
 int fclose(FILE* stream);
 size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream);
+
+FILE* your_os_fopen(const char* filename, const char* mode);
+size_t your_os_fread(void* ptr, size_t size, size_t nmemb, FILE* stream);
 int fseek(FILE* stream, long offset, int whence);
 long ftell(FILE* stream);
 

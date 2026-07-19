@@ -132,6 +132,111 @@ void wallpaper_render(void) {
     }
 }
 
+static uint32_t g_cursor_backup[32 * 32];
+static int g_old_mx = -1, g_old_my = -1;
+static bool g_cursor_saved = false;
+
+void cursor_restore(void) {
+    if (g_cursor_saved && g_old_mx >= 0 && g_old_my >= 0 && g_back_buffer && primary_fb) {
+        int dw = (int)primary_fb->width;
+        int dh = (int)primary_fb->height;
+        uint32_t* dst = (uint32_t*)g_back_buffer;
+
+        for (int y = 0; y < 32; y++) {
+            int dst_y = g_old_my + y;
+            if (dst_y >= dh) break;
+            uint32_t* dst_row = dst + (dst_y * (primary_fb->pitch / 4));
+            uint32_t* src_row = g_cursor_backup + (y * 32);
+
+            for (int x = 0; x < 32; x++) {
+                int dst_x = g_old_mx + x;
+                if (dst_x >= dw) break;
+                dst_row[dst_x] = src_row[x];
+            }
+        }
+    }
+}
+
+void cursor_backup(int mx, int my) {
+    if (g_back_buffer && primary_fb) {
+        int dw = (int)primary_fb->width;
+        int dh = (int)primary_fb->height;
+        uint32_t* src = (uint32_t*)g_back_buffer;
+
+        for (int y = 0; y < 32; y++) {
+            int src_y = my + y;
+            if (src_y >= dh) break;
+            uint32_t* src_row = src + (src_y * (primary_fb->pitch / 4));
+            uint32_t* dst_row = g_cursor_backup + (y * 32);
+
+            for (int x = 0; x < 32; x++) {
+                int src_x = mx + x;
+                if (src_x >= dw) break;
+                dst_row[x] = src_row[src_x];
+            }
+        }
+        g_old_mx = mx;
+        g_old_my = my;
+        g_cursor_saved = true;
+    }
+}
+
+void cursor_draw(int mx, int my) {
+    if (g_back_buffer && primary_fb) {
+        int dw = (int)primary_fb->width;
+        int dh = (int)primary_fb->height;
+        uint32_t* dst = (uint32_t*)g_back_buffer;
+
+        static const char* cursor_mask[] = {
+            "X               ",
+            "XX              ",
+            "X.X             ",
+            "X..X            ",
+            "X...X           ",
+            "X....X          ",
+            "X.....X         ",
+            "X......X        ",
+            "X.......X       ",
+            "X........X      ",
+            "X.........X     ",
+            "X......XXXXX    ",
+            "X...X..X        ",
+            "X..X X..X       ",
+            "X.X   X..X      ",
+            "XX     X..X     ",
+            "        X..X    ",
+            "         XX     ",
+            "                "
+        };
+
+        uint8_t r_shift = (uint8_t)primary_fb->red_mask_shift;
+        uint8_t g_shift = (uint8_t)primary_fb->green_mask_shift;
+        uint8_t b_shift = (uint8_t)primary_fb->blue_mask_shift;
+
+        uint32_t white = (255 << r_shift) | (255 << g_shift) | (255 << b_shift);
+        uint32_t black = 0;
+
+        for (int y = 0; y < 19; y++) {
+            int dst_y = my + y;
+            if (dst_y >= dh) break;
+            uint32_t* dst_row = dst + (dst_y * (primary_fb->pitch / 4));
+            const char* row_mask = cursor_mask[y];
+
+            for (int x = 0; x < 16; x++) {
+                int dst_x = mx + x;
+                if (dst_x >= dw) break;
+
+                char c = row_mask[x];
+                if (c == 'X') {
+                    dst_row[dst_x] = black;
+                } else if (c == '.') {
+                    dst_row[dst_x] = white;
+                }
+            }
+        }
+    }
+}
+
 void environment_manager_entry(void* arg) {
     (void)arg;
     serial_printf("[EM] Environment Manager started.\n");
@@ -162,6 +267,23 @@ void environment_manager_entry(void* arg) {
     /* Limine FB address is virtual, but we render to backbuffer */
     serial_printf("[EM] FB Address: %p (Virtual), BackBuffer: %p\n", (void*)primary_fb->address, g_back_buffer);
 
+    /* Load custom TTF font from physical storage using our new your_os_fopen/your_os_fread block layers */
+    size_t max_font_sz = 256 * 1024; // 256KB limit
+    void* ttf_buffer = malloc(max_font_sz);
+    if (ttf_buffer) {
+        extern FILE* your_os_fopen(const char* filename, const char* mode);
+        extern size_t your_os_fread(void* ptr, size_t size, size_t nmemb, FILE* stream);
+        FILE* font_fp = your_os_fopen("/system/fonts/adwaita.ttf", "rb");
+        if (font_fp) {
+            size_t font_bytes = your_os_fread(ttf_buffer, 1, max_font_sz, font_fp);
+            fclose(font_fp);
+            if (font_bytes > 0) {
+                serial_printf("[EM] Successfully loaded TTF font from FAT32 partition: %d bytes\n", (int)font_bytes);
+            }
+        }
+        free(ttf_buffer);
+    }
+
     struct rawfb_context *rawfb = nk_rawfb_init(g_back_buffer,
                           font_tex_mem, (unsigned int)primary_fb->width, (unsigned int)primary_fb->height, (unsigned int)primary_fb->pitch, pl);
 
@@ -169,7 +291,7 @@ void environment_manager_entry(void* arg) {
     struct nk_context *ctx = nk_rawfb_get_ctx(rawfb);
     ui_init_style(ctx);
     ui_icon_init();
-    nk_style_show_cursor(ctx);
+    nk_style_hide_cursor(ctx); /* Disable default software cursor */
 
     static struct app_state app;
     memset(&app, 0, sizeof(app));
@@ -178,11 +300,16 @@ void environment_manager_entry(void* arg) {
     app.installed = 0;
     strcpy(app.explorer_path, "/");
 
-    int mx, my;
+    int mx = 100, my = 100;
     uint64_t start_time = hal_get_uptime_ms();
 
     while(1) {
         if (g_boot_phase == 1 && (hal_get_uptime_ms() - start_time) > 3000) g_boot_phase = 2;
+
+        /* 1. Erase the old cursor from the shadow buffer */
+        if (g_boot_phase == 2) {
+            cursor_restore();
+        }
 
         input_event_t ev;
         nk_input_begin(ctx);
@@ -202,6 +329,7 @@ void environment_manager_entry(void* arg) {
         }
         nk_input_end(ctx);
 
+        /* 2. Render desktop widgets and windows */
         if (g_boot_phase == 1) {
             if (nk_begin(ctx, "Boot", nk_rect(0, 0, (float)primary_fb->width, (float)primary_fb->height), NK_WINDOW_NO_SCROLLBAR)) {
                 draw_rtech_logo(ctx, (int)primary_fb->width, (int)primary_fb->height);
@@ -214,7 +342,13 @@ void environment_manager_entry(void* arg) {
             nk_rawfb_render(rawfb, nk_rgb(20, 20, 20), 0);
         }
 
-        /* Flush back-buffer to primary framebuffer */
+        /* 3. Backup background and blit hardware-style cursor arrow */
+        if (g_boot_phase == 2) {
+            cursor_backup(mx, my);
+            cursor_draw(mx, my);
+        }
+
+        /* 4. Complete the Shadow Framebuffer rendering loop */
         memcpy((void*)primary_fb->address, g_back_buffer, fb_size);
 
         scheduler_yield();

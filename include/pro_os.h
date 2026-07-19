@@ -122,6 +122,7 @@ void init_sse(void);
 void kpanic(const char* message);
 void pci_scan(void);
 uint32_t pci_read_config(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset);
+void pci_write_config(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset, uint32_t val);
 uint64_t pci_get_bar(uint8_t bus, uint8_t slot, uint8_t func, uint8_t bar_index);
 int linux_compat_init(void);
 int virtio_net_linux_init(void);

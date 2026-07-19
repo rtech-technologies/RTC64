@@ -38,6 +38,7 @@ def main():
         "::/home/Administrator/Desktop",
         "::/system",
         "::/system/wallpapers",
+        "::/system/fonts",
         "::/registry"
     ]
     print("Creating directory structure on ramdisk...")
@@ -60,6 +61,13 @@ def main():
                 run_cmd(["mcopy", "-o", "-i", out_file, src, f"::/{tgt}"])
         else:
             print(f"Warning: application source not found: {src}")
+
+    # Copy fonts
+    print("Copying TTF font asset to ramdisk...")
+    if os.path.exists("./adwaita.ttf"):
+        run_cmd(["mcopy", "-o", "-i", out_file, "./adwaita.ttf", "::/system/fonts/adwaita.ttf"])
+    elif os.path.exists("/rom/opt/flutter/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf"):
+        run_cmd(["mcopy", "-o", "-i", out_file, "/rom/opt/flutter/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf", "::/system/fonts/adwaita.ttf"])
 
     # Copy wallpapers from /tmp/file_attachments/
     wallpapers = {
