@@ -84,25 +84,37 @@ void pci_scan(void) {
 
                 if (base_class == 0x0C && sub_class == 0x03) {
                     uint64_t mmio = pci_get_bar(bus, slot, func, 0);
+                    /* Enable PCI Bus Master and Memory Space access on controller */
+                    uint32_t pci_cmd = pci_read_config(bus, slot, func, 0x04);
+                    pci_write_config(bus, slot, func, 0x04, pci_cmd | 0x07);
+
                     if (prog_if == 0x30) {
                         xhci_mmio_base = mmio;
-                        serial_printf("[EVENT] CONNECT: xHCI Controller at %p\n", mmio);
+                        serial_printf("[EVENT] CONNECT: xHCI Controller at %p\n", (void*)mmio);
                         xhci_init(mmio);
                     } else if (prog_if == 0x20) {
                         ehci_mmio_base = mmio;
-                        serial_printf("[EVENT] CONNECT: EHCI Controller at %p\n", mmio);
+                        serial_printf("[EVENT] CONNECT: EHCI Controller at %p\n", (void*)mmio);
                         ehci_init(mmio);
                     }
                 } else if (base_class == 0x01) {
                     if (sub_class == 0x08) {
                         uint64_t mmio = pci_get_bar(bus, slot, func, 0);
+                        /* Enable PCI Bus Master and Memory Space access on NVMe */
+                        uint32_t pci_cmd = pci_read_config(bus, slot, func, 0x04);
+                        pci_write_config(bus, slot, func, 0x04, pci_cmd | 0x07);
+
                         nvme_mmio_base = mmio;
-                        serial_printf("[EVENT] CONNECT: NVMe Controller at %p\n", mmio);
+                        serial_printf("[EVENT] CONNECT: NVMe Controller at %p\n", (void*)mmio);
                         nvme_init(mmio);
                     } else if (sub_class == 0x06) {
                         uint64_t mmio = pci_get_bar(bus, slot, func, 5);
+                        /* Enable PCI Bus Master and Memory Space access on AHCI */
+                        uint32_t pci_cmd = pci_read_config(bus, slot, func, 0x04);
+                        pci_write_config(bus, slot, func, 0x04, pci_cmd | 0x07);
+
                         ahci_mmio_base = mmio;
-                        serial_printf("[EVENT] CONNECT: AHCI Controller at %p\n", mmio);
+                        serial_printf("[EVENT] CONNECT: AHCI Controller at %p\n", (void*)mmio);
                         ahci_init(mmio);
                     }
                 }
