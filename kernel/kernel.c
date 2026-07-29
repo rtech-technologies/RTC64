@@ -23,6 +23,12 @@ volatile struct limine_hhdm_request hhdm_req = { .id = LIMINE_HHDM_REQUEST, .rev
 volatile struct limine_framebuffer_request framebuffer_request = { .id = LIMINE_FRAMEBUFFER_REQUEST, .revision = 0 };
 volatile struct limine_module_request module_request = { .id = LIMINE_MODULE_REQUEST, .revision = 0 };
 volatile struct limine_memmap_request memmap_req = { .id = LIMINE_MEMMAP_REQUEST, .revision = 0 };
+volatile struct limine_kernel_file_request kernel_file_req = { .id = LIMINE_KERNEL_FILE_REQUEST, .revision = 0 };
+
+int g_safe_mode = 0;
+int g_debug_mode = 0;
+int g_nosmp = 0;
+int g_exhaustive_logging = 0;
 
 uint64_t hhdm_offset = 0;
 struct limine_framebuffer *primary_fb = NULL;
@@ -339,6 +345,18 @@ void environment_manager_entry(void* arg) {
         } else {
             wallpaper_render();
             ui_render(ctx, &app, (int)primary_fb->width, (int)primary_fb->height);
+
+            extern int g_safe_mode;
+            if (g_safe_mode) {
+                struct nk_color orange_color = nk_rgb(255, 120, 0);
+                if (nk_begin(ctx, "SAFE_MODE_OVERLAY", nk_rect((float)primary_fb->width / 2.0f - 100.0f, 5.0f, 200.0f, 35.0f),
+                             NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_BORDER)) {
+                    nk_layout_row_dynamic(ctx, 22, 1);
+                    nk_label_colored(ctx, "SAFE MODE", NK_TEXT_CENTERED, orange_color);
+                }
+                nk_end(ctx);
+            }
+
             nk_rawfb_render(rawfb, nk_rgb(20, 20, 20), 0);
         }
 
@@ -367,16 +385,41 @@ void hal_get_screen_size(int *w, int *h) {
 
 void kernel_main(void) {
     serial_init();
-    serial_printf("[BOOT] Stage 0: Initialized.\n");
+    serial_printf("[PHASE 0] Step 1: The Bootloader Handoff and Registry Mapping.\n");
+
+    if (kernel_file_req.response && kernel_file_req.response->kernel_file) {
+        const char *cmdline = kernel_file_req.response->kernel_file->cmdline;
+        if (cmdline) {
+            serial_printf("[BOOT] Command Line: %s\n", cmdline);
+            if (strstr(cmdline, "safe-mode")) {
+                g_safe_mode = 1;
+                serial_printf("[BOOT] safe-mode flag is set.\n");
+            }
+            if (strstr(cmdline, "debug")) {
+                g_debug_mode = 1;
+                serial_printf("[BOOT] debug flag is set.\n");
+            }
+            if (strstr(cmdline, "nosmp")) {
+                g_nosmp = 1;
+                serial_printf("[BOOT] nosmp flag is set.\n");
+            }
+            if (strstr(cmdline, "exhaustive_logging")) {
+                g_exhaustive_logging = 1;
+                serial_printf("[BOOT] exhaustive_logging flag is set.\n");
+            }
+        }
+    }
 
     if (hhdm_req.response) hhdm_offset = hhdm_req.response->offset;
     if (framebuffer_request.response && framebuffer_request.response->framebuffer_count > 0)
         primary_fb = framebuffer_request.response->framebuffers[0];
 
+    serial_printf("[PHASE 0] Step 4: The Hardware Architecture Frame Setup.\n");
     gdt_init();
     idt_init();
     msr_init();
 
+    serial_printf("[PHASE 0] Step 2: The Core Memory Matrix Allocation.\n");
     if (memmap_req.response) {
         /* Enable SSE early so low-level optimized routines may use XMM
          * instructions during early boot (e.g., optimized memset/memcpy). */
@@ -386,15 +429,19 @@ void kernel_main(void) {
         kpanic("MISSING_MEMMAP");
     }
 
+    serial_printf("[PHASE 0] Step 3: The Critical Kernel Heap Genesis.\n");
     void* phys_heap = pmm_alloc_blocks(8192); // 32MB Heap
     if (!phys_heap) kpanic("HEAP_GENESIS_FAULT");
     void* virt_heap = (void*)((uint64_t)phys_heap + hhdm_offset);
     hal_malloc_init(virt_heap, 8192 * 4096);
 
+    serial_printf("[PHASE 0] Step 5: The Entropy and Security Activation.\n");
     apic_init();
 
+    serial_printf("[PHASE 0] Step 7: Subsystem Threading.\n");
     scheduler_init();
 
+    serial_printf("[PHASE 0] Step 6: Probing I/O Matrix and Driver Orchestration.\n");
     vfs_init();
     hal_storage_init();
     linux_compat_init();
@@ -430,7 +477,13 @@ void kernel_main(void) {
         scheduler_spawn_kernel("MOUSE", mouse_task, NULL);
     }
 
-    scheduler_spawn_kernel("Compliance", comprec_task, NULL);
+    if (!g_safe_mode) {
+        scheduler_spawn_kernel("Compliance", comprec_task, NULL);
+    } else {
+        serial_printf("[BOOT] SAFE MODE active: Compliance service skipped.\n");
+    }
+
+    serial_printf("[PHASE 1] Step 8: The Graphics Subsystem and Input Loop Launch.\n");
     scheduler_spawn_kernel("Environment Manager", environment_manager_entry, NULL);
 
     scheduler_run();
